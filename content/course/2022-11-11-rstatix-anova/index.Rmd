@@ -1,0 +1,314 @@
+---
+title: 使用rstatix包快速进行ANOVA并可视化
+author: 欧阳松
+date: '2022-11-11'
+slug: [rstatix-anova]
+categories:
+  - 单因素方差分析
+  - anova
+  - ANOVA
+tags:
+  - 多个样本两两比较
+  - 多因素方差分析
+  - ANOVA
+---
+
+前面写了[R到底如何做多组样本均数比较及两两比较？](/course/anova/)这个教程，从正态性检验、方差齐性检验和事后检验进行了系统介绍，但是代码比较繁琐，而且还设计了多个R包，本文介绍只用**rstatix**这一个包进行ANOVA分析。教程也可以参考[ANOVA in R: The Ultimate Guide - Datanovia](https://www.datanovia.com/en/lessons/anova-in-r/)这篇文章。
+
+我们可以用经典的内置**ToothGrowth**数据。
+
+## 构建数据
+
+```{r}
+data("ToothGrowth") ## 加载数据
+df <- ToothGrowth ## 重命名数据
+df$dose<-as.factor(df$dose) ## 将剂量dose设置为因子
+```
+
+```{r echo=FALSE}
+knitr::kable(df)
+```
+
+## 数据统计
+
+    library(rstatix) 
+    library(tidyr)
+    ## 按dose分组计算各组的len均值和标准差
+    df %>%
+      group_by(dose) %>%
+      get_summary_stats(len, type = "mean_sd") 
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+library(rstatix) 
+library(tidyr)
+knitr::kable(df %>%
+  group_by(dose) %>%
+  get_summary_stats(len, type = "mean_sd") )
+```
+
+### 简单可视化数据
+
+```{r message=FALSE, warning=FALSE}
+library(ggpubr)
+ggboxplot(df, x = "dose", y = "len")
+```
+
+### 正态性检验
+
+‎可以使用以下两种方法之一检查正态性假设：‎
+
+1.  **‎分析方差分析模型残差‎**‎。以检查所有组的正态性。此方法更容易，并且当您有许多组或每个组的数据点很少时，它非常方便。‎
+
+2.  **‎分别检查每个组的正态性‎**‎。当只有几个组并且每个组有许多数据点时，可以使用此方法。‎
+
+#### 模型残差的正态性检验
+
+首先构建残差的线性模型，以QQ图的形式展示结果，见Figure \@ref(fig:model)所示。
+
+```{r model,fig.align='center',fig.cap="模型残差的QQ图"}
+# 构建线性模型
+model  <- lm(len ~ dose, data = df)
+# 构建残差的QQ图
+ggqqplot(residuals(model))
+```
+
+计算Shapiro-Wilk正态性检验
+
+    shapiro_test(residuals(model))
+
+```{r echo=FALSE}
+knitr::kable(shapiro_test(residuals(model)))
+```
+
+> 在QQ图中，由于所有点都大致沿着参考线落下，因此我们可以假设呈正态分布。这一结论得到了Shapiro Wilk检验的支持。p值不显著（p=0.0798），因此我们可以假设为正态。
+
+------------------------------------------------------------------------
+
+#### 各组的正态性检验
+
+计算各组水平的Shapiro-Wilk检验。如果数据为正态分布，则p值应大于0.05。
+
+    df %>%
+      group_by(dose) %>% 
+      shapiro_test(len)
+
+```{r echo=FALSE}
+knitr::kable(df %>% 
+  group_by(dose) %>% 
+  shapiro_test(len))
+```
+
+> 根据Shapiro-Wilk的正态性检验，各组均为正态分布（p\>0.05）。
+
+请注意，如果样本数量大于 50，则首选正态QQ 图，因为在较大的样本量下，Shapiro-Wilk检验变得非常敏感，即使与正态性有轻微的偏差。
+
+QQ图绘制了给定数据与正态分布之间的相关性。为每组数据绘制QQ图,见Figure \@ref(fig:qq)所示。
+
+```{r qq,fig.align='center',fig.cap="各组数据分布的QQ图"}
+ggqqplot(df, "len", facet.by = "dose")
+```
+
+> 所有点都大致沿着参考线落下。所以我们可以假设数据是正态分布的。
+>
+> 如果对数据的正态性有疑问，可以使用*Kruskal-Wallis*检验，这是单因素ANOVA检验的非参数替代方法。
+
+### 方差齐性检验
+
+1.  *残差结合拟合图‎*‎可用于检查方差的同质性。‎
+
+    ```{r}
+    plot(model, 1)
+    ```
+
+    > ‎在上图中，残差和拟合值（每个组的均值）之间没有明显的关系，结果很好。因此，我们可以假设方差的同质性。‎
+
+2.  ‎也可以使用 ‎*‎Levene 检验‎*‎来检查‎*‎方差的同质性‎*‎：‎
+
+<!-- -->
+
+    df %>% levene_test(len ~ dose)
+
+```{r echo=FALSE}
+knitr::kable(df %>% levene_test(len ~ dose)
+              )
+```
+
+这时，我们要注意，一定要**将dose定义为因子**，否则会因为结果是数字而报错。
+
+> ‎上面的结果中，我们可以看到 p 值\> 0.05，这意味组间方差之间没有显著差异。因此，我们可以假设不同组中方差具有齐性或同质性。‎
+>
+> 在不满足方差齐性假设的情况下，可以使用函数`Welch_ANOVA_test()`函数计算Welch单因素方差分析测试。该测试不需要假设方差相等。
+
+## 计算检验
+
+```{r}
+res.aov<- df %>% anova_test(len ~ dose)
+```
+
+    res.aov
+
+```{r echo=FALSE}
+knitr::kable(res.aov)
+```
+
+在上表中，该列对应于广义eta平方（效应大小）。它测量结果变量（这里是植物）中的变异性比例，可以用预测因子（这里是治疗）来解释。效应大小为0.703（26%）意味着70.3%的变化可归因于剂量条件
+
+> 从上述ANOVA表中可以看出，各组之间存在显著差异（p=9.53e-16），显示为"\*"，F（2，57）=67.416，p=9.53e-16，eta2[g]=0.703。
+>
+> 该结果可以在可视化的时候引用上。
+
+## 事后检验
+
+常用单因素方差分析用于多组间的两两比较的方法是**Tukey事后检验**（而不是简单的t检验）。可用rstati的`tukey_hsd()`函数计算。
+
+> 而对于方差不齐的情况下可以使用**Games Howell事后检验**，即rstati的`games_howell_test` `()`函数
+
+```{r}
+pwc <- tukey_hsd(df, len ~ dose)
+```
+
+    pwc
+
+> 另外，还有几个同等的代码，结果一样
+>
+> df %\>% tukey_hsd(len \~ dose)
+>
+> aov(len \~ dose, data = df) %\>% tukey_hsd()
+
+```{r echo=FALSE}
+knitr::kable(pwc)
+```
+
+## 可视化报告
+
+我们可以将单因素方差分析的结果报告如下：
+
+> 进行单因素方差分析，以评估3个不同剂量组的牙齿生长是否不同：0.5（n=20）、1.0（n=20）和2.0（n=20）。
+>
+> 数据表示为平均值+/-标准差。不同剂量组之间的牙齿生长在统计学上有显著差异，F（2，57）=67.416，p=9.53e-16，广义eta平方=0.703。
+>
+> Tukey事后分析显示，三组数据具有统计学意义（p=0.012）
+
+### 带有p值的箱示图可视化结果
+
+使用`add_xy_position()`函数自动进行两两分组比较，同时确定x和y轴位置。
+
+```{r}
+## 添加各组比较和坐标轴位置
+pwc <- pwc %>% add_xy_position(x = "dose")
+```
+
+```{r echo=FALSE}
+knitr::kable(pwc)
+```
+
+使用stat_pvalue_manual()函数添加两两比较的p值，使用labs()函数添加整体结果和方法
+
+```{r}
+## ggpubr绘图，加整体p值和两两比较p值
+ggboxplot(df, x = "dose", y = "len") +
+    stat_pvalue_manual(pwc,hide.ns = TRUE ) +#隐藏无意义的结果
+    labs(subtitle = get_test_label(res.aov, detailed = TRUE),
+        caption = get_pwc_label(pwc)
+    )
+```
+
+当然，我们也可以适当美化，比如配色，主题什么的，见Figure \@ref(fig:box1)所示。
+
+```{r box1,fig.align='center',fig.cap='各组的两两比较'}
+ggboxplot(df, x = "dose", y = "len",
+          add = 'jitter',color = 'dose',
+          palette = 'lancet', #设置lancet配色
+          ggtheme = theme_bw(), # 设置背景
+          legend='none' ## 去除分组标签
+          ) +stat_pvalue_manual(pwc, hide.ns = TRUE) +
+  labs( subtitle = get_test_label(res.aov, detailed = TRUE), caption = get_pwc_label(pwc))
+```
+
+我们也可以用柱状图来可视化，见Figure \@ref(fig:box2)所示。
+
+```{r box2,fig.align='center',fig.cap='各组的两两比较'}
+ggbarplot(df, x = "dose", y = "len",
+          add = 'mean_sd',fill = 'dose',
+          palette = 'npg', #设置lancet配色
+          ggtheme = theme_pubclean(), # 设置背景
+          legend='none' ## 去除分组标签
+          ) +stat_pvalue_manual(pwc, hide.ns = TRUE) +
+  labs( subtitle = get_test_label(res.aov, detailed = TRUE), caption = get_pwc_label(pwc))
+```
+
+## 放宽方差齐性假设
+
+经典的单因素方差分析检验要求所有组的方差相等。在本例，Levene检验不显著，提示方差齐性假设证明是良好的。
+
+在违反方差齐性假设的情况下，我们如何进行ANOVA检验呢？
+
+在无法假设方差齐性的情况下（即Levene检验显著时），使用Welch单因素检验是标准单单因素方差分析的替代方法。
+
+在这种情况下，可以使用Games-Howell事后检验**或**成对t检验（不假设方差相等）来比较所有可能的群体差异组合。
+
+```{r}
+# Welch One way ANOVA test
+res.aov2 <- df %>% welch_anova_test(len ~ dose)
+# Pairwise comparisons (Games-Howell)
+pwc2 <- df %>% games_howell_test(len ~ dose)
+# 可视化: box plots with p-values
+pwc2 <- pwc2 %>% add_xy_position(x = "dose", step.increase = 1)
+
+ggboxplot(df, x = "dose", y = "len",
+          add = 'jitter',color = 'dose',
+          palette = 'lancet', #设置lancet配色
+          ggtheme = theme_bw(), # 设置背景
+          legend='none' ## 去除分组标签
+          )  +
+  stat_pvalue_manual(pwc2, hide.ns = TRUE) +
+  labs(
+    subtitle = get_test_label(res.aov2, detailed = TRUE),
+    caption = get_pwc_label(pwc2)
+    )
+```
+
+## 两组方法的比较
+
+将两种方法进行比较，见Figure \@ref(fig:fig2)所示。
+
+```{r fig2,fig.align='center',fig.cap="两种方法的比较"}
+p1<-ggboxplot(df, x = "dose", y = "len",
+          add = 'jitter',color = 'dose',
+          palette = 'lancet', #设置lancet配色
+          ggtheme = theme_bw(), # 设置背景
+          legend='none', ## 去除分组标签
+          title = 'ANOVA text') +stat_pvalue_manual(pwc, hide.ns = TRUE,label = 'p.adj') +
+  labs( subtitle = get_test_label(res.aov, detailed = TRUE), caption = get_pwc_label(pwc))
+
+p2<-ggboxplot(df, x = "dose", y = "len",
+          add = 'jitter',color = 'dose',
+          palette = 'lancet', #设置lancet配色
+          ggtheme = theme_bw(), # 设置背景
+          legend='none', ## 去除分组标签
+         title = 'Welch one-way test' )  +
+  stat_pvalue_manual(pwc2, hide.ns = TRUE,label = 'p.adj') +
+  labs(subtitle = get_test_label(res.aov2, detailed = TRUE),
+    caption = get_pwc_label(pwc2)
+    )
+## 拼图
+cowplot::plot_grid(p1,p2)
+```
+
+当然，如果使用放宽条件的情况，其实还有一个更简单的办法，就是直接使用**ggstatsplot**这个包
+
+```{r}
+library(ggstatsplot)
+p3<-ggbetweenstats(df,dose,len,p.adjust.method = 'none')
+p3
+```
+
+```{r}
+cowplot::plot_grid(p3,p2)
+```
+
+可以看到结果是一样的.
+
+------------------------------------------------------------------------
+
+另外，还有双因素、三因素ANOVA也都是可以从教程中找到的。

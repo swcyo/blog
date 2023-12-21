@@ -1,0 +1,89 @@
+baseurl: "https://swcyo.rbind.io/"
+languageCode: "en-US"
+title: "Song Ou-Yang | 欧阳松"
+theme: "hugo-paged"
+ignoreFiles: ["\\.Rmd$", "\\.Rmarkdown$", "_cache$"]
+hasCJKLanguage: true
+enableEmoji: true
+footnotereturnlinkcontents: "↩"
+
+outputs:
+  home: [html, rss, json]
+
+permalinks:
+  cn: "/:sections/:year/:month/:slug/"
+  en: "/:sections/:year/:month/:slug/"
+
+menu:
+  main:
+    - name: "首页"
+      url: "/"
+      weight: 1
+    - name: "R语言学习"
+      url: "/course/"
+      weight: 2
+    - name: "随笔博文"
+      url: "/post/"
+      weight: 3
+    - name: "科研成果"
+      url: "/publication/"
+      weight: 4
+    - name: "科研软件"
+      url: "/software/"
+      weight: 5
+    - name: "友情链接"
+      url: "/link/"
+      weight: 6
+    - name: "博文标签"
+      url: "/tags/"
+      weight: 7
+    - name: "博文类别"
+      url: "/categories/"
+      weight: 8
+
+
+
+
+params:
+  description: "A surgeon studying R; 一个学R的外科医生"
+  footer: "&copy; [Song Ou-Yang](/) 2021 - {Year}"
+  customJS:
+    - "comment-utils.js"
+    - "hash-notes.js"
+    - "toggle-notes.js"
+    - "post-nav.js"
+  githubContentURL: "https://github.com/swcyo/blog2023/edit/master/content/"
+  twitterImage: "/images/logo.png"
+
+  logo:
+    en:
+      img: "/images/logo.png"
+      url: "/"
+      alt: "Song Ou-Yang"
+
+  author:
+    en: "Song Ou-Yang"
+    cn: "欧阳松"
+
+  lang:
+    edit:
+      cn: "编辑"
+    license:
+      cn: "版权"
+    subscribe:
+      cn: "订阅"
+    search:
+      cn: "搜索"
+    top:
+      cn: "登顶"
+
+markup:
+  highlight:
+    codeFences: false
+  goldmark:
+    renderer:
+      unsafe: true
+    parser:
+      autoHeadingIDType: blackfriday
+  tableOfContents:
+    startLevel: 1
