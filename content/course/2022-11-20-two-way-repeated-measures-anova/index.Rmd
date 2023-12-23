@@ -11,7 +11,7 @@ tags:
   - 多因素方差分析
 ---
 
-我之前写了一个[R语言处理CCK8或MTT数据，一步绘制生长曲线](/course/r-cck8-mtt/)的教程，现在看来还是粗躁的很，虽然也可视化了结果，但是**统计学方法估计是不科学的**，最近看了[Repeated Measures ANOVA in R: The Ultimate Guide](https://www.datanovia.com/en/lessons/repeated-measures-anova-in-r/#two-way-repeated-measures-anova)这个教程，加上仙桃学术的[示例数据](https://bioinfomatics.xiantao.love/biotools/data/demo/free/linePlot/%E6%8A%98%E7%BA%BF%E5%9B%BE.xlsx)和[脚本代码](https://bioinfomatics.xiantao.love/biotools/code/open/lineplot.R)，对两组的折线图的分析又了更新的理解，并且写了一篇简书教程[R进行两因素重复测量方差分析并可视化（双组折线图）](https://www.jianshu.com/p/9eae52c4a090?v=1668870325891)。也就是说这是一种**两因素重复测量方差分析**（**Two-way repeated measures ANOVA**）
+我之前写了一个[R语言处理CCK8或MTT数据，一步绘制生长曲线](/course/2021-08-14-r-cck8-mtt/r-cck8/)的教程，现在看来还是粗躁的很，虽然也可视化了结果，但是**统计学方法估计是不科学的**，最近看了[Repeated Measures ANOVA in R: The Ultimate Guide](https://www.datanovia.com/en/lessons/repeated-measures-anova-in-r/#two-way-repeated-measures-anova)这个教程，加上仙桃学术的[示例数据](https://bioinfomatics.xiantao.love/biotools/data/demo/free/linePlot/%E6%8A%98%E7%BA%BF%E5%9B%BE.xlsx)和[脚本代码](https://bioinfomatics.xiantao.love/biotools/code/open/lineplot.R)，对两组的折线图的分析又了更新的理解，并且写了一篇简书教程[R进行两因素重复测量方差分析并可视化（双组折线图）](https://www.jianshu.com/p/9eae52c4a090?v=1668870325891)。也就是说这是一种**两因素重复测量方差分析**（**Two-way repeated measures ANOVA**）
 
 还是用之间的数据运行一下，原始数据如下：
 

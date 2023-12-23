@@ -1,0 +1,185 @@
+---
+title: 可视化矩阵的相关性分析之ggcorrplot
+author: 欧阳松
+date: '2021-10-18'
+slug: ggcorrplot
+categories:
+  - ggcorrplot
+tags:
+  - 相关性分析
+---
+
+<script src="{{< blogdown/postref >}}index.zh_files/header-attrs/header-attrs.js"></script>
+<script src="{{< blogdown/postref >}}index.zh_files/htmlwidgets/htmlwidgets.js"></script>
+<link href="{{< blogdown/postref >}}index.zh_files/datatables-css/datatables-crosstalk.css" rel="stylesheet" />
+<script src="{{< blogdown/postref >}}index.zh_files/datatables-binding/datatables.js"></script>
+<script src="{{< blogdown/postref >}}index.zh_files/jquery/jquery-3.6.0.min.js"></script>
+<link href="{{< blogdown/postref >}}index.zh_files/dt-core/css/jquery.dataTables.min.css" rel="stylesheet" />
+<link href="{{< blogdown/postref >}}index.zh_files/dt-core/css/jquery.dataTables.extra.css" rel="stylesheet" />
+<script src="{{< blogdown/postref >}}index.zh_files/dt-core/js/jquery.dataTables.min.js"></script>
+<link href="{{< blogdown/postref >}}index.zh_files/crosstalk/css/crosstalk.css" rel="stylesheet" />
+<script src="{{< blogdown/postref >}}index.zh_files/crosstalk/js/crosstalk.min.js"></script>
+
+
+<p>前面介绍了corrplot可视化相关性分析，还有一个比较简单的包是ggcorrplot也可以绘制好看的相关性分析图，官网有一个很好的介绍文章（但是有时候打不开）</p>
+<p><a href="http://sthda.com/english/wiki/ggcorrplot-visualization-of-a-correlation-matrix-using-ggplot2">ggcorrplot: Visualization of a correlation matrix using ggplot2 - Easy Guides - Wiki - STHDA</a></p>
+<p>国内也可以参考如下文章：</p>
+<p><a href="https://www.jianshu.com/p/97f3420ac0f5">R packages|ggcorrplot : 相关矩阵的可视化(热图) - 简书 (jianshu.com)</a></p>
+<p><a href="https://www.jianshu.com/p/7fd01d00f741">R语言可视化学习笔记之相关矩阵可视化包ggcorrplot - 简书 (jianshu.com)</a></p>
+<p>在R中可视化相关矩阵(correlation matrix)的最简单方法是使用corrplot包。另一种方法是在ggally包中使用函数ggcorr()。 但是，ggally包不提供用于重新排序相关矩阵或显示显著水平的选项。而基于<strong>ggplot2</strong>包以及<strong>corrplot</strong>包的相关矩阵可视化包<strong>ggcorrplot</strong>，<strong>ggcorrplot</strong>包提供对相关矩阵重排序以及在相关图中展示显著性水平的方法，同时也能计算相关性p-value</p>
+<hr />
+<div id="ggcorrplot的主要特征" class="section level2">
+<h2>ggcorrplot的主要特征</h2>
+<p>ggcorrplot具有重新排序相关矩阵以及在热图上显示显著性水平的功能。此外，它还包括用于计算相关性p值的矩阵的功能。</p>
+<pre><code>ggcorrplot(): 使用ggplot2相关矩阵可视化。
+
+cor_pmat(): 计算相关性的p值。</code></pre>
+</div>
+<div id="ggcorrplot下载与加载" class="section level2">
+<h2>ggcorrplot下载与加载</h2>
+<pre><code>#CRAN     
+install.packages(&quot;ggcorrplot&quot;)
+#GitHub
+if(!require(devtools)) install.packages(&quot;devtools&quot;)
+devtools::install_github(&quot;kassambara/ggcorrplot&quot;)</code></pre>
+<p>接下来，我们将使用R包<strong>ggcorrplot</strong>可视化相关矩阵，依旧使用mrcars数据，现按官网的教程跑一下</p>
+</div>
+<div id="计算相关矩阵" class="section level2">
+<h2><strong>计算相关矩阵</strong></h2>
+<pre class="r"><code>library(ggcorrplot)
+data(mtcars)
+corr &lt;- round(cor(mtcars), 3) # 使用cor()函数计算相关性，显示3位小数点</code></pre>
+<div id="htmlwidget-1" style="width:100%;height:auto;" class="datatables html-widget"></div>
+<script type="application/json" data-for="htmlwidget-1">{"x":{"filter":"none","vertical":false,"data":[["mpg","cyl","disp","hp","drat","wt","qsec","vs","am","gear","carb"],[1,-0.852,-0.848,-0.776,0.681,-0.868,0.419,0.664,0.6,0.48,-0.551],[-0.852,1,0.902,0.832,-0.7,0.782,-0.591,-0.811,-0.523,-0.493,0.527],[-0.848,0.902,1,0.791,-0.71,0.888,-0.434,-0.71,-0.591,-0.556,0.395],[-0.776,0.832,0.791,1,-0.449,0.659,-0.708,-0.723,-0.243,-0.126,0.75],[0.681,-0.7,-0.71,-0.449,1,-0.712,0.091,0.44,0.713,0.7,-0.091],[-0.868,0.782,0.888,0.659,-0.712,1,-0.175,-0.555,-0.692,-0.583,0.428],[0.419,-0.591,-0.434,-0.708,0.091,-0.175,1,0.745,-0.23,-0.213,-0.656],[0.664,-0.811,-0.71,-0.723,0.44,-0.555,0.745,1,0.168,0.206,-0.57],[0.6,-0.523,-0.591,-0.243,0.713,-0.692,-0.23,0.168,1,0.794,0.058],[0.48,-0.493,-0.556,-0.126,0.7,-0.583,-0.213,0.206,0.794,1,0.274],[-0.551,0.527,0.395,0.75,-0.091,0.428,-0.656,-0.57,0.058,0.274,1]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th> <\/th>\n      <th>mpg<\/th>\n      <th>cyl<\/th>\n      <th>disp<\/th>\n      <th>hp<\/th>\n      <th>drat<\/th>\n      <th>wt<\/th>\n      <th>qsec<\/th>\n      <th>vs<\/th>\n      <th>am<\/th>\n      <th>gear<\/th>\n      <th>carb<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"columnDefs":[{"className":"dt-right","targets":[1,2,3,4,5,6,7,8,9,10,11]},{"orderable":false,"targets":0}],"order":[],"autoWidth":false,"orderClasses":false}},"evals":[],"jsHooks":[]}</script>
+<pre class="r"><code>#用ggcorrplot包提供的函数cor_pmat()计算相关性的P值矩阵
+p.mat &lt;- cor_pmat(mtcars)
+head(p.mat[, 1:4])</code></pre>
+<pre><code>##               mpg          cyl         disp           hp
+## mpg  0.000000e+00 6.112687e-10 9.380327e-10 1.787835e-07
+## cyl  6.112687e-10 0.000000e+00 1.802838e-12 3.477861e-09
+## disp 9.380327e-10 1.802838e-12 0.000000e+00 7.142679e-08
+## hp   1.787835e-07 3.477861e-09 7.142679e-08 0.000000e+00
+## drat 1.776240e-05 8.244636e-06 5.282022e-06 9.988772e-03
+## wt   1.293959e-10 1.217567e-07 1.222320e-11 4.145827e-05</code></pre>
+</div>
+<div id="相关矩阵可视化" class="section level2">
+<h2><strong>相关矩阵可视化</strong></h2>
+<pre class="r"><code># 可视化相关矩阵
+# 默认作图，method = &quot;square&quot;
+ggcorrplot(corr)</code></pre>
+<p><img src="{{< blogdown/postref >}}index.zh_files/figure-html/unnamed-chunk-4-1.png" width="672" /></p>
+<pre class="r"><code># 调整矩形热图为圆形，method = &quot;circle&quot;
+ggcorrplot(corr, method = &quot;circle&quot;)</code></pre>
+<pre><code>## Warning: `guides(&lt;scale&gt; = FALSE)` is deprecated. Please use `guides(&lt;scale&gt; =
+## &quot;none&quot;)` instead.</code></pre>
+<p><img src="{{< blogdown/postref >}}index.zh_files/figure-html/unnamed-chunk-5-1.png" width="672" /></p>
+<pre class="r"><code># 重新排序相关矩阵，使用等级聚类（hierarchical clustering）
+ggcorrplot(corr, hc.order = TRUE, outline.col = &quot;white&quot;) #方形或圆圈的轮廓颜色。 默认值为“灰色”。</code></pre>
+<p><img src="{{< blogdown/postref >}}index.zh_files/figure-html/unnamed-chunk-6-1.png" width="672" /></p>
+<pre class="r"><code>#控制矩阵形状
+#下三角形
+ggcorrplot(corr, hc.order = TRUE, type = &quot;lower&quot;, #下三角形
+           outline.color = &quot;white&quot;)</code></pre>
+<p><img src="{{< blogdown/postref >}}index.zh_files/figure-html/unnamed-chunk-7-1.png" width="672" /></p>
+<pre class="r"><code>#上三角形
+ggcorrplot(corr, hc.order = TRUE, type = &quot;upper&quot;, #上三角形
+           outline.color = &quot;white&quot;)</code></pre>
+<p><img src="{{< blogdown/postref >}}index.zh_files/figure-html/unnamed-chunk-8-1.png" width="672" /></p>
+<pre class="r"><code>#更改颜色以及主题
+ggcorrplot(corr, hc.order = TRUE, type = &quot;lower&quot;, 
+           outline.color = &quot;white&quot;, 
+           ggtheme = ggplot2::theme_gray, 
+           colors = c(&quot;#6D9EC1&quot;, &quot;white&quot;, &quot;#E46726&quot;))</code></pre>
+<p><img src="{{< blogdown/postref >}}index.zh_files/figure-html/unnamed-chunk-9-1.png" width="672" /></p>
+<pre class="r"><code>#添加相关系数
+ggcorrplot(corr, hc.order = TRUE, type = &quot;lower&quot;, 
+           lab = TRUE)</code></pre>
+<p><img src="{{< blogdown/postref >}}index.zh_files/figure-html/unnamed-chunk-10-1.png" width="672" /></p>
+<pre class="r"><code>#增加显著性水平，不显著的话就不添加了
+ggcorrplot(corr, hc.order = TRUE, type = &quot;lower&quot;, 
+           p.mat = p.mat)</code></pre>
+<p><img src="{{< blogdown/postref >}}index.zh_files/figure-html/unnamed-chunk-11-1.png" width="672" /></p>
+<pre class="r"><code>#将不显著的色块设置成空白
+ggcorrplot(corr, p.mat = p.mat, hc.order=TRUE, type = &quot;lower&quot;, 
+           insig = &quot;blank&quot;)</code></pre>
+<p><img src="{{< blogdown/postref >}}index.zh_files/figure-html/unnamed-chunk-12-1.png" width="672" /></p>
+</div>
+<div id="行列一致美化" class="section level2">
+<h2><strong>行列一致美化</strong></h2>
+<p>即同一个文件内的指标，或两个文件的指标数目一致分析，是一个i*j（i=j）的矩阵；</p>
+<pre class="r"><code>library(ggcorrplot)
+library(ggthemes)
+ggcorrplot(corr, method = c(&quot;square&quot;), type = c(&quot;full&quot;), 
+           ggtheme = ggplot2::theme_void, title = &quot; &quot;, 
+           show.legend = TRUE, legend.title = &quot;Corr_r2&quot;, show.diag = T, 
+           colors = c(&quot;#839EDB&quot;, &quot;white&quot;, &quot;#FF8D8D&quot;), outline.color = &quot;white&quot;, 
+           hc.order = T, hc.method = &quot;single&quot;, lab = F, lab_col = &quot;black&quot;, 
+           lab_size = 2, p.mat = NULL, sig.level = 0.05, insig = c(&quot;pch&quot;), 
+           pch = 4, pch.col = &quot;white&quot;, pch.cex = 4.5, tl.cex = 12, 
+           tl.col = &quot;black&quot;, tl.srt = 45, digits = 2)</code></pre>
+<p><img src="{{< blogdown/postref >}}index.zh_files/figure-html/unnamed-chunk-13-1.png" width="672" /></p>
+<pre class="r"><code>ggcorrplot(corr, method = &quot;square&quot;, type = &quot;upper&quot;, ggtheme = ggplot2::theme_void, 
+           title = &quot;&quot;, show.legend = TRUE, legend.title = &quot;Corr&quot;, show.diag = T, 
+           colors = c(&quot;#839EDB&quot;, &quot;white&quot;, &quot;#FF8D8D&quot;), outline.color = &quot;white&quot;, 
+           hc.order = T, hc.method = &quot;single&quot;, lab = F, lab_col = &quot;black&quot;, 
+           lab_size = 3, p.mat = p.mat, sig.level = 0.05, insig = c(&quot;pch&quot;), 
+           pch = 22, pch.col = &quot;white&quot;, pch.cex = 4, tl.cex = 12, 
+           tl.col = &quot;black&quot;, tl.srt = 0, digits = 2)</code></pre>
+<p><img src="{{< blogdown/postref >}}index.zh_files/figure-html/unnamed-chunk-14-1.png" width="672" /></p>
+<p>上图中需要注意的是：格子中含有小方框的格子表示该相关性不显著（0.05），且格子中小方框颜色表示p value 大小，可修改参数为：pch = 22。</p>
+<pre class="r"><code>ggcorrplot(corr, method = &quot;circle&quot;, type = &quot;full&quot;, ggtheme = ggplot2::theme_void,
+           title = &quot;&quot;, 
+           show.legend = TRUE, legend.title = &quot;Corr&quot;, show.diag = F, 
+           colors = c(&quot;#839EDB&quot;, &quot;white&quot;, &quot;#FF8D8D&quot;), outline.color = &quot;white&quot;, 
+           hc.order = T, hc.method = &quot;complete&quot;, lab = FALSE, lab_col = &quot;black&quot;, 
+           lab_size = 4, p.mat = NULL, sig.level = 0.05, insig = c(&quot;pch&quot;, &quot;blank&quot;), 
+           pch = 4, pch.col = &quot;black&quot;, pch.cex = 5, tl.cex = 12, 
+           tl.col = &quot;black&quot;, tl.srt = 45, digits = 2)</code></pre>
+<pre><code>## Warning: `guides(&lt;scale&gt; = FALSE)` is deprecated. Please use `guides(&lt;scale&gt; =
+## &quot;none&quot;)` instead.</code></pre>
+<p><img src="{{< blogdown/postref >}}index.zh_files/figure-html/unnamed-chunk-15-1.png" width="672" /></p>
+<pre class="r"><code>ggcorrplot(corr, method = &quot;circle&quot;, type = &quot;upper&quot;, ggtheme = ggplot2::theme_bw(), 
+           title = &quot;&quot;, 
+           show.legend = TRUE, legend.title = &quot;Corr&quot;, show.diag = T, 
+           colors = c(&quot;#839EDB&quot;, &quot;white&quot;, &quot;#FF8D8D&quot;), outline.color = &quot;white&quot;, 
+           hc.order = T, hc.method = &quot;complete&quot;, lab = T, lab_col = &quot;black&quot;, 
+           lab_size = 2, p.mat = p.mat, sig.level = 0.05, insig = &quot;blank&quot;, 
+           pch = 4, pch.col = &quot;black&quot;, pch.cex = 5, tl.cex = 12, 
+           tl.col = &quot;black&quot;, tl.srt = 45, digits = 2)</code></pre>
+<pre><code>## Warning: `guides(&lt;scale&gt; = FALSE)` is deprecated. Please use `guides(&lt;scale&gt; =
+## &quot;none&quot;)` instead.</code></pre>
+<p><img src="{{< blogdown/postref >}}index.zh_files/figure-html/unnamed-chunk-16-1.png" width="672" /></p>
+</div>
+<div id="行列不一致美化" class="section level2">
+<h2><strong>行列不一致美化</strong></h2>
+<p>行列不一致，在这里借助psych包来计算相关性和p value。</p>
+<pre class="r"><code>library(ggcorrplot)
+library(ggthemes)
+library(psych)</code></pre>
+<pre><code>## 
+## 载入程辑包：&#39;psych&#39;</code></pre>
+<pre><code>## The following objects are masked from &#39;package:ggplot2&#39;:
+## 
+##     %+%, alpha</code></pre>
+<pre class="r"><code>data&lt;-mtcars
+data1 &lt;- data[c(1:5)]
+data2 &lt;- data[c(6:11)] #刻意截取不一致
+
+cor &lt;- corr.test(data1,data2,method = &quot;spearman&quot;,adjust = &quot;BH&quot;,ci = F)
+cmt&lt;-cor$r
+pmt&lt;-cor$p.adj</code></pre>
+<pre class="r"><code>ggcorrplot(cmt,method = &quot;circle&quot;,outline.color = &quot;white&quot;,
+           ggtheme = theme_bw(),colors = c(&quot;#839EDB&quot;, &quot;white&quot;, &quot;#FF8D8D&quot;),lab = T,
+           lab_size=2,
+           p.mat=pmt,insig=&quot;pch&quot;,pch.col = &quot;red&quot;, pch.cex = 3, tl.cex = 12)</code></pre>
+<pre><code>## Warning: `guides(&lt;scale&gt; = FALSE)` is deprecated. Please use `guides(&lt;scale&gt; =
+## &quot;none&quot;)` instead.</code></pre>
+<p><img src="{{< blogdown/postref >}}index.zh_files/figure-html/unnamed-chunk-18-1.png" width="672" /></p>
+<pre class="r"><code>ggcorrplot(cmt,method = &quot;circle&quot;,outline.color = &quot;white&quot;,
+           ggtheme = theme_bw(),colors = c(&quot;#839EDB&quot;, &quot;white&quot;, &quot;#FF8D8D&quot;),
+           lab = T,lab_size=2,
+           p.mat = pmt, insig= &quot;blank&quot;, pch.col = &quot;red&quot;, pch.cex = 3, tl.cex = 12)</code></pre>
+<pre><code>## Warning: `guides(&lt;scale&gt; = FALSE)` is deprecated. Please use `guides(&lt;scale&gt; =
+## &quot;none&quot;)` instead.</code></pre>
+<p><img src="{{< blogdown/postref >}}index.zh_files/figure-html/unnamed-chunk-19-1.png" width="672" /></p>
+</div>

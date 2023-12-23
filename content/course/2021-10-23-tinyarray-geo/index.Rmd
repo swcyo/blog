@@ -1,0 +1,137 @@
+---
+title: tinyarray处理GEO差异分析超简单教程
+author: 欧阳松
+date: '2021-10-23'
+slug: tinyarray-geo
+categories:
+  - tinyarray
+tags:
+  - GEO
+hideToc: yes
+---
+
+之前我介绍了"[**tinyarray：一个几乎能满足我所有生信需求的包**](/course/tinyarray/)"的教程，当时**tinyarray**还没被CRAN收录，目前已经收录，可喜可贺，现在介绍一下处理GEO数据有多简洁吧，不需要注释ID，也不需要另计算。
+
+以GSE120736为列进行说明，差异分析可以做两组的，也可以做多组的，具体的大家可以自己深入研究。
+
+### 数据的下载
+
+**tinyarray**集成了**GEOquery**和**AnnoProbe**两个包的函数，所以如果下载GEO数据，需要先安装这两个包，否则不能下载，GEOquery在Bioc上，AnnoProbe在CRAN上，只需要`geo_download()`函数即可下载数据，并且整理成矩阵、临床表型和gpl注释平台，非常方便。
+
+```{r}
+library(tinyarray)
+geo120736 = geo_download("GSE120736",
+                         destdir=tempdir(),
+                         by_annopbrobe = T  ### 默认为F，设置为T调用AnnoProbe
+                         )
+### AnnoProbe是国内的一个GEO镜像，不过有些数据没有收录，因此有些GSE提示不存在，这种情况下只能设置by_annopbrobe = F
+```
+
+### 检验基因表达矩阵的分布
+
+一般情况下我们需要看基因表达矩阵是否在一条线上，首先用boxplot观察一下基因分布，如果不在一条线上话需要进行校正，我们可以用**limma**包的`normalizeBetweenArrays()`函数进行校正，这里暂时不演示。
+
+    boxplot(geo120736$exp) ## 可以看到数据分布很整齐，不需要校正
+    geoxxxx$exp=limma::normalizeBetweenArrays(geoxxxx$exp)  ## 如果数据不齐的话，可以用这个函数校正
+
+### 判断基因表达矩阵是否log2化
+
+有两种办法可以判断
+
+1.  range()函数判断，一般在20以内的基本都是log2转化后的，可以看到结果比较符合20以内
+
+    ```{r}
+    range(geo120736$exp)
+    ```
+
+2.  GEO2R官网函数自动处理，如果没有log2化会自动进行log2处理，如果处理过了提示不需要转换
+
+```{r}
+ex <- geo120736$exp
+qx <- as.numeric(quantile(ex, c(0., 0.25, 0.5, 0.75, 0.99, 1.0), na.rm=T))
+LogC <- (qx[5] > 100) ||
+  (qx[6]-qx[1] > 50 && qx[2] > 0) ||
+  (qx[2] > 0 && qx[2] < 1 && qx[4] > 1 && qx[4] < 2)
+
+if (LogC) { ex[which(ex <= 0)] <- NaN
+ geo120736$exp<- log2(ex)
+print("log2 transform finished")}else{print("log2 transform not needed")}
+
+remove(ex,qx,LogC)  # 删除多余的参数
+```
+
+可以看到两种方法都提示不需要进行log2转换，所以已经转换好了
+
+### 查看临床表型
+
+如果数据下载时就可以处理过了，所以查看临床表型非常简单，用一个`$`符合即可提取。
+
+```{r}
+ph120736 <-geo120736$pd
+DT::datatable(head(ph120736))
+```
+
+### 获取ID注释
+
+使用 **AnnoProbe**的`idmap()`函数自动注释，当然有些平台可能没有收录，那就需要手动注释
+
+```{r}
+ids120736 <- AnnoProbe::idmap(geo120736$gpl,## 提取注释平台信息
+                             destdir = tempdir())
+```
+
+### 进行分组
+
+多个分组的话可以用**stringr**包s`tr_detect()`函数进行关键词的提取并定义，比如我们按invasiveness进行分组，可以看到数据中有*non-muscle invasive*、*muscle invasive*和*Not determined*三种分组，我们可以定义分组并设置成因子形式，这里要主要，参照组要放在前面，对照组放在后面。
+
+```{r}
+group_list=ifelse(stringr::str_detect(ph120736$`invasiveness:ch1`,"non-muscle invasive"),"NMIBC",
+                  ifelse(stringr::str_detect(ph120736$`invasiveness:ch1`,"muscle invasive"),"MIBC",
+                           "other"))
+group_list=factor(group_list,levels = c('NMIBC','MIBC','other')) ##对照在前
+```
+
+### 多个分组的差异分析
+
+由于GSE120736有多组信息，因此可以进行多组的差异分析，使用`multi_deg()`函数
+
+> 如果是两个分组的话，那么需要使用的是`get_deg()`函数或者`get_deg_all()`函数
+
+**tinyarray**还提供了一个`multi_deg_all()`函数，可以一次性计算并整合成list，建议使用这个函数一步法分析
+
+```{r}
+dcp120736=multi_deg_all(geo120736$exp,group_list,ids120736)
+```
+
+其实`multi_deg_all()`函数可设置的参数也很多，包括了转换为entriz基因名（用于富集分析），还可以注释标签、显示行名、基因数量（用于热图的绘制）
+
+---
+
+点开这个数据可以发现很多信息，包括了计算好的差异分析结果（deg），还有上调、下调、无意义的基因列表（cgs），并且都已经注释好了，同时还有一个plots，包含了热图、PCA图、维恩图和多组差异分析的火山图，火山图还给你自动计算了上下调基因数量，配色也是相当的素雅，见Figure \@ref(fig:plots)所示。
+
+```{r plots,fig.align='center',fig.cap="多个图的整合"}
+dcp120736$plots
+```
+
+当然我们可以使用draw_volcano()函数或者draw_volcano2()函数提取两组或者多组的差异分析火山图
+
+比如两组的火山图，见Figure \@ref(fig:vol1)所示
+
+```{r vol1,fig.align='center',fig.cap="两组的火山图"}
+draw_volcano(dcp120736$deg$`MIBC-NMIBC`,pkg = 4) # pkg=4为limma法
+```
+
+多组的火山图，见Figure \@ref(fig:vol2)
+
+```{r vol2,fig.align='center',fig.cap="多组的火山图"}
+draw_volcano2(dcp120736$deg)
+```
+
+还可以提取热图等
+
+### 快速的KEGG富集分析
+
+调用**clusterProfiler**，可以一次性将上调和下调基因进行KEGG的富集分析，并且同时计算上、下调，按柱状图显示，这个自己演示吧，这里只放出代码
+
+    p1<-double_enrich(20736$deg$`MIBC-NMIBC`)
+    p1

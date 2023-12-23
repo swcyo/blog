@@ -1,0 +1,100 @@
+---
+title: 多个基因的生存分析曲线一步绘制法
+author: 欧阳松
+date: '2021-09-12'
+slug: multi-km-facet
+categories:
+  - 教程
+  - TCGA
+  - R
+tags:
+  - 生存分析
+---
+
+<script src="{{< blogdown/postref >}}index_files/header-attrs/header-attrs.js"></script>
+
+
+<p>有时候你通过各种挖掘，筛选出了一些基因，你可能需要对这些基因进行生存分析，常规的办法可能要去下载所有的基因表达量和临床表型，然后再去一个个分析。说真的，这样很低效，我们可以利用<strong>survminer</strong>包的<code>ggsurvplot_facet()</code>函数进行分面绘制，类似于ggolot2的facet。</p>
+<div id="多基因生存分析数据的获得" class="section level2">
+<h2>多基因生存分析数据的获得</h2>
+<p>我建议去xena浏览器的可视化卡片去直接筛选数据，这样可以节省很多很多时间，而且我建议你使用TPM的基因表达定量，在xena上有TCGA和GDC的hub，但是单位都不是TPM，而含有TPM的基因单位和生存数据保存在Pan-Cancer Atlas Hub里面。</p>
+<p>我们使用<a href="https://xena.hiplot.com.cn/">xena的中国镜像站</a>登录网址:</p>
+<ul>
+<li><p>第一列输入：<strong>TCGA Pan-Cancer</strong></p></li>
+<li><p>第二列在Phenotypic，勾选<strong>cancer type abbreviation</strong>、<strong>sample_type</strong>、<strong>OS</strong>和<strong>OS.time</strong>（当然还有别的生存时间和状态，按需下载）</p></li>
+<li><p>后续列在Genomic里输入需要的基因名，<strong>gene expression RNAseq</strong>勾选<strong>TOIL RSEM tpm</strong></p></li>
+<li><p>可以在上方的文本框内输入所要的肿瘤缩写（如BLCA）后点击Filter筛选当前肿瘤，继续输入Primary Tumor提取肿瘤样本</p></li>
+<li><p>点击下载，保存为“data.tsv”</p></li>
+</ul>
+<p>这里需要解释一下，由于肿瘤的生存分析不应该设计正常样本，最好也不设计转移样本，所以我们要将“Primary Tumor”单独过滤除了。比如我随便输入了（RFC1、RFC2、RFC3、RCF4、RFC5、BEST1、BEST、BEST3和BEST4）九个基因，想看看这九个基因在BLCA中的OS生存曲线，示例数据见<a href="/course/multi-km-facet/data.tsv">data.tsv</a>。</p>
+</div>
+<div id="数据的处理" class="section level2">
+<h2>数据的处理</h2>
+<p>我们首先读取这个tsv表格，看看前几列的数据，其中表中部分基因的表达量是NA，我们需要去除NA值，然后把不需要的sample列去除</p>
+<pre><code>data&lt;-read.csv(&quot;/data.tsv&quot;,sep=&quot;\t&quot;,row.names = 1,header = T)
+data[1:10,1:10]
+data&lt;-na.omit(data)
+data&lt;-data[,-1]</code></pre>
+<p>我们一般按基因表达定位的中位数进行分组，这里有九个基因，我们可以设置一个函数，然后合并。</p>
+<pre class="r"><code>## 设置批量函数
+keep&lt;-function(x){
+  ifelse(x&gt;median(x),&quot;High&quot;,&quot;Low&quot;)
+}
+
+data2&lt;-apply(data[5:ncol(data)], 2, keep) #从6列开始批量运行
+
+#将生存信息(Time，Status)与High/Low分类好的矩阵合并
+survival&lt;-cbind(data[,1:2],data2)
+colnames(survival)&lt;-c(&#39;status&#39;,&#39;time&#39;,&#39;RFC1&#39;,&#39;RFC2&#39;,&#39;RCF3&#39;,&#39;RFC4&#39;,&#39;RFC5&#39;,&#39;BEST1&#39;,&#39;BEST2&#39;,&#39;BEST3&#39;,&#39;BEST4&#39;) #重命名一下表格</code></pre>
+<p>接下来，我们需要将短数据，转换为长数据。</p>
+<pre class="r"><code>library(reshape)
+survival2&lt;-melt(survival,id.vars=c(&quot;status&quot;,&quot;time&quot;))</code></pre>
+</div>
+<div id="多基因生存曲线分面绘制" class="section level2">
+<h2>多基因生存曲线分面绘制</h2>
+<p>进行一步批量生存分析，最终结果见图<a href="#fig:km">1</a>所示</p>
+<pre><code>library(survival)
+library(survminer)</code></pre>
+<pre class="r"><code>fit&lt;- survfit(Surv(time, status) ~ value, data = survival2)
+
+ggsurvplot_facet(fit,survival2,
+                 palette = &quot;lancet&quot;,
+                 linetype=3,
+                 pval = T,pval.method = T,
+                 conf.int = T,conf.int.style=&#39;step&#39;,
+                 surv.median.line = &quot;hv&quot;,
+                 scales = &quot;free&quot;,
+                 short.panel.labs = T,
+                 facet.by = &quot;variable&quot;,
+                 ggtheme=theme_linedraw(),legend.title=&quot;Group&quot;)</code></pre>
+<pre><code>## Warning: `as.tibble()` was deprecated in tibble 2.0.0.
+## Please use `as_tibble()` instead.
+## The signature and semantics have changed, see `?as_tibble`.</code></pre>
+<pre><code>## Warning: `select_()` was deprecated in dplyr 0.7.0.
+## Please use `select()` instead.</code></pre>
+<pre><code>## New names:
+## * variable -&gt; variable...1
+## * variable -&gt; variable...2</code></pre>
+<div class="figure" style="text-align: center"><span style="display:block;" id="fig:km"></span>
+<img src="{{< blogdown/postref >}}index_files/figure-html/km-1.png" alt="多基因生存曲线分面绘制" width="672" />
+<p class="caption">
+Figure 1: 多基因生存曲线分面绘制
+</p>
+</div>
+<p>结果显示好像我随机挑的这个基因在膀胱癌中都不咋的，没一个有意义，但我们可以换换配色和主题</p>
+<pre class="r"><code>ggsurvplot_facet(fit,survival2,
+                 palette = &quot;jco&quot;,
+                 linetype=3,
+                 pval = T,pval.method = T,
+                 conf.int = T,conf.int.style=&#39;step&#39;,
+                 surv.median.line = &quot;hv&quot;,
+                 scales = &quot;free&quot;,
+                 short.panel.labs = T,
+                 facet.by = &quot;variable&quot;,
+                 ggtheme=theme_pubclean(),legend.title=&quot;Group&quot;)</code></pre>
+<pre><code>## New names:
+## * variable -&gt; variable...1
+## * variable -&gt; variable...2</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-4-1.png" width="672" /></p>
+<p>—更多细节需要多练习</p>
+</div>

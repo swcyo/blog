@@ -1,0 +1,135 @@
+---
+title: 可视化矩阵的相关性分析之corrplot
+author: 欧阳松
+date: '2021-10-17'
+slug: corrplot
+categories:
+  - corrplot
+tags:
+  - 相关性分析
+hideToc: yes
+---
+
+<script src="{{< blogdown/postref >}}index_files/header-attrs/header-attrs.js"></script>
+<script src="{{< blogdown/postref >}}index_files/htmlwidgets/htmlwidgets.js"></script>
+<link href="{{< blogdown/postref >}}index_files/datatables-css/datatables-crosstalk.css" rel="stylesheet" />
+<script src="{{< blogdown/postref >}}index_files/datatables-binding/datatables.js"></script>
+<script src="{{< blogdown/postref >}}index_files/jquery/jquery-3.6.0.min.js"></script>
+<link href="{{< blogdown/postref >}}index_files/dt-core/css/jquery.dataTables.min.css" rel="stylesheet" />
+<link href="{{< blogdown/postref >}}index_files/dt-core/css/jquery.dataTables.extra.css" rel="stylesheet" />
+<script src="{{< blogdown/postref >}}index_files/dt-core/js/jquery.dataTables.min.js"></script>
+<link href="{{< blogdown/postref >}}index_files/crosstalk/css/crosstalk.css" rel="stylesheet" />
+<script src="{{< blogdown/postref >}}index_files/crosstalk/js/crosstalk.min.js"></script>
+
+
+<p>目前有<strong>corrplot</strong>、<strong>ggcorrplot</strong>和<strong>GGally</strong>这三个包可以用来可视化矩阵的相关性分析，而这三个包都已经被CRAN收录，安装都很简单，所以可以先直接输入安装好。</p>
+<pre><code>install.packages(&quot;corrplot&quot;)
+install.packages(&quot;ggcorrplot&quot;)
+install.packages(&quot;GGally&quot;)</code></pre>
+<p>我准备在别人的基础上复现一下这三个包的相关参数，使用Rmarkdown进行渲染，数据都是使用自带的<code>mtcars</code>进行分析。</p>
+<p>本节首先介绍最基础的<strong>corrplot</strong>进行操作，首先一键清空，导入数据，加载<strong>corrplot</strong></p>
+<pre><code>rm(list = ls())
+library(corrplot)
+data(mtcars)
+mtcars</code></pre>
+<div id="htmlwidget-1" style="width:100%;height:auto;" class="datatables html-widget"></div>
+<script type="application/json" data-for="htmlwidget-1">{"x":{"filter":"none","vertical":false,"data":[["Mazda RX4","Mazda RX4 Wag","Datsun 710","Hornet 4 Drive","Hornet Sportabout","Valiant","Duster 360","Merc 240D","Merc 230","Merc 280","Merc 280C","Merc 450SE","Merc 450SL","Merc 450SLC","Cadillac Fleetwood","Lincoln Continental","Chrysler Imperial","Fiat 128","Honda Civic","Toyota Corolla","Toyota Corona","Dodge Challenger","AMC Javelin","Camaro Z28","Pontiac Firebird","Fiat X1-9","Porsche 914-2","Lotus Europa","Ford Pantera L","Ferrari Dino","Maserati Bora","Volvo 142E"],[21,21,22.8,21.4,18.7,18.1,14.3,24.4,22.8,19.2,17.8,16.4,17.3,15.2,10.4,10.4,14.7,32.4,30.4,33.9,21.5,15.5,15.2,13.3,19.2,27.3,26,30.4,15.8,19.7,15,21.4],[6,6,4,6,8,6,8,4,4,6,6,8,8,8,8,8,8,4,4,4,4,8,8,8,8,4,4,4,8,6,8,4],[160,160,108,258,360,225,360,146.7,140.8,167.6,167.6,275.8,275.8,275.8,472,460,440,78.7,75.7,71.1,120.1,318,304,350,400,79,120.3,95.1,351,145,301,121],[110,110,93,110,175,105,245,62,95,123,123,180,180,180,205,215,230,66,52,65,97,150,150,245,175,66,91,113,264,175,335,109],[3.9,3.9,3.85,3.08,3.15,2.76,3.21,3.69,3.92,3.92,3.92,3.07,3.07,3.07,2.93,3,3.23,4.08,4.93,4.22,3.7,2.76,3.15,3.73,3.08,4.08,4.43,3.77,4.22,3.62,3.54,4.11],[2.62,2.875,2.32,3.215,3.44,3.46,3.57,3.19,3.15,3.44,3.44,4.07,3.73,3.78,5.25,5.424,5.345,2.2,1.615,1.835,2.465,3.52,3.435,3.84,3.845,1.935,2.14,1.513,3.17,2.77,3.57,2.78],[16.46,17.02,18.61,19.44,17.02,20.22,15.84,20,22.9,18.3,18.9,17.4,17.6,18,17.98,17.82,17.42,19.47,18.52,19.9,20.01,16.87,17.3,15.41,17.05,18.9,16.7,16.9,14.5,15.5,14.6,18.6],[0,0,1,1,0,1,0,1,1,1,1,0,0,0,0,0,0,1,1,1,1,0,0,0,0,1,0,1,0,0,0,1],[1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,0,0,0,0,0,1,1,1,1,1,1,1],[4,4,4,3,3,3,3,4,4,4,4,3,3,3,3,3,3,4,4,4,3,3,3,3,3,4,5,5,5,5,5,4],[4,4,1,1,2,1,4,2,2,4,4,3,3,3,4,4,4,1,2,1,1,2,2,4,2,1,2,2,4,6,8,2]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th> <\/th>\n      <th>mpg<\/th>\n      <th>cyl<\/th>\n      <th>disp<\/th>\n      <th>hp<\/th>\n      <th>drat<\/th>\n      <th>wt<\/th>\n      <th>qsec<\/th>\n      <th>vs<\/th>\n      <th>am<\/th>\n      <th>gear<\/th>\n      <th>carb<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"columnDefs":[{"className":"dt-right","targets":[1,2,3,4,5,6,7,8,9,10,11]},{"orderable":false,"targets":0}],"order":[],"autoWidth":false,"orderClasses":false}},"evals":[],"jsHooks":[]}</script>
+<div id="计算相关性系数" class="section level2">
+<h2>计算相关性系数</h2>
+<p>通过自带的<code>cor()</code>函数可以很快的计算各矩阵参数直接的相关性系数，如下所示：</p>
+<pre><code>M &lt;- cor(mtcars)  # 相关性分析
+round(M,3) # 只显示小数点后三位数</code></pre>
+<div id="htmlwidget-2" style="width:100%;height:auto;" class="datatables html-widget"></div>
+<script type="application/json" data-for="htmlwidget-2">{"x":{"filter":"none","vertical":false,"data":[["mpg","cyl","disp","hp","drat","wt","qsec","vs","am","gear","carb"],[1,-0.852,-0.848,-0.776,0.681,-0.868,0.419,0.664,0.6,0.48,-0.551],[-0.852,1,0.902,0.832,-0.7,0.782,-0.591,-0.811,-0.523,-0.493,0.527],[-0.848,0.902,1,0.791,-0.71,0.888,-0.434,-0.71,-0.591,-0.556,0.395],[-0.776,0.832,0.791,1,-0.449,0.659,-0.708,-0.723,-0.243,-0.126,0.75],[0.681,-0.7,-0.71,-0.449,1,-0.712,0.091,0.44,0.713,0.7,-0.091],[-0.868,0.782,0.888,0.659,-0.712,1,-0.175,-0.555,-0.692,-0.583,0.428],[0.419,-0.591,-0.434,-0.708,0.091,-0.175,1,0.745,-0.23,-0.213,-0.656],[0.664,-0.811,-0.71,-0.723,0.44,-0.555,0.745,1,0.168,0.206,-0.57],[0.6,-0.523,-0.591,-0.243,0.713,-0.692,-0.23,0.168,1,0.794,0.058],[0.48,-0.493,-0.556,-0.126,0.7,-0.583,-0.213,0.206,0.794,1,0.274],[-0.551,0.527,0.395,0.75,-0.091,0.428,-0.656,-0.57,0.058,0.274,1]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th> <\/th>\n      <th>mpg<\/th>\n      <th>cyl<\/th>\n      <th>disp<\/th>\n      <th>hp<\/th>\n      <th>drat<\/th>\n      <th>wt<\/th>\n      <th>qsec<\/th>\n      <th>vs<\/th>\n      <th>am<\/th>\n      <th>gear<\/th>\n      <th>carb<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"columnDefs":[{"className":"dt-right","targets":[1,2,3,4,5,6,7,8,9,10,11]},{"orderable":false,"targets":0}],"order":[],"autoWidth":false,"orderClasses":false}},"evals":[],"jsHooks":[]}</script>
+</div>
+<div id="可视化分析" class="section level2">
+<h2>可视化分析</h2>
+<p>有了这个相关性系数，我们就可以可视化作图了，作图用的是<code>corrplot()</code>函数，我们可以先看一下这个包的基本参数</p>
+<pre><code>corrplot(corr, method = c(&quot;circle&quot;, &quot;square&quot;, &quot;ellipse&quot;, &quot;number&quot;, &quot;shade&quot;, &quot;color&quot;, &quot;pie&quot;), 
+         type = c(&quot;full&quot;, &quot;lower&quot;, &quot;upper&quot;), add = FALSE, col = NULL, 
+         bg = &quot;white&quot;, title = &quot;&quot;, is.corr = TRUE, diag = TRUE,
+         outline = FALSE, mar = c(0, 0, 0, 0), addgrid.col = NULL,
+         addCoef.col = NULL, addCoefasPercent = FALSE, 
+         order = c(&quot;original&quot;,&quot;AOE&quot;, &quot;FPC&quot;, &quot;hclust&quot;, &quot;alphabet&quot;), 
+         hclust.method = c(&quot;complete&quot;, &quot;ward&quot;, &quot;ward.D&quot;, &quot;ward.D2&quot;, 
+                          &quot;single&quot;, &quot;average&quot;, &quot;mcquitty&quot;, &quot;median&quot;, &quot;centroid&quot;),
+         addrect = NULL, rect.col = &quot;black&quot;, rect.lwd = 2, tl.pos = NULL,
+         tl.cex = 1, tl.col = &quot;red&quot;, tl.offset = 0.4, tl.srt = 90,
+         cl.pos = NULL, cl.lim = NULL, cl.length = NULL, cl.cex = 0.8,
+         cl.ratio = 0.15, cl.align.text = &quot;c&quot;, cl.offset = 0.5, number.cex = 1,
+         number.font = 2, number.digits = NULL, 
+         addshade = c(&quot;negative&quot;, &quot;positive&quot;, &quot;all&quot;), shade.lwd = 1, shade.col = &quot;white&quot;, p.mat = NULL,
+         sig.level = 0.05, insig = c(&quot;pch&quot;, &quot;p-value&quot;, &quot;blank&quot;, &quot;n&quot;, &quot;label_sig&quot;),
+         pch = 4, pch.col = &quot;black&quot;, pch.cex = 3, plotCI = c(&quot;n&quot;, &quot;square&quot;, &quot;circle&quot;, &quot;rect&quot;), 
+         lowCI.mat = NULL, uppCI.mat = NULL, na.label = &quot;?&quot;,
+         na.label.col = &quot;black&quot;, win.asp = 1, ...)</code></pre>
+<p>在CSDN博主「R语言中文社区」的原创文章<a href="https://blog.csdn.net/kMD8d5R/article/details/89346052"><strong>corrplot包与ggcorrplot相关图（一）</strong></a>中有如下解释：</p>
+<blockquote>
+<p>corr, 需要可视化的相关系数矩阵，</p>
+<p>method, 指定可视化的形状，可以是circle圆形(默认)，square方形，</p>
+<p>ellipse, 椭圆形，number数值，shade阴影，color颜色，pie饼图。</p>
+<p>type，指定显示范围，可以是full完全(默认)，lower下三角，upper上三角。</p>
+<p>col, 指定图形展示的颜色，默认以均匀的颜色展示。</p>
+<p>支持grDevices包中的调色板，也支持RColorBrewer包中调色板。</p>
+<p>bg, 指定背景颜色。</p>
+<p>add, 表示是否添加到已经存在的plot中。默认FALSE生成新plot。</p>
+<p>title, 指定标题，</p>
+<p>is.corr，是否为相关系数绘图，默认为TRUE,FALSE则可将其它数字矩阵进行可视化。</p>
+<p>diag, 是否展示对角线上的结果，默认为TRUE，</p>
+<p>outline, 是否添加圆形、方形或椭圆形的外边框，默认为FALSE。</p>
+<p>mar， 设置图形的四边间距。数字分别对应(bottom, left, top, right)。</p>
+<p>addgrid.col, 设置网格线颜色，当指定method参数为color或shade时， 默认的网格线颜色为白色，其它method则默认为灰色，也可以自定义颜色。</p>
+<p>addCoef.col， 设置相关系数值的颜色，只有当method不是number时才有效。</p>
+<p>addCoefasPercent, 是否将相关系数转化为百分比形式，以节省空间，默认为FALSE。</p>
+<p>order, 指定相关系数排序的方法, 可以是original原始顺序，AOE特征向量角序，</p>
+<p>FPC第一主成分顺序，hclust层次聚类顺序，alphabet字母顺序。</p>
+<p>hclust.method, 指定hclust中细分的方法，只有当指定order参数为hclust时有效，</p>
+<p>有7种可选：complete, ward, single, average, mcquitty, median, centroid。</p>
+<p>addrect， 是否添加矩形框，只有当指定order参数为hclust时有效， 默认不添加， 用整数指定即可添加。</p>
+<p>rect.col, 指定矩形框的颜色。</p>
+<p>rect.lwd, 指定矩形框的线宽。</p>
+<p>tl.pos, 指定文本标签(变量名称)相对绘图区域的位置，为“lt”(左侧和顶部),</p>
+<p>“ld”(左侧和对角线), “td”(顶部和对角线),“d”(对角线),“n”(无)之一。</p>
+<p>当type=“full”时,默认“lt”。</p>
+<p>当type=“lower”时，默认“ld”。</p>
+<p>当type=“upper”时，默认“td”。</p>
+<p>tl.cex, 设置文本标签的大小。</p>
+<p>tl.col, 设置文本标签的颜色。</p>
+<p>cl.pos, 设置图例位置，为“r”(右边), “b”(底部),“n”(无)之一。</p>
+<p>当type=“full”/“upper”时，默认“r”; 当type=“lower”时，默认“b”。</p>
+<p>addshade, 表示给增加阴影，只有当method=“shade”时有效。</p>
+<p>为“negative”(对负相关系数增加阴影),负相关系数的阴影是135度；</p>
+<p>“positive”(对正相关系数增加阴影), 正相关系数的阴影是45度；</p>
+<p>“all”(对所有相关系数增加阴影)，之一。</p>
+<p>shade.lwd, 指定阴影线宽。</p>
+<p>shade.col, 指定阴影线的颜色。</p>
+</blockquote>
+<hr />
+<p>而在帮助文档里有一个比较详细的介绍，我这里不做介绍，大家可以自己去看，我先按介绍的基本参数跑一下：</p>
+<ul>
+<li>可视化的形状有七种，默认是circle，我们可以进行修改</li>
+</ul>
+<pre class="r"><code>corrplot(M) # 默认是circle，即method = &#39;circle&#39;</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-3-1.png" width="672" /></p>
+<pre class="r"><code>corrplot(M, method = &#39;number&#39;) # 按数字大小绘制颜色</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-4-1.png" width="672" /></p>
+<pre class="r"><code>corrplot(M, method = &#39;color&#39;, order = &#39;alphabet&#39;)  # 按颜色绘制，排序</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-5-1.png" width="672" /></p>
+<pre class="r"><code>corrplot(M, order = &#39;AOE&#39;) # 按&#39;AOE&#39;排序</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-6-1.png" width="672" /></p>
+<pre class="r"><code>corrplot(M, method = &#39;shade&#39;, order = &#39;AOE&#39;, diag = FALSE)  #换个形状</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-7-1.png" width="672" /></p>
+<pre class="r"><code>corrplot(M, method = &#39;square&#39;, order = &#39;FPC&#39;, type = &#39;lower&#39;, diag = FALSE)</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-8-1.png" width="672" /></p>
+<pre class="r"><code>corrplot(M, method = &#39;ellipse&#39;, order = &#39;AOE&#39;, type = &#39;upper&#39;)</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-9-1.png" width="672" /></p>
+<pre class="r"><code>corrplot.mixed(M, order = &#39;AOE&#39;)</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-10-1.png" width="672" /></p>
+<pre class="r"><code>corrplot.mixed(M, lower = &#39;shade&#39;, upper = &#39;pie&#39;, order = &#39;hclust&#39;)</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-11-1.png" width="672" /></p>
+<p>还可以分镞排序</p>
+<pre class="r"><code>corrplot(M, order = &#39;hclust&#39;, addrect = 2)</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-12-1.png" width="672" /></p>
+<hr />
+<p>简书上还有一篇文章<a href="https://www.jianshu.com/p/00000f6f32df">使用corrplot包绘制相关性图 - 简书 (jianshu.com)</a>，也挺好，大家可以试着跑跑。</p>
+</div>

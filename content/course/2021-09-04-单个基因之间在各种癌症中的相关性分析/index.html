@@ -1,0 +1,106 @@
+---
+title: 单个基因之间在各种癌症中的相关性分析
+author: 欧阳松
+date: '2021-09-04'
+slug: 单个基因之间在各种癌症中的相关性分析
+categories:
+  - 教程
+  - R
+  - TCGA
+tags:
+  - TCGA
+  - 教程
+  - 相关性
+  - 单基因
+---
+
+<script src="{{< blogdown/postref >}}index_files/header-attrs/header-attrs.js"></script>
+
+
+<p>今天一大早（其实快10点了）还在睡觉，李老师问我想知道几个基因在几个TCGA癌症中的相关性。</p>
+<p><img src="1741630729081_.pic.jpg" /></p>
+<p>其实这个问题是很好解决的，我们只要有各种基因在各种癌症的表达量就可以了，然后就是一个相关性分析，图的话就是一个散点图，excel都能做。</p>
+<p>可以在线做相关性分析的网址很多，比如xena、ualcan、gepia（官网上的介绍上用非log归一化进行计算，用log归一化进行可视化，好奇怪的设定）、linkedomics、hiplot的在线ucsc-xena-shiny等等，这里我还是推荐xena的可视化分析去提取需要的数据，而且还能下载到本地，自主分析。</p>
+<p>对于基因的表达量，以前有count、fpkm和tpm等多种单位，这里推荐用tpm。xena里有一个TCGA Pan-Cancer的数据集，里面有各种基因表达单位，这里推荐用<a href="https://xena.hiplot.com.cn/datapages/?dataset=tcga_RSEM_gene_tpm&amp;host=https%3A%2F%2Fxena-toil.hiplot.com.cn">TOIL RSEM tpm</a>格式，不过单位是log2(tpm+0.001)，我们可以转换成tpm，也可以转换成log2(tpm+1)，具体有什么差别可以自己体会。</p>
+<p>后面我花了几分钟时间就统计好了，然后顺便写个教程描述一下。</p>
+<hr />
+<div id="数据的下载" class="section level2">
+<h2>数据的下载</h2>
+<p>首先从<a href="https://xena.hiplot.com.cn/">xena</a>的可视化界面下载数据，选择<strong>TCGA Pan-Cancer (PANCAN)</strong>数据集，然后逐渐添加列</p>
+<ul>
+<li><p>在Phenotypic里选择cancer type abbreviation（用于筛选肿瘤类型）</p></li>
+<li><p>在Phenotypic里选择sample_type（用于筛选肿瘤组织）</p></li>
+<li><p>在Genomic里输入ATR，基因类型（<strong>gene expression RNAseq</strong>）选择<strong>TOIL RSEM tpm</strong>（单位为log2tpm+0.001）</p></li>
+<li><p>在Genomic里输入CHEK1，基因类型（<strong>gene expression RNAseq</strong>）选择<strong>TOIL RSEM tpm</strong>（单位为log2tpm+0.001）</p></li>
+<li><p>在Genomic里输入TFAM，基因类型（<strong>gene expression RNAseq</strong>）选择<strong>TOIL RSEM tpm</strong>（单位为log2tpm+0.001）</p>
+<p>全部选完以后点击右上角的下载图标，这里也可以先筛选一下Primary Tumor再下载，也可以后面提取。</p></li>
+</ul>
+<p><img src="xena.hiplot.com.cn.jpeg" /></p>
+</div>
+<div id="数据的处理" class="section level2">
+<h2>数据的处理</h2>
+<p>导出的tsv格式里包含里所有的肿瘤类型，我们可以用Excel简单的事先筛选。</p>
+<ul>
+<li><p>可以直接用excel先筛选，肿瘤缩写（cancer type abbreviation）选择COAD、OV，PAAD和UCEC，肿瘤类型（sample_type）选择Primary Tumor。当然有些基因表达量有空值，这个可以删除，也先不管，最后保存为csv格式。</p></li>
+<li><p>也可以直接把tsv导入R中处理，但是需要代码，嫌麻烦的话可以不用</p></li>
+</ul>
+</div>
+<div id="导入数据" class="section level2">
+<h2>导入数据</h2>
+<pre><code>need&lt;-read.csv(&quot;/need.csv&quot;) #选择所在的文件夹，事先把列名改成简单的单词</code></pre>
+<p>这样就把COAD、OV，PAAD和UCEC四个肿瘤类型中，ATR、CHEK1和TFAM导入进来了。</p>
+</div>
+<div id="相关性分析" class="section level2">
+<h2>相关性分析</h2>
+<p>有一个<strong>ggstatsplot</strong>的包可以很快的统计并绘图，由于有四个肿瘤类型，这里也可以一次性计算，用<code>grouped_ggscatterstats()</code>函数实现分面效果，默认的话是pearson法。</p>
+<div id="计算atr和tfam在四种癌症的相关性" class="section level3">
+<h3>计算ATR和TFAM在四种癌症的相关性</h3>
+<p>先用默认函数计算一下，这里默认的pearson法，先大致看一下，见图 <a href="#fig:cor1">1</a></p>
+<pre class="r"><code>ggstatsplot::grouped_ggscatterstats(need,#数据名
+                       ATR,TFAM, #第一个是x轴，第二个是y轴
+                       grouping.var = type,#按type分组，这里本来是缩写
+                       plotgrid.args = c(ncol=2) #只显示两列
+                       ) </code></pre>
+<pre><code>## Warning in .recacheSubclasses(def@className, def, env): undefined subclass
+## &quot;numericVector&quot; of class &quot;Mnumeric&quot;; definition not updated</code></pre>
+<pre><code>## Registered S3 methods overwritten by &#39;parameters&#39;:
+##   method                           from      
+##   as.double.parameters_kurtosis    datawizard
+##   as.double.parameters_skewness    datawizard
+##   as.double.parameters_smoothness  datawizard
+##   as.numeric.parameters_kurtosis   datawizard
+##   as.numeric.parameters_skewness   datawizard
+##   as.numeric.parameters_smoothness datawizard
+##   print.parameters_distribution    datawizard
+##   print.parameters_kurtosis        datawizard
+##   print.parameters_skewness        datawizard
+##   summary.parameters_kurtosis      datawizard
+##   summary.parameters_skewness      datawizard</code></pre>
+<div class="figure" style="text-align: center"><span style="display:block;" id="fig:cor1"></span>
+<img src="{{< blogdown/postref >}}index_files/figure-html/cor1-1.png" alt="ATR和TFAM在四种癌症中的pearson相关性分析" width="960" />
+<p class="caption">
+Figure 1: ATR和TFAM在四种癌症中的pearson相关性分析
+</p>
+</div>
+</div>
+<div id="计算chek1和tfam在四种癌症的相关性" class="section level3">
+<h3>计算CHEK1和TFAM在四种癌症的相关性</h3>
+<p>继续用默认函数计算，见 图 <a href="#fig:cor2">2</a></p>
+<pre class="r"><code>ggstatsplot::grouped_ggscatterstats(need,#数据名
+                       CHEK1,TFAM, #第一个是x轴，第二个是y轴
+                       grouping.var = type,#按type分组，这里本来是缩写
+                       plotgrid.args = c(ncol=2) #只显示两列
+                       ) </code></pre>
+<div class="figure" style="text-align: center"><span style="display:block;" id="fig:cor2"></span>
+<img src="{{< blogdown/postref >}}index_files/figure-html/cor2-1.png" alt="CHEK1和TFAM在四种癌症中的pearson相关性分析" width="960" />
+<p class="caption">
+Figure 2: CHEK1和TFAM在四种癌症中的pearson相关性分析
+</p>
+</div>
+<hr />
+</div>
+<div id="适当美化" class="section level3">
+<h3>适当美化</h3>
+<p>知乎上有一个很好的教程：<a href="https://zhuanlan.zhihu.com/p/165626910"><strong>R绘图：相关性分析与作图（单基因相关性）</strong></a> ，我们照猫画虎可以试着更改一下风格。</p>
+</div>
+</div>

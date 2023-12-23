@@ -1,0 +1,44 @@
+---
+title: 利用RStudio给自己做一个漂亮的简历
+author: Song Ou-Yang
+date: '2021-08-21'
+slug: resumy
+categories:
+  - R
+  - 教程
+tags:
+  - R Markdown
+subtitle: ''
+summary: ''
+authors: []
+lastmod: '2021-08-21T16:42:39+08:00'
+featured: no
+image:
+  caption: ''
+  focal_point: ''
+  preview_only: no
+projects: []
+---
+
+<script src="{{< blogdown/postref >}}index_files/header-attrs/header-attrs.js"></script>
+
+
+<p>很早的时候，我给自己做过一个<a href="swcyo.gitee.io/cv">个人简历</a>的网站并上传到Github上了，但是由于Github很不稳定，所以我又导到码云上，不得不说码云确实很快，至少很多github的包可以无缝导入gitee安装了。</p>
+<p>目前RStudio已经更新到1.4版了，最让人惊喜的是有了对markdown编辑可视化的界面了，这极大方便了我这种不喜欢代码的懒人，其实我们现在的静态网站基本都是基于markdwon，尽管已经有很多软件可视化，不过能把所有需要的功能集中在一起不是更好吗？所以先给RStudio点个大赞。</p>
+<p>以前的我建个人简历是基于<a href="https://mp.weixin.qq.com/s/Dz2fa83O_P5QPD8VLR7DRQ">Y叔</a>的一个教程，可以很好的作出效果，我的那个简历也是如此，主要原理是把一个csv的表格的内容嵌入进来，然后用R markdown自动生成html，然后你就可以浏览了，其实所有的一切都要感谢yihui大神的Rmarkdwon，而他又开发了各种包让我们可以做博客、可以写书、写论文，设置还能写幻灯片，所有的一切都是Rmd下的模板而已，而个人简历也是一个模版。</p>
+<p>RStduio已经高度集成了Rmarkdown，所以你不用安装软件，这里只需要安装一个包，这个包就是’rticles’，听发音就已经知道了，article，就是专门给学术开发的一个包，这里面包括了几十种流行杂志的模板，也就是说，用这个包，你其实还可以用来写SCI！！！</p>
+<p>好了，铺垫写完了，我们就开始正题，首先需要安装这个包，很经典，因为这个包就在CRAN上，所以直接点击Packages-Install，输入名字安装即可，当然也可以代码安装，而且安装完以后你也不需要运行，其实只是相当于给RStudio多一个插件。</p>
+<pre class="r"><code># install.packages(&#39;rticles&#39;)  ##如果代码安装的话，把前面那个#去掉</code></pre>
+<p>那么，怎么最快的找到这个插件呢，其实就在右上角的第一个➕号上面，点击选择R Markdwon，然后这里就会多一个From Template，里面又很多很多模板，我们拉到<strong>HTML Resume</strong>，设置一个工作目录，命名，然后OK，这样就会多一个Untitled.Rmd的文件了，里面有很多代码和字母。</p>
+<p><img src="%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202021-08-21%20%E4%B8%8B%E5%8D%885.03.47.png" title="模板" /></p>
+<p>如何看效果呢，直接直接点Knit，弹出一个文件夹保存好，就可以渲染看到效果了，结果1.4版本的可视化编辑，会方便很多</p>
+<div class="figure">
+<img src="%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202021-08-21%20%E4%B8%8B%E5%8D%885.08.17.png" alt="" />
+<p class="caption">Knit在🔍边上</p>
+</div>
+<p>这就是我们看到的效果</p>
+<div class="figure">
+<img src="%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202021-08-21%20%E4%B8%8B%E5%8D%885.08.46.png" alt="" />
+<p class="caption">渲染简历效果</p>
+</div>
+<p>剩下的就是自己改细节了，记得不是保存以后就可以看到效果，每次修改完以后都要点Knit渲染</p>

@@ -1,0 +1,199 @@
+---
+title: 可视化矩阵的相关性分析之ggcorrplot
+author: 欧阳松
+date: '2021-10-18'
+slug: ggcorrplot
+categories:
+  - ggcorrplot
+tags:
+  - 相关性分析
+---
+
+前面介绍了corrplot可视化相关性分析，还有一个比较简单的包是ggcorrplot也可以绘制好看的相关性分析图，官网有一个很好的介绍文章（但是有时候打不开）
+
+[ggcorrplot: Visualization of a correlation matrix using ggplot2 - Easy Guides - Wiki - STHDA](http://sthda.com/english/wiki/ggcorrplot-visualization-of-a-correlation-matrix-using-ggplot2)
+
+国内也可以参考如下文章：
+
+[R packages\|ggcorrplot : 相关矩阵的可视化(热图) - 简书 (jianshu.com)](https://www.jianshu.com/p/97f3420ac0f5)
+
+[R语言可视化学习笔记之相关矩阵可视化包ggcorrplot - 简书 (jianshu.com)](https://www.jianshu.com/p/7fd01d00f741)
+
+在R中可视化相关矩阵(correlation matrix)的最简单方法是使用corrplot包。另一种方法是在ggally包中使用函数ggcorr()。 但是，ggally包不提供用于重新排序相关矩阵或显示显著水平的选项。而基于**ggplot2**包以及**corrplot**包的相关矩阵可视化包**ggcorrplot**，**ggcorrplot**包提供对相关矩阵重排序以及在相关图中展示显著性水平的方法，同时也能计算相关性p-value
+
+---
+
+## ggcorrplot的主要特征
+
+ggcorrplot具有重新排序相关矩阵以及在热图上显示显著性水平的功能。此外，它还包括用于计算相关性p值的矩阵的功能。
+
+    ggcorrplot(): 使用ggplot2相关矩阵可视化。
+
+    cor_pmat(): 计算相关性的p值。
+
+## ggcorrplot下载与加载
+
+    #CRAN     
+    install.packages("ggcorrplot")
+    #GitHub
+    if(!require(devtools)) install.packages("devtools")
+    devtools::install_github("kassambara/ggcorrplot")
+
+接下来，我们将使用R包**ggcorrplot**可视化相关矩阵，依旧使用mrcars数据，现按官网的教程跑一下
+
+## **计算相关矩阵**
+
+```{r message=FALSE, warning=FALSE}
+library(ggcorrplot)
+data(mtcars)
+corr <- round(cor(mtcars), 3) # 使用cor()函数计算相关性，显示3位小数点
+```
+
+```{r,echo=FALSE}
+DT::datatable(corr)
+```
+
+```{r}
+#用ggcorrplot包提供的函数cor_pmat()计算相关性的P值矩阵
+p.mat <- cor_pmat(mtcars)
+head(p.mat[, 1:4])
+```
+
+## **相关矩阵可视化**
+
+```{r}
+# 可视化相关矩阵
+# 默认作图，method = "square"
+ggcorrplot(corr)
+```
+
+```{r}
+# 调整矩形热图为圆形，method = "circle"
+ggcorrplot(corr, method = "circle")
+```
+
+```{r}
+# 重新排序相关矩阵，使用等级聚类（hierarchical clustering）
+ggcorrplot(corr, hc.order = TRUE, outline.col = "white") #方形或圆圈的轮廓颜色。 默认值为“灰色”。
+```
+
+```{r}
+#控制矩阵形状
+#下三角形
+ggcorrplot(corr, hc.order = TRUE, type = "lower", #下三角形
+           outline.color = "white")
+```
+
+```{r}
+#上三角形
+ggcorrplot(corr, hc.order = TRUE, type = "upper", #上三角形
+           outline.color = "white")
+```
+
+```{r}
+#更改颜色以及主题
+ggcorrplot(corr, hc.order = TRUE, type = "lower", 
+           outline.color = "white", 
+           ggtheme = ggplot2::theme_gray, 
+           colors = c("#6D9EC1", "white", "#E46726"))
+```
+
+```{r}
+#添加相关系数
+ggcorrplot(corr, hc.order = TRUE, type = "lower", 
+           lab = TRUE)
+```
+
+```{r}
+#增加显著性水平，不显著的话就不添加了
+ggcorrplot(corr, hc.order = TRUE, type = "lower", 
+           p.mat = p.mat)
+```
+
+```{r}
+#将不显著的色块设置成空白
+ggcorrplot(corr, p.mat = p.mat, hc.order=TRUE, type = "lower", 
+           insig = "blank")
+```
+
+## **行列一致美化** 
+
+即同一个文件内的指标，或两个文件的指标数目一致分析，是一个i\*j（i=j）的矩阵；
+
+```{r}
+library(ggcorrplot)
+library(ggthemes)
+ggcorrplot(corr, method = c("square"), type = c("full"), 
+           ggtheme = ggplot2::theme_void, title = " ", 
+           show.legend = TRUE, legend.title = "Corr_r2", show.diag = T, 
+           colors = c("#839EDB", "white", "#FF8D8D"), outline.color = "white", 
+           hc.order = T, hc.method = "single", lab = F, lab_col = "black", 
+           lab_size = 2, p.mat = NULL, sig.level = 0.05, insig = c("pch"), 
+           pch = 4, pch.col = "white", pch.cex = 4.5, tl.cex = 12, 
+           tl.col = "black", tl.srt = 45, digits = 2)
+```
+
+```{r}
+ggcorrplot(corr, method = "square", type = "upper", ggtheme = ggplot2::theme_void, 
+           title = "", show.legend = TRUE, legend.title = "Corr", show.diag = T, 
+           colors = c("#839EDB", "white", "#FF8D8D"), outline.color = "white", 
+           hc.order = T, hc.method = "single", lab = F, lab_col = "black", 
+           lab_size = 3, p.mat = p.mat, sig.level = 0.05, insig = c("pch"), 
+           pch = 22, pch.col = "white", pch.cex = 4, tl.cex = 12, 
+           tl.col = "black", tl.srt = 0, digits = 2)
+```
+
+上图中需要注意的是：格子中含有小方框的格子表示该相关性不显著（0.05），且格子中小方框颜色表示p value 大小，可修改参数为：pch = 22。
+
+```{r}
+ggcorrplot(corr, method = "circle", type = "full", ggtheme = ggplot2::theme_void,
+           title = "", 
+           show.legend = TRUE, legend.title = "Corr", show.diag = F, 
+           colors = c("#839EDB", "white", "#FF8D8D"), outline.color = "white", 
+           hc.order = T, hc.method = "complete", lab = FALSE, lab_col = "black", 
+           lab_size = 4, p.mat = NULL, sig.level = 0.05, insig = c("pch", "blank"), 
+           pch = 4, pch.col = "black", pch.cex = 5, tl.cex = 12, 
+           tl.col = "black", tl.srt = 45, digits = 2)
+```
+
+```{r}
+ggcorrplot(corr, method = "circle", type = "upper", ggtheme = ggplot2::theme_bw(), 
+           title = "", 
+           show.legend = TRUE, legend.title = "Corr", show.diag = T, 
+           colors = c("#839EDB", "white", "#FF8D8D"), outline.color = "white", 
+           hc.order = T, hc.method = "complete", lab = T, lab_col = "black", 
+           lab_size = 2, p.mat = p.mat, sig.level = 0.05, insig = "blank", 
+           pch = 4, pch.col = "black", pch.cex = 5, tl.cex = 12, 
+           tl.col = "black", tl.srt = 45, digits = 2)
+```
+
+## **行列不一致美化**
+
+行列不一致，在这里借助psych包来计算相关性和p value。
+
+```{r}
+library(ggcorrplot)
+library(ggthemes)
+library(psych)
+data<-mtcars
+data1 <- data[c(1:5)]
+data2 <- data[c(6:11)] #刻意截取不一致
+
+cor <- corr.test(data1,data2,method = "spearman",adjust = "BH",ci = F)
+cmt<-cor$r
+pmt<-cor$p.adj
+```
+
+```{r}
+ggcorrplot(cmt,method = "circle",outline.color = "white",
+           ggtheme = theme_bw(),colors = c("#839EDB", "white", "#FF8D8D"),lab = T,
+           lab_size=2,
+           p.mat=pmt,insig="pch",pch.col = "red", pch.cex = 3, tl.cex = 12)
+```
+
+```{r}
+ggcorrplot(cmt,method = "circle",outline.color = "white",
+           ggtheme = theme_bw(),colors = c("#839EDB", "white", "#FF8D8D"),
+           lab = T,lab_size=2,
+           p.mat = pmt, insig= "blank", pch.col = "red", pch.cex = 3, tl.cex = 12)
+```

@@ -1,0 +1,287 @@
+---
+title: "使用multipleROC快速绘制ROC曲线"
+author: "欧阳松"
+date: "2022-10-29"
+slug: multipleROC
+categories:
+- ROC
+- multipleROC
+- 教程
+tags:
+- ROC
+- multipleROC
+description: null
+hideToc: yes
+enableToc: yes
+enableTocContent: no
+tocFolding: no
+tocPosition: inner
+tocLevels:
+- h2
+- h3
+- h4
+series:
+- ~
+image: null
+---
+
+<script src="/rmarkdown-libs/htmlwidgets/htmlwidgets.js"></script>
+<link href="/rmarkdown-libs/datatables-css/datatables-crosstalk.css" rel="stylesheet" />
+<script src="/rmarkdown-libs/datatables-binding/datatables.js"></script>
+<script src="/rmarkdown-libs/jquery/jquery-3.6.0.min.js"></script>
+<link href="/rmarkdown-libs/dt-core/css/jquery.dataTables.min.css" rel="stylesheet" />
+<link href="/rmarkdown-libs/dt-core/css/jquery.dataTables.extra.css" rel="stylesheet" />
+<script src="/rmarkdown-libs/dt-core/js/jquery.dataTables.min.js"></script>
+<link href="/rmarkdown-libs/crosstalk/css/crosstalk.min.css" rel="stylesheet" />
+<script src="/rmarkdown-libs/crosstalk/js/crosstalk.min.js"></script>
+<link href="/rmarkdown-libs/tabwid/tabwid.css" rel="stylesheet" />
+<link href="/rmarkdown-libs/tabwid/scrool.css" rel="stylesheet" />
+
+
+<p>之前写过一篇<a href="/course/proc/">使用pROC包画好看的ROC曲线</a>的教程，那篇教程中使用的是<strong>pROC</strong>，这个包可以快速拟合ROC曲线，然后这个包需要提取进行运算结果，并且不能直接显示AUC值，今天推荐一个另一个绘制ROC的包<strong>multipleROC</strong>，顾名思义，这个包是可以一次性绘制多条ROC曲线的，并且也是基于ggplot2。</p>
+<p>目前这个包作者没有上传CRAN或BiocManager，只能通过Github安装，地址为<a href="https://github.com/cardiomoon/multipleROC" class="uri">https://github.com/cardiomoon/multipleROC</a></p>
+<div id="安装multipleroc" class="section level2">
+<h2>安装multipleROC</h2>
+<pre><code>remotes::install_github(&quot;cardiomoon/multipleROC&quot;)</code></pre>
+<p>如果无法访问GitHub，也可以导入到Gitee后进行安装</p>
+<pre><code>remotes::install_git(&quot;https://gitee.com/swcyo/multipleROC/&quot;)</code></pre>
+</div>
+<div id="数据演示" class="section level2">
+<h2>数据演示</h2>
+<p>我们继续使用上次的数据进行演示。</p>
+<p>以<a href="https://www.xiantao.love/">仙桃学术</a>上的一个诊断性ROC<a href="https://bioinfomatics.xiantao.love/biotools/data/demo/test/rocPlot/ROC%E6%9B%B2%E7%BA%BF.xlsx">示例数据</a>为例进行演示（下载请点击<a href="https://bioinfomatics.xiantao.love/biotools/data/demo/test/rocPlot/ROC%E6%9B%B2%E7%BA%BF.xlsx">xlxs链接</a>）。</p>
+<pre class="r"><code>library(readxl)
+ROC &lt;- read_excel(&quot;~/Desktop/ROC曲线.xlsx&quot;)</code></pre>
+<div id="htmlwidget-1" style="width:100%;height:auto;" class="datatables html-widget"></div>
+<script type="application/json" data-for="htmlwidget-1">{"x":{"filter":"none","vertical":false,"data":[["1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16","17","18","19","20","21","22","23","24","25","26","27","28","29","30","31","32","33","34","35","36","37","38","39","40","41","42","43","44","45","46","47","48","49","50","51","52","53","54","55","56","57","58","59","60","61","62","63","64","65","66","67","68","69","70","71","72"],["group1","group1","group1","group1","group1","group1","group1","group1","group1","group1","group1","group1","group1","group1","group1","group1","group1","group1","group1","group1","group1","group1","group1","group1","group1","group1","group1","group1","group1","group1","group1","group1","group1","group1","group1","group1","group1","group1","group1","group1","group2","group2","group2","group2","group2","group2","group2","group2","group2","group2","group2","group2","group2","group2","group2","group2","group2","group2","group2","group2","group2","group2","group2","group2","group2","group2","group2","group2","group2","group2","group2","group2"],[1.58585459384012,2.20529342675973,2.19955380357406,1.24111841701479,2.01699178776866,2.39127061287351,0.62079058138643,2.44284837770104,1.63601312151693,1.42084731490113,1.56268491268048,1.0348274494508,2.09798518617974,1.48103416605777,1.02016892194803,0.811700220966689,0.63366480501493,1.39212884599492,1.36559566916707,1.31167279980782,0.586344158892501,1.55612778631973,1.42511220835107,0.949635332013172,0.952693658889066,1.32844280414549,2.35127963717126,1.30912447510361,1.14824852847702,2.27547570344547,0.680266063211037,1.83105854400397,1.85288922829021,1.55435104631584,2.17683393312746,2.40626042907419,1.77448065297199,0.741617688689346,1.91734310160063,1.15981744799019,0.618490183820332,0.913906465553941,0.624337726288244,0.630663451825381,0.639090873745159,0.987629857483682,1.88973210808488,0.241069652636928,1.06411713702126,1.64244397614805,1.71415624610361,0.757001672810259,1.49268463956027,1.08282769486632,1.00407024722598,0.362751552402659,0.263900825558786,0.147566061295447,1.20369856421971,1.07783719227041,1.52639487642222,1.72196826820586,1.75262286879923,1.41436934759667,0.197538161006567,1.30455835674205,1.53003384411115,1.98818456777671,0.560387133409333,0.803330812990317,0.651145186031948,0.128700850692899],[1.17428045964764,0.861927910396511,2.31587216994685,1.57463767202283,1.95333364863149,1.08919506895499,0.837543584431483,1.73609510620423,2.41453622800911,2.40517526102921,1.33540412368916,1.37380617104799,2.18431022345592,2.0786916149872,2.38865033210094,1.87972876907332,1.71664715400937,1.31890296715296,0.698018335663545,2.3329642010105,0.652479920852937,2.49455744786457,1.9634111904615,1.45796175392438,0.915621917135387,2.41713283288075,2.22453123860901,1.94734614565444,0.555626313393271,1.86448297797518,2.20373544415917,2.4783966984424,1.14954697971494,0.73690018658925,1.98594992777375,2.22682647675962,1.09931802550582,1.93717236839423,0.704835997766734,1.16656956110765,1.19254473056019,0.304851201578386,0.887195010464422,0.563847738879636,1.83171150001104,1.13251449827734,1.91269923777904,1.96170568091531,1.54315776808127,0.278932962576974,1.20778929152141,1.56109165649822,0.119861879448205,1.65424792901213,0.457625821295088,0.0222593503576984,0.621976676174296,0.315244414488649,0.173039309807459,0.407056284829392,1.17726451322313,1.09645063491166,0.282613382822801,0.470439225083211,0.154963697785222,0.894413821215646,1.10379684351495,0.327646549018571,1.0118105570805,0.671463259239336,1.18167821851487,0.465634158707419],[2.67478764286753,2.00307933291333,1.28160529651962,1.86642813572508,1.84722130963209,2.14964809619255,1.86492282280748,1.21397513922373,2.94667342205985,1.14110224025607,1.97343618957103,2.07031606339087,2.07631512949318,1.76684200630739,1.86211252848321,2.31383216231198,2.460272840183,2.43720405945689,1.60023221446552,2.25041819426271,1.12723438906481,2.69935974999417,2.15380782114124,1.94763118829713,2.59235113760147,1.43297137473949,1.47523441835852,2.86884713537774,2.11994179902547,2.63988844829164,2.22786696027244,2.03380698900721,2.37170210631799,1.77115909861212,2.60683987165082,1.04727756636775,2.11101228463366,2.4345791435788,2.9078381716523,1.09338488596018,0.221127265575686,1.14788818831768,1.41977270647149,1.70382995061769,0.0300921370026246,0.515600667202945,0.38831873044948,0.545727002163889,1.08466559279663,1.18430842844995,1.34186331446233,1.5501555191388,0.663751239987626,1.81374635768268,1.4071551397277,1.39088083953502,1.89364183644364,0.432467627650078,1.04279020949322,0.842107710604147,0.824554938916723,0.988903789277231,0.857295381658133,0.365770831761429,0.0808107289547992,1.3902587752145,1.72061052288856,0.675327831674185,1.37616471601291,0.295624990721213,0.313909339377207,0.326334654302033]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th> <\/th>\n      <th>outcome<\/th>\n      <th>a<\/th>\n      <th>b<\/th>\n      <th>c<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"columnDefs":[{"className":"dt-right","targets":[2,3,4]},{"orderable":false,"targets":0}],"order":[],"autoWidth":false,"orderClasses":false}},"evals":[],"jsHooks":[]}</script>
+</div>
+<div id="探索性分析" class="section level2">
+<h2>探索性分析</h2>
+<p>我们可以事先看一下group1和group2两组在a变量中的差别，使用webr函数，先看看结果如何</p>
+<pre class="r"><code>library(webr)
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+ROC %&gt;% 
+  group_by(outcome) %&gt;% 
+  numSummaryTable(a)</code></pre>
+<template id="04ba9a35-5ca1-49d5-bada-62f73dcdd2da"><style>
+.tabwid table{
+  border-spacing:0px !important;
+  border-collapse:collapse;
+  line-height:1;
+  margin-left:auto;
+  margin-right:auto;
+  border-width: 0;
+  display: table;
+  border-color: transparent;
+  caption-side: top;
+}
+.tabwid-caption-bottom table{
+  caption-side: bottom;
+}
+.tabwid_left table{
+  margin-left:0;
+}
+.tabwid_right table{
+  margin-right:0;
+}
+.tabwid td {
+    padding: 0;
+}
+.tabwid a {
+  text-decoration: none;
+}
+.tabwid thead {
+    background-color: transparent;
+}
+.tabwid tfoot {
+    background-color: transparent;
+}
+.tabwid table tr {
+background-color: transparent;
+}
+.katex-display {
+    margin: 0 0 !important;
+}
+</style><div class="tabwid"><style>.cl-00a0a5bc{}.cl-008fcb0c{font-family:'Helvetica';font-size:13pt;font-weight:bold;font-style:normal;text-decoration:none;color:rgba(255, 255, 255, 1.00);background-color:transparent;}.cl-008fcb20{font-family:'Helvetica';font-size:12pt;font-weight:normal;font-style:normal;text-decoration:none;color:rgba(0, 0, 0, 1.00);background-color:transparent;}.cl-009a1c7e{margin:0;text-align:center;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);padding-bottom:2pt;padding-top:2pt;padding-left:5pt;padding-right:5pt;line-height: 1;background-color:transparent;}.cl-009a1c92{margin:0;text-align:right;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);padding-bottom:2pt;padding-top:2pt;padding-left:5pt;padding-right:5pt;line-height: 1;background-color:transparent;}.cl-009a3d6c{width:0.75in;background-color:rgba(91, 119, 120, 1.00);vertical-align: middle;border-bottom: 1pt solid rgba(237, 189, 62, 1.00);border-top: 1pt solid rgba(0, 0, 0, 1.00);border-left: 1pt solid rgba(0, 0, 0, 1.00);border-right: 1pt solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-009a3d80{width:0.75in;background-color:transparent;vertical-align: middle;border-bottom: 1pt solid rgba(237, 189, 62, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 1pt solid rgba(237, 189, 62, 1.00);border-right: 1pt solid rgba(237, 189, 62, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-009a3d81{width:0.75in;background-color:rgba(239, 239, 239, 1.00);vertical-align: middle;border-bottom: 1pt solid rgba(237, 189, 62, 1.00);border-top: 1pt solid rgba(237, 189, 62, 1.00);border-left: 1pt solid rgba(237, 189, 62, 1.00);border-right: 1pt solid rgba(237, 189, 62, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}</style><table class='cl-00a0a5bc'><thead><tr style="overflow-wrap:break-word;"><td class="cl-009a3d6c"><p class="cl-009a1c7e"><span class="cl-008fcb0c">outcome</span></p></td><td class="cl-009a3d6c"><p class="cl-009a1c7e"><span class="cl-008fcb0c">n</span></p></td><td class="cl-009a3d6c"><p class="cl-009a1c7e"><span class="cl-008fcb0c">mean</span></p></td><td class="cl-009a3d6c"><p class="cl-009a1c7e"><span class="cl-008fcb0c">sd</span></p></td><td class="cl-009a3d6c"><p class="cl-009a1c7e"><span class="cl-008fcb0c">median</span></p></td><td class="cl-009a3d6c"><p class="cl-009a1c7e"><span class="cl-008fcb0c">trimmed</span></p></td><td class="cl-009a3d6c"><p class="cl-009a1c7e"><span class="cl-008fcb0c">mad</span></p></td><td class="cl-009a3d6c"><p class="cl-009a1c7e"><span class="cl-008fcb0c">min</span></p></td><td class="cl-009a3d6c"><p class="cl-009a1c7e"><span class="cl-008fcb0c">max</span></p></td><td class="cl-009a3d6c"><p class="cl-009a1c7e"><span class="cl-008fcb0c">range</span></p></td><td class="cl-009a3d6c"><p class="cl-009a1c7e"><span class="cl-008fcb0c">skew</span></p></td><td class="cl-009a3d6c"><p class="cl-009a1c7e"><span class="cl-008fcb0c">kurtosis</span></p></td><td class="cl-009a3d6c"><p class="cl-009a1c7e"><span class="cl-008fcb0c">se</span></p></td></tr></thead><tbody><tr style="overflow-wrap:break-word;"><td class="cl-009a3d80"><p class="cl-009a1c92"><span class="cl-008fcb20">group1</span></p></td><td class="cl-009a3d80"><p class="cl-009a1c92"><span class="cl-008fcb20">40.00</span></p></td><td class="cl-009a3d80"><p class="cl-009a1c92"><span class="cl-008fcb20">1.51</span></p></td><td class="cl-009a3d80"><p class="cl-009a1c92"><span class="cl-008fcb20">0.55</span></p></td><td class="cl-009a3d80"><p class="cl-009a1c92"><span class="cl-008fcb20">1.45</span></p></td><td class="cl-009a3d80"><p class="cl-009a1c92"><span class="cl-008fcb20">1.51</span></p></td><td class="cl-009a3d80"><p class="cl-009a1c92"><span class="cl-008fcb20">0.63</span></p></td><td class="cl-009a3d80"><p class="cl-009a1c92"><span class="cl-008fcb20">0.59</span></p></td><td class="cl-009a3d80"><p class="cl-009a1c92"><span class="cl-008fcb20">2.44</span></p></td><td class="cl-009a3d80"><p class="cl-009a1c92"><span class="cl-008fcb20">1.86</span></p></td><td class="cl-009a3d80"><p class="cl-009a1c92"><span class="cl-008fcb20">0.06</span></p></td><td class="cl-009a3d80"><p class="cl-009a1c92"><span class="cl-008fcb20">-1.12</span></p></td><td class="cl-009a3d80"><p class="cl-009a1c92"><span class="cl-008fcb20">0.09</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-009a3d81"><p class="cl-009a1c92"><span class="cl-008fcb20">group2</span></p></td><td class="cl-009a3d81"><p class="cl-009a1c92"><span class="cl-008fcb20">32.00</span></p></td><td class="cl-009a3d81"><p class="cl-009a1c92"><span class="cl-008fcb20">1.00</span></p></td><td class="cl-009a3d81"><p class="cl-009a1c92"><span class="cl-008fcb20">0.55</span></p></td><td class="cl-009a3d81"><p class="cl-009a1c92"><span class="cl-008fcb20">1.00</span></p></td><td class="cl-009a3d81"><p class="cl-009a1c92"><span class="cl-008fcb20">0.99</span></p></td><td class="cl-009a3d81"><p class="cl-009a1c92"><span class="cl-008fcb20">0.63</span></p></td><td class="cl-009a3d81"><p class="cl-009a1c92"><span class="cl-008fcb20">0.13</span></p></td><td class="cl-009a3d81"><p class="cl-009a1c92"><span class="cl-008fcb20">1.99</span></p></td><td class="cl-009a3d81"><p class="cl-009a1c92"><span class="cl-008fcb20">1.86</span></p></td><td class="cl-009a3d81"><p class="cl-009a1c92"><span class="cl-008fcb20">0.08</span></p></td><td class="cl-009a3d81"><p class="cl-009a1c92"><span class="cl-008fcb20">-1.25</span></p></td><td class="cl-009a3d81"><p class="cl-009a1c92"><span class="cl-008fcb20">0.10</span></p></td></tr></tbody></table></div></template>
+<div class="flextable-shadow-host" id="a9d20748-e0cf-4bb6-ada7-4c93f4b7cc41"></div>
+<script>
+var dest = document.getElementById("a9d20748-e0cf-4bb6-ada7-4c93f4b7cc41");
+var template = document.getElementById("04ba9a35-5ca1-49d5-bada-62f73dcdd2da");
+var caption = template.content.querySelector("caption");
+var fantome = dest.attachShadow({mode: 'open'});
+var templateContent = template.content;
+fantome.appendChild(templateContent);
+</script>
+
+<p>也可以使用箱示图和密度图进行展示，见Figure <a href="#fig:fig1">1</a>所示。</p>
+<pre class="r"><code>p1&lt;- ggplot(data=ROC)+geom_density(aes(x=a,fill=outcome),alpha=0.5) 
+p2&lt;-ggplot(data=ROC)+geom_boxplot(aes(x=outcome,y=a,fill=outcome),alpha=0.5) 
+cowplot::plot_grid(p1,p2)</code></pre>
+<div class="figure" style="text-align: center"><span style="display:block;" id="fig:fig1"></span>
+<img src="/zh/course/2022-10-29-multipleroc/multipleROC_files/figure-html/fig1-1.png" alt="group1和group2两组在a变量中的差别" width="672" />
+<p class="caption">
+Figure 1: group1和group2两组在a变量中的差别
+</p>
+</div>
+<p>同法可以显示b和c变量的结果，我们暂时以boxplot展示</p>
+<pre class="r"><code>p3&lt;-ggplot(data=ROC)+geom_boxplot(aes(x=outcome,y=b,fill=outcome),alpha=0.5)
+p4&lt;-ggplot(data=ROC)+geom_boxplot(aes(x=outcome,y=c,fill=outcome),alpha=0.5)
+cowplot::plot_grid(p2,p3,p4,labels = &quot;AUTO&quot;,nrow = 1)</code></pre>
+<div class="figure" style="text-align: center"><span style="display:block;" id="fig:fig2"></span>
+<img src="/zh/course/2022-10-29-multipleroc/multipleROC_files/figure-html/fig2-1.png" alt="group1和group2两组在三变量中的差别" width="672" />
+<p class="caption">
+Figure 2: group1和group2两组在三变量中的差别
+</p>
+</div>
+<p>虽然探索性分析可以判断两组的差异，但是无法确定最佳截断值，也无妨评估预测效能。</p>
+</div>
+<div id="roc曲线的绘制" class="section level2">
+<h2>ROC曲线的绘制</h2>
+<p>绘制ROC曲线是确定最佳截断值的有用方法之一。您可以使用以下R命令执行ROC分析。下面的R命令使一个类为multipleROC的对象，并进行绘图。</p>
+<p>由于默认的函数中分组需为0和1，因此需要将group1和group2进行赋值，我们将group1定义为0，group2定义为1，我们绘制a变量在两组中的ROC图片，我们可以使用<code>multipleROC()</code>语句一步计算，可以看到最佳截断值，AUC值，另外敏感度、特异度都是可以直接显示的，见Figure <a href="#fig:fig3">3</a>所示。。</p>
+<pre class="r"><code>ROC$group&lt;-ifelse(ROC$outcome==&#39;group1&#39;,0,1) # 将group1定义为0，否则为1
+library(multipleROC)
+a=multipleROC(group~a,data=ROC)</code></pre>
+<div class="figure" style="text-align: center"><span style="display:block;" id="fig:fig3"></span>
+<img src="/zh/course/2022-10-29-multipleroc/multipleROC_files/figure-html/fig3-1.png" alt="a变量在两组的ROC曲线" width="672" />
+<p class="caption">
+Figure 3: a变量在两组的ROC曲线
+</p>
+</div>
+<p>如果不想显示那么多结果的话，也可以<code>plot_ROC()</code>函数一个个设置是否显示</p>
+<pre><code>plot_ROC(
+  x,
+  show.points = TRUE,
+  show.eta = TRUE,
+  show.sens = TRUE,
+  show.AUC = TRUE,
+  facet = FALSE
+)</code></pre>
+</div>
+<div id="auc和p值" class="section level2">
+<h2>AUC和p值</h2>
+<p>在Figure <a href="#fig:fig3">3</a>的右下角，您可以看到曲线下面积（AUC）和Wilcoxon秩和检验的p值。p值来自以下计算结果。</p>
+<pre class="r"><code>wilcox.test(ROC$a,ROC$group)</code></pre>
+<pre><code>## 
+##  Wilcoxon rank sum test with continuity correction
+## 
+## data:  ROC$a and ROC$group
+## W = 4416, p-value = 1.294e-13
+## alternative hypothesis: true location shift is not equal to 0</code></pre>
+<p>AUC值则通过<strong>multipleROC</strong>包的<code>simpleAUC()</code>函数进行运算，函数如下:</p>
+<pre><code>simpleAUC &lt;- function(df){
+     df=df[order(df$x,decreasing=TRUE),]
+     TPR=df$sens
+     FPR=df$fpr
+
+     dFPR &lt;- c(diff(FPR), 0)
+     dTPR &lt;- c(diff(TPR), 0)
+
+     sum(TPR * dFPR) + sum(dTPR * dFPR)/2
+}</code></pre>
+<p>那么，我们直接直接只有simpleAUC(a$df) 进行提取，或者简单的的a$auc直接看到完整的AUC值</p>
+<pre class="r"><code>simpleAUC(a$df)  ## 函数法</code></pre>
+<pre><code>## [1] 0.7328125</code></pre>
+<pre class="r"><code>a$auc # 直接提取法</code></pre>
+<pre><code>## [1] 0.7328125</code></pre>
+<p>同样的，我们直接提取截断点(cutpoint)和最佳截断值（Optimal Cutoff value）</p>
+<pre class="r"><code>a$cutpoint</code></pre>
+<pre><code>## [1] 0.5136663</code></pre>
+<pre class="r"><code>a$cutoff</code></pre>
+<pre><code>##           a
+## 54 1.082828</code></pre>
+</div>
+<div id="将结果转换为proc对象" class="section level2">
+<h2>将结果转换为<strong>pROC对象</strong></h2>
+<p>如果你更习惯<strong>pROC</strong>的结果，使用<code>multipleROC2roc()</code>函数，可以直接将结果转换为 <strong>pROC</strong>的roc 对象</p>
+<pre class="r"><code>a2&lt;-multipleROC2roc(a)</code></pre>
+<pre><code>## Setting levels: control = 0, case = 1</code></pre>
+<pre><code>## Setting direction: controls &lt; cases</code></pre>
+<pre class="r"><code>class(a) ##a的类型为multipleROC</code></pre>
+<pre><code>## [1] &quot;multipleROC&quot;</code></pre>
+<pre class="r"><code>class(a2) ##a2已经转换为roc的类型了</code></pre>
+<pre><code>## [1] &quot;roc&quot;</code></pre>
+<pre class="r"><code>pROC::auc(a2) ## 我们用pROC看auc的结果</code></pre>
+<pre><code>## Area under the curve: 0.7328</code></pre>
+<p>我们可以使用pROC的绘图函数对a2进行绘图了，我们比较以下两种结果吧，见Figure <a href="#fig:fig4">4</a>所示。</p>
+<pre class="r"><code>library(pROC)</code></pre>
+<pre><code>## Type &#39;citation(&quot;pROC&quot;)&#39; for a citation.</code></pre>
+<pre><code>## 
+## 载入程辑包：&#39;pROC&#39;</code></pre>
+<pre><code>## The following objects are masked from &#39;package:stats&#39;:
+## 
+##     cov, smooth, var</code></pre>
+<pre class="r"><code>p5&lt;-ggroc(a2, legacy.axes = TRUE)+
+  geom_segment(aes(x = 0, xend = 1, y = 0, yend = 1), 
+               color=&quot;darkgrey&quot;,linetype=4)+
+  theme_bw()+ggtitle(&quot;pROC&quot;)
+p6&lt;-plot(a)+ggtitle(&quot;multipleROC&quot;)
+cowplot::plot_grid(p5,p6)</code></pre>
+<div class="figure" style="text-align: center"><span style="display:block;" id="fig:fig4"></span>
+<img src="/zh/course/2022-10-29-multipleroc/multipleROC_files/figure-html/fig4-1.png" alt="pROC和multipleROC的结果对比" width="672" />
+<p class="caption">
+Figure 4: pROC和multipleROC的结果对比
+</p>
+</div>
+</div>
+<div id="多个roc曲线的绘制" class="section level2">
+<h2>多个ROC曲线的绘制</h2>
+<p>可以用多个函数进行多个ROC的曲线，可以使用<code>plot_ROC(list())</code>一个个绘制曲线，见Figure <a href="#fig:fig5">5</a>所示。</p>
+<pre class="r"><code>a=multipleROC(group~a,data=ROC,plot=FALSE)
+b=multipleROC(group~b,data=ROC,plot=FALSE)
+c=multipleROC(group~c,data=ROC,plot=FALSE)
+plot_ROC(list(a,b,c),
+         show.eta=FALSE,#不显示截点
+         show.sens=FALSE #不显示各种率
+         )</code></pre>
+<div class="figure" style="text-align: center"><span style="display:block;" id="fig:fig5"></span>
+<img src="/zh/course/2022-10-29-multipleroc/multipleROC_files/figure-html/fig5-1.png" alt="三条曲线同时绘制" width="672" />
+<p class="caption">
+Figure 5: 三条曲线同时绘制
+</p>
+</div>
+<p>当然，如果你不想写那么多代码的话，也可以直接使用<code>plot_ROC2()</code>函数直接绘制，是不是简单的多。</p>
+<pre class="r"><code>plot_ROC2(yvar=&quot;group&quot;,xvars=c(&quot;a&quot;,&quot;b&quot;,&quot;c&quot;),dataname=&quot;ROC&quot;)</code></pre>
+<div class="figure" style="text-align: center"><span style="display:block;" id="fig:fig6"></span>
+<img src="/zh/course/2022-10-29-multipleroc/multipleROC_files/figure-html/fig6-1.png" alt="三条曲线同时绘制简单函数" width="672" />
+<p class="caption">
+Figure 6: 三条曲线同时绘制简单函数
+</p>
+</div>
+<div id="分面显示" class="section level3">
+<h3>分面显示</h3>
+<p>将三张图放在一起，可以看到数值重叠，影响了颜值，因此我们可以用facet进行分面绘制，见Figure <a href="#fig:fig7">7</a>所示。。</p>
+<pre class="r"><code>plot_ROC(list(a,b,c),facet=TRUE)</code></pre>
+<div class="figure" style="text-align: center"><span style="display:block;" id="fig:fig7"></span>
+<img src="/zh/course/2022-10-29-multipleroc/multipleROC_files/figure-html/fig7-1.png" alt="三条曲线的分面显示" width="672" />
+<p class="caption">
+Figure 7: 三条曲线的分面显示
+</p>
+</div>
+<p>可以发现分面的标签默认是1，2，3，我们可以使用Y叔团队开发的<strong>ggfun</strong>这个包的<code>facet_set()</code>函数进行快速的修改，见Figure <a href="#fig:fig8">8</a>所示。</p>
+<pre class="r"><code>library(ggfun)
+plot_ROC(list(a,b,c),facet=TRUE)+
+  facet_set(label=c(`1`=&quot;a&quot;, `2`=&quot;b&quot;, `3`=&quot;c&quot;))</code></pre>
+<div class="figure" style="text-align: center"><span style="display:block;" id="fig:fig8"></span>
+<img src="/zh/course/2022-10-29-multipleroc/multipleROC_files/figure-html/fig8-1.png" alt="三条曲线的分面显示，改标签" width="672" />
+<p class="caption">
+Figure 8: 三条曲线的分面显示，改标签
+</p>
+</div>
+</div>
+<div id="换一种分面显示" class="section level3">
+<h3>换一种分面显示</h3>
+<p>使用<strong>ggplot2</strong>包的<code>facet_grid</code>可以换一个分面显示方式，见Figure <a href="#fig:fig9">9</a>所示。</p>
+<pre class="r"><code>plot_ROC(list(a,b,c))+facet_grid(no~.)+
+  facet_set(label=c(`1`=&quot;a&quot;, `2`=&quot;b&quot;, `3`=&quot;c&quot;))</code></pre>
+<div class="figure" style="text-align: center"><span style="display:block;" id="fig:fig9"></span>
+<img src="/zh/course/2022-10-29-multipleroc/multipleROC_files/figure-html/fig9-1.png" alt="三条曲线的分面显示，改标签" width="672" />
+<p class="caption">
+Figure 9: 三条曲线的分面显示，改标签
+</p>
+</div>
+<p>由于是基于ggplot2语句，所以我们可以使用<code>ggtitle</code>添加标题，还可以更换主题等等，有兴趣的可以自去摸索以下。。。</p>
+</div>
+</div>

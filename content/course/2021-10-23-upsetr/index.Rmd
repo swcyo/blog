@@ -1,0 +1,159 @@
+---
+title: 使用UpsetR绘制Upset图
+author: 欧阳松
+date: '2021-10-23'
+slug: upsetR
+categories:
+  - upset
+tags:
+  - upset
+---
+
+之前写过一个"[统计多个基因列表交集并画韦恩图和Upset图"](/course/veen-upset/)的教程，然后由于个人理解有限，所以有些不完善的地方，现在重新补充一下个人的理解
+
+### 支持的数据类型
+
+UpsetR目前之前的数据类型有三种
+
+-   含0和1的表格（默认格式，0代表无，1代表有）
+
+-   含表达量的矩阵（`fromExpression(input)`）
+
+-   各个数据集的列表（`fromList(input)`）
+
+我们最常用的是有了各种基因的基因列表，所以最常见的其实是list格式，所以需要我们进行转换，这个用`fromList(input)`函数可以快速统计。
+
+### list数据的定义与导出
+
+之前的教程介绍了list数据的定义，直接使用`list()`函数定义一下即可
+
+    list<-list(listA=listA,listB=listB,listC=listC,listD=listD,listE=listE,listF=listF)
+    ## 前面的listA代表列名，后面的listA代表基因的列表
+
+list数据的导出表格数据可以用**plyr**包的`rbind.fill()`函数实现，但是后一列的列表的开始默认是在前一列的最后，所以会有很多的空值，我们需要进行手动删除（主要是我不会代码。。。）
+
+    library(plyr)
+    list<-rbind.fill(data.frame(list$listA),
+                   data.frame(list$listB),
+                   data.frame(list$listC),
+                   data.frame(list$listD),
+                   data.frame(list$listE),
+                   data.frame(list$listF))
+    write.csv(list,'list.csv')
+
+这样导出csv数据后(比如这个[list.csv](/course/upsetr/list.csv)的测试数据)，把空白值手动处理一下，然后可以导入R进行绘图（或者用在线工具绘图）,表的格式如下：
+
+```{r,echo=FALSE}
+list<-read.csv('/Users/mac/Documents/GitHub/Rblog/content/zh/course/2021-10-23-upsetr/list.csv')
+DT::datatable(list)
+```
+
+### 绘图详解
+
+#### 基本绘图
+
+最基本的绘图就是upset(data)，我们看看默认的结果，见Figure \@ref(fig:upset1)所示。
+
+```{r upset1,fig.align='center',fig.cap="默认Upset图"}
+library(UpSetR)
+upset(fromList(list))
+```
+
+#### 按频率排序
+
+基本绘图比较没有规律，我们可以按数字的频率排序，也可以按degree排序，这里我们选择频率，默认是降序，见Figure \@ref(fig:upset2)所示。
+
+```{r upset2,fig.align='center',fig.cap="按频率排序的Upset图"}
+upset(fromList(list),order.by = 'freq', # 如果想按度排序，可以改为'degree'
+      decreasing = T) # 升序的话，改为F
+```
+
+#### 显示所有数据集
+
+这里，我们可以发现默认显示的5个数据集，但是实际上我们是6个数据集，我之前的方法是手动输入6，但其实不需要，我们只需要输入`dim(fromList(list))[2]`即可统计数据集的个数，比如Figure \@ref(fig:upset3)所示。。
+
+```{r upset3,fig.align='center',fig.cap="显示所有数据集的Upset图"}
+upset(fromList(list),
+      nsets = dim(fromList(list))[2],
+      order.by = 'freq')
+```
+
+#### 统计所有数据集合的数目
+
+我们还可以显示所有集合的列表数目，用颜色标记好，相当于维恩图最中心的数字，这里需要用`queries`函数，之前我是手动录入各个列表，其实只需要`colnames(fromList(list))`即可统计，见Figure \@ref(fig:upset4)所示。
+
+```{r upset4,fig.align='center',fig.cap="显示所有数据集数目的Upset图"}
+upset(fromList(list),
+      nsets = dim(fromList(list))[2],
+      order.by = 'freq',
+      queries = list(list(query = intersects, 
+                          params = list(colnames(fromList(list))), 
+                          active = T)))
+```
+
+#### 显示交集为0的结果
+
+默认的Upset图没有0的结果，我们只要设置empty.intersections = 'on'即可，但这样图片会被拉长，我们可以不用设置，这个看个人需要，见Figure \@ref(fig:upset5)所示。
+
+```{r upset5,fig.align='center',fig.cap="显示交集为0的Upset图"}
+upset(fromList(list),
+      nsets = dim(fromList(list))[2],
+      order.by = 'freq',
+      empty.intersections = 'on',
+      queries = list(list(query = intersects, 
+                          params = list(colnames(fromList(list))), 
+                          active = T)))
+```
+
+#### 显示数据集的原始数目
+
+我们可以看到只有交集的数目，但是没有原始数据集的数目，这里需要设置`set_size.show = T`即可，（当然还意设置数字的字体大小和角度，这个见仁见智），见Figure \@ref(fig:upset6)所示。
+
+```{r upset6,fig.align='center',fig.cap="显示数据集原始数字的Upset图"}
+upset(fromList(list),
+      nsets = dim(fromList(list))[2],
+      order.by = 'freq',
+      empty.intersections = 'on',
+      set_size.show = T,
+      queries = list(list(query = intersects, 
+                          params = list(colnames(fromList(list))), 
+                          active = T)))
+```
+
+#### 设置各个Bar的颜色
+
+我们可以看到所有的颜色都是黑灰色，其实我们也可以设置颜色，比如main.bar.color 和sets.bar.color，这里我们可以使用**ggpubr**中的配色包（如npg，lancet，aaas等）进行上色，见Figure \@ref(fig:upset7)所示。
+
+```{r upset7,fig.align='center',fig.cap="显示Bar颜色的Upset图"}
+upset(fromList(list),
+      nsets = dim(fromList(list))[2],
+      order.by = 'freq',
+      empty.intersections = 'on',
+      set_size.show = T,
+            main.bar.color = "brown", # 设置交集数柱子的颜色
+      sets.bar.color = ggpubr::get_palette('npg',dim(fromList(list))[2]), ## 设置数据集颜色，选择ggpubr的配色
+      queries = list(list(query = intersects, 
+                          params = list(colnames(fromList(list))), 
+                          active = T)))
+```
+
+### 其他参数
+
+完整代码如下，可以自己研究哦，设置标签名称、字体大小，log数字什么的。
+
+    upset(data, nsets = 5, nintersects = 40, sets = NULL,
+      keep.order = F, set.metadata = NULL, intersections = NULL,
+      matrix.color = "gray23", main.bar.color = "gray23",
+      mainbar.y.label = "Intersection Size", mainbar.y.max = NULL,
+      sets.bar.color = "gray23", sets.x.label = "Set Size",
+      point.size = 2.2, line.size = 0.7, mb.ratio = c(0.7, 0.3),
+      expression = NULL, att.pos = NULL, att.color = main.bar.color,
+      order.by = c("freq", "degree"), decreasing = c(T, F),
+      show.numbers = "yes", number.angles = 0, group.by = "degree",
+      cutoff = NULL, queries = NULL, query.legend = "none",
+      shade.color = "gray88", shade.alpha = 0.25, matrix.dot.alpha = 0.5,
+      empty.intersections = NULL, color.pal = 1, boxplot.summary = NULL,
+      attribute.plots = NULL, scale.intersections = "identity",
+      scale.sets = "identity", text.scale = 1, set_size.angles = 0,
+      set_size.show = FALSE, set_size.numbers_size = NULL,
+      set_size.scale_max = NULL)

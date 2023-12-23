@@ -1,0 +1,64 @@
+---
+title: 填充NA值为上一个数值
+author: 欧阳松
+date: '2022-02-26'
+slug: fillna
+categories:
+  - 教程
+tags:
+  - NA
+  - 填充
+---
+
+<script src="{{< blogdown/postref >}}index.zh_files/header-attrs/header-attrs.js"></script>
+<script src="{{< blogdown/postref >}}index.zh_files/htmlwidgets/htmlwidgets.js"></script>
+<link href="{{< blogdown/postref >}}index.zh_files/datatables-css/datatables-crosstalk.css" rel="stylesheet" />
+<script src="{{< blogdown/postref >}}index.zh_files/datatables-binding/datatables.js"></script>
+<script src="{{< blogdown/postref >}}index.zh_files/jquery/jquery-3.6.0.min.js"></script>
+<link href="{{< blogdown/postref >}}index.zh_files/dt-core/css/jquery.dataTables.min.css" rel="stylesheet" />
+<link href="{{< blogdown/postref >}}index.zh_files/dt-core/css/jquery.dataTables.extra.css" rel="stylesheet" />
+<script src="{{< blogdown/postref >}}index.zh_files/dt-core/js/jquery.dataTables.min.js"></script>
+<link href="{{< blogdown/postref >}}index.zh_files/crosstalk/css/crosstalk.css" rel="stylesheet" />
+<script src="{{< blogdown/postref >}}index.zh_files/crosstalk/js/crosstalk.min.js"></script>
+
+
+<p>有时候处理Excel数据时会出现很多NA值，比如将多行数据合并的时候，导入R里面就会发现NA值，对于NA值的填充有很多办法，这里介绍自动填充为上一行的数值，使用的<strong>tidyverse</strong>包和<strong>zoo</strong>包分别演示，但我认为方便的是<strong>zoo</strong>包。</p>
+<p>先构建一个数据</p>
+<pre class="r"><code>td &lt;- data.frame(&quot;State&quot; = c(&quot;NY&quot;, &quot;&quot;,&quot;&quot;, &quot;OH&quot;,&quot;&quot;, &quot;&quot;),
+                 &quot;Your&quot; = c(101:106), &quot;Name&quot; = c(5:6,&quot;&quot;,8:9,&quot;&quot;)
+                 )</code></pre>
+<div id="htmlwidget-1" style="width:100%;height:auto;" class="datatables html-widget"></div>
+<script type="application/json" data-for="htmlwidget-1">{"x":{"filter":"none","vertical":false,"data":[["1","2","3","4","5","6"],["NY","","","OH","",""],[101,102,103,104,105,106],["5","6","","8","9",""]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th> <\/th>\n      <th>State<\/th>\n      <th>Your<\/th>\n      <th>Name<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"columnDefs":[{"className":"dt-right","targets":2},{"orderable":false,"targets":0}],"order":[],"autoWidth":false,"orderClasses":false}},"evals":[],"jsHooks":[]}</script>
+<p>首先是<strong>tidyverse</strong>包，演示填充State列的NA值为上一个数据</p>
+<pre class="r"><code>library(tidyverse)
+td %&gt;% 
+   mutate(State = na_if(State, &quot;&quot;)) %&gt;%
+   fill(State)</code></pre>
+<pre><code>##   State Your Name
+## 1    NY  101    5
+## 2    NY  102    6
+## 3    NY  103     
+## 4    OH  104    8
+## 5    OH  105    9
+## 6    OH  106</code></pre>
+<p>可以发现，State列的NA值已经填充为上一行的数据，但是Name列还差点意思，这时候我们需要用到<strong>zoo</strong>包，首先我们要将""替换成NA，然后使用<strong>zoo</strong>一步替换为上一数据（这里要注意，如果不将’’替换成NA，将会填充不完全）</p>
+<p>我们分别演示一下，首先是不替换NA，直接运行函数</p>
+<pre class="r"><code>zoo::na.locf(td)</code></pre>
+<pre><code>##   State Your Name
+## 1    NY  101    5
+## 2        102    6
+## 3        103     
+## 4    OH  104    8
+## 5        105    9
+## 6        106</code></pre>
+<p>可以发现一点都没有替换，接下来将’’替换成NA</p>
+<pre class="r"><code>td[td==&#39;&#39;]=NA
+zoo::na.locf(td)</code></pre>
+<pre><code>##   State Your Name
+## 1    NY  101    5
+## 2    NY  102    6
+## 3    NY  103    6
+## 4    OH  104    8
+## 5    OH  105    9
+## 6    OH  106    9</code></pre>
+<p>完美解决所有列的NA值</p>

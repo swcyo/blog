@@ -1,0 +1,139 @@
+---
+title: 可视化矩阵的相关性分析之ggstatsplot
+author: 欧阳松
+date: '2022-03-09'
+slug: cor-ggstatsplot
+categories:
+  - 教程
+tags:
+  - 相关性分析
+  - ggstatsplot
+---
+
+<script src="{{< blogdown/postref >}}index.zh_files/header-attrs/header-attrs.js"></script>
+<script src="{{< blogdown/postref >}}index.zh_files/htmlwidgets/htmlwidgets.js"></script>
+<link href="{{< blogdown/postref >}}index.zh_files/datatables-css/datatables-crosstalk.css" rel="stylesheet" />
+<script src="{{< blogdown/postref >}}index.zh_files/datatables-binding/datatables.js"></script>
+<script src="{{< blogdown/postref >}}index.zh_files/jquery/jquery-3.6.0.min.js"></script>
+<link href="{{< blogdown/postref >}}index.zh_files/dt-core/css/jquery.dataTables.min.css" rel="stylesheet" />
+<link href="{{< blogdown/postref >}}index.zh_files/dt-core/css/jquery.dataTables.extra.css" rel="stylesheet" />
+<script src="{{< blogdown/postref >}}index.zh_files/dt-core/js/jquery.dataTables.min.js"></script>
+<link href="{{< blogdown/postref >}}index.zh_files/crosstalk/css/crosstalk.css" rel="stylesheet" />
+<script src="{{< blogdown/postref >}}index.zh_files/crosstalk/js/crosstalk.min.js"></script>
+
+
+<p>之前我分别介绍了用<a href="http://localhost:4321/course/ggally/"><strong>GGally</strong></a><strong>、<a href="http://localhost:4321/course/ggcorrplot/">ggcorrplot</a></strong>和<a href="http://localhost:4321/course/corrplot/"><strong>corrplot</strong></a>进行矩阵的相关性分析，今天继续介绍一个包<strong>ggstatsplot</strong></p>
+<p>关于<strong>ggstatsplot</strong>这个包，后面有机会再做介绍，这是一个做统计学分析的天花板软件，可以很好的进行柱状图、箱式图、点状图、饼图、散点图、相关性分析、回归分析等等分析，并且基于ggplot2，效果很好</p>
+<p>继续使用mtcars数据进行演示</p>
+<pre class="r"><code>data(mtcars)</code></pre>
+<div id="htmlwidget-1" style="width:100%;height:auto;" class="datatables html-widget"></div>
+<script type="application/json" data-for="htmlwidget-1">{"x":{"filter":"none","vertical":false,"data":[["Mazda RX4","Mazda RX4 Wag","Datsun 710","Hornet 4 Drive","Hornet Sportabout","Valiant","Duster 360","Merc 240D","Merc 230","Merc 280","Merc 280C","Merc 450SE","Merc 450SL","Merc 450SLC","Cadillac Fleetwood","Lincoln Continental","Chrysler Imperial","Fiat 128","Honda Civic","Toyota Corolla","Toyota Corona","Dodge Challenger","AMC Javelin","Camaro Z28","Pontiac Firebird","Fiat X1-9","Porsche 914-2","Lotus Europa","Ford Pantera L","Ferrari Dino","Maserati Bora","Volvo 142E"],[21,21,22.8,21.4,18.7,18.1,14.3,24.4,22.8,19.2,17.8,16.4,17.3,15.2,10.4,10.4,14.7,32.4,30.4,33.9,21.5,15.5,15.2,13.3,19.2,27.3,26,30.4,15.8,19.7,15,21.4],[6,6,4,6,8,6,8,4,4,6,6,8,8,8,8,8,8,4,4,4,4,8,8,8,8,4,4,4,8,6,8,4],[160,160,108,258,360,225,360,146.7,140.8,167.6,167.6,275.8,275.8,275.8,472,460,440,78.7,75.7,71.1,120.1,318,304,350,400,79,120.3,95.1,351,145,301,121],[110,110,93,110,175,105,245,62,95,123,123,180,180,180,205,215,230,66,52,65,97,150,150,245,175,66,91,113,264,175,335,109],[3.9,3.9,3.85,3.08,3.15,2.76,3.21,3.69,3.92,3.92,3.92,3.07,3.07,3.07,2.93,3,3.23,4.08,4.93,4.22,3.7,2.76,3.15,3.73,3.08,4.08,4.43,3.77,4.22,3.62,3.54,4.11],[2.62,2.875,2.32,3.215,3.44,3.46,3.57,3.19,3.15,3.44,3.44,4.07,3.73,3.78,5.25,5.424,5.345,2.2,1.615,1.835,2.465,3.52,3.435,3.84,3.845,1.935,2.14,1.513,3.17,2.77,3.57,2.78],[16.46,17.02,18.61,19.44,17.02,20.22,15.84,20,22.9,18.3,18.9,17.4,17.6,18,17.98,17.82,17.42,19.47,18.52,19.9,20.01,16.87,17.3,15.41,17.05,18.9,16.7,16.9,14.5,15.5,14.6,18.6],[0,0,1,1,0,1,0,1,1,1,1,0,0,0,0,0,0,1,1,1,1,0,0,0,0,1,0,1,0,0,0,1],[1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,0,0,0,0,0,1,1,1,1,1,1,1],[4,4,4,3,3,3,3,4,4,4,4,3,3,3,3,3,3,4,4,4,3,3,3,3,3,4,5,5,5,5,5,4],[4,4,1,1,2,1,4,2,2,4,4,3,3,3,4,4,4,1,2,1,1,2,2,4,2,1,2,2,4,6,8,2]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th> <\/th>\n      <th>mpg<\/th>\n      <th>cyl<\/th>\n      <th>disp<\/th>\n      <th>hp<\/th>\n      <th>drat<\/th>\n      <th>wt<\/th>\n      <th>qsec<\/th>\n      <th>vs<\/th>\n      <th>am<\/th>\n      <th>gear<\/th>\n      <th>carb<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"columnDefs":[{"className":"dt-right","targets":[1,2,3,4,5,6,7,8,9,10,11]},{"orderable":false,"targets":0}],"order":[],"autoWidth":false,"orderClasses":false}},"evals":[],"jsHooks":[]}</script>
+<pre class="r"><code>library(ggstatsplot)</code></pre>
+<p>进行相关性分析，需要用到的函数是<code>ggcorrmat()</code>，我们先看看官方介绍</p>
+<pre><code>ggcorrmat(
+  data,
+  cor.vars = NULL,
+  cor.vars.names = NULL,
+  output = &quot;plot&quot;,
+  matrix.type = &quot;upper&quot;,
+  type = &quot;parametric&quot;,
+  tr = 0.2,
+  partial = FALSE,
+  k = 2L,
+  sig.level = 0.05,
+  conf.level = 0.95,
+  bf.prior = 0.707,
+  p.adjust.method = &quot;holm&quot;,
+  pch = &quot;cross&quot;,
+  ggcorrplot.args = list(method = &quot;square&quot;, outline.color = &quot;black&quot;, pch.cex = 14),
+  package = &quot;RColorBrewer&quot;,
+  palette = &quot;Dark2&quot;,
+  colors = c(&quot;#E69F00&quot;, &quot;white&quot;, &quot;#009E73&quot;),
+  ggtheme = ggstatsplot::theme_ggstatsplot(),
+  ggplot.component = NULL,
+  title = NULL,
+  subtitle = NULL,
+  caption = NULL,
+  ...
+)</code></pre>
+<p>可以看到可以定制的参数很多，这样我们就可以一一去尝试了</p>
+<p>我们首先运行最简单的默认函数，见Figure <a href="#fig:fig1">1</a>所示，可以看到默认的是上半部分显示，并且自动计算好了相关性系数和显著性标识，非常的方便</p>
+<pre class="r"><code>ggcorrmat(mtcars)</code></pre>
+<div class="figure" style="text-align: center"><span style="display:block;" id="fig:fig1"></span>
+<img src="{{< blogdown/postref >}}index.zh_files/figure-html/fig1-1.png" alt="默认函数的图" width="672" />
+<p class="caption">
+Figure 1: 默认函数的图
+</p>
+</div>
+<p>这时候我们可以跟之前的结果比较，会发现P值显示不一样，那是因为默认的是校正的p值，如果我们只想显示默认p值，只要设置<code>p.adjust.method = 'none'</code>即可，同时我们再设置成显示下半部分，只需要加一句<code>matrix.type = 'lower'</code>，结果见Figure <a href="#fig:fig2">2</a></p>
+<pre class="r"><code>ggcorrmat(mtcars,p.adjust.method = &#39;none&#39;,matrix.type = &#39;lower&#39;)</code></pre>
+<div class="figure" style="text-align: center"><span style="display:block;" id="fig:fig2"></span>
+<img src="{{< blogdown/postref >}}index.zh_files/figure-html/fig2-1.png" alt="将p值设置为none，即不校正" width="672" />
+<p class="caption">
+Figure 2: 将p值设置为none，即不校正
+</p>
+</div>
+<p>由于所有计算都是后台运行，如果我们想看结果的话，只需要设置<code>output = "dataframe"</code>即可，这里我们依然可以用校正p值，或者不校正p值，我们试试不校正p值，结果见表所示</p>
+<pre><code>data&lt;-ggcorrmat(mtcars,p.adjust.method = &#39;none&#39;,output = &#39;datafream&#39;)
+round( data[3:9],3) ## 显示小数点3位</code></pre>
+<div id="htmlwidget-2" style="width:100%;height:auto;" class="datatables html-widget"></div>
+<script type="application/json" data-for="htmlwidget-2">{"x":{"filter":"none","vertical":false,"data":[["1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16","17","18","19","20","21","22","23","24","25","26","27","28","29","30","31","32","33","34","35","36","37","38","39","40","41","42","43","44","45","46","47","48","49","50","51","52","53","54","55"],[-0.852,-0.848,-0.776,0.681,-0.868,0.419,0.664,0.6,0.48,-0.551,0.902,0.832,-0.7,0.782,-0.591,-0.811,-0.523,-0.493,0.527,0.791,-0.71,0.888,-0.434,-0.71,-0.591,-0.556,0.395,-0.449,0.659,-0.708,-0.723,-0.243,-0.126,0.75,-0.712,0.091,0.44,0.713,0.7,-0.091,-0.175,-0.555,-0.692,-0.583,0.428,0.745,-0.23,-0.213,-0.656,0.168,0.206,-0.57,0.794,0.058,0.274],[0.95,0.95,0.95,0.95,0.95,0.95,0.95,0.95,0.95,0.95,0.95,0.95,0.95,0.95,0.95,0.95,0.95,0.95,0.95,0.95,0.95,0.95,0.95,0.95,0.95,0.95,0.95,0.95,0.95,0.95,0.95,0.95,0.95,0.95,0.95,0.95,0.95,0.95,0.95,0.95,0.95,0.95,0.95,0.95,0.95,0.95,0.95,0.95,0.95,0.95,0.95,0.95,0.95,0.95,0.95],[-0.926,-0.923,-0.885,0.436,-0.934,0.082,0.41,0.318,0.158,-0.755,0.807,0.682,-0.843,0.597,-0.779,-0.904,-0.737,-0.718,0.218,0.611,-0.849,0.781,-0.68,-0.849,-0.779,-0.758,0.054,-0.69,0.403,-0.848,-0.856,-0.546,-0.454,0.543,-0.85,-0.266,0.108,0.484,0.464,-0.426,-0.493,-0.757,-0.839,-0.774,0.093,0.535,-0.536,-0.523,-0.818,-0.192,-0.154,-0.766,0.616,-0.297,-0.083],[-0.716,-0.708,-0.586,0.832,-0.744,0.67,0.822,0.784,0.71,-0.25,0.951,0.915,-0.465,0.889,-0.306,-0.644,-0.213,-0.174,0.74,0.893,-0.481,0.944,-0.1,-0.481,-0.306,-0.257,0.654,-0.119,0.819,-0.477,-0.501,0.115,0.233,0.871,-0.484,0.426,0.684,0.85,0.843,0.266,0.185,-0.256,-0.453,-0.294,0.676,0.868,0.129,0.147,-0.399,0.488,0.518,-0.276,0.895,0.398,0.568],[-8.92,-8.747,-6.742,5.096,-9.559,2.525,4.864,4.106,2.999,-3.616,11.445,8.229,-5.368,6.883,-4.015,-7.587,-3.357,-3.101,3.396,7.08,-5.526,10.576,-2.636,-5.529,-4.015,-3.66,2.355,-2.75,4.796,-5.495,-5.734,-1.373,-0.694,6.207,-5.561,0.502,2.686,5.565,5.363,-0.499,-0.972,-3.654,-5.258,-3.933,2.591,6.109,-1.294,-1.192,-4.764,0.935,1.153,-3.796,7.155,0.316,1.561],[30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30],[0,0,0,0,0,0.017,0,0,0.005,0.001,0,0,0,0,0,0,0.002,0.004,0.002,0,0,0,0.013,0,0,0.001,0.025,0.01,0,0,0,0.18,0.493,0,0,0.62,0.012,0,0,0.621,0.339,0.001,0,0,0.015,0,0.206,0.243,0,0.357,0.258,0.001,0,0.754,0.129]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th> <\/th>\n      <th>estimate<\/th>\n      <th>conf.level<\/th>\n      <th>conf.low<\/th>\n      <th>conf.high<\/th>\n      <th>statistic<\/th>\n      <th>df.error<\/th>\n      <th>p.value<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"columnDefs":[{"className":"dt-right","targets":[1,2,3,4,5,6,7]},{"orderable":false,"targets":0}],"order":[],"autoWidth":false,"orderClasses":false}},"evals":[],"jsHooks":[]}</script>
+<p>接下来，我们可以深入定制</p>
+<p>全部显示结果，见Figure <a href="#fig:fig3">3</a>所示</p>
+<pre class="r"><code>ggcorrmat(mtcars, ##表达矩阵
+          p.adjust.method = &#39;none&#39;, ## 不校正p值
+          matrix.type = &#39;full&#39;##全部显示
+          )</code></pre>
+<div class="figure" style="text-align: center"><span style="display:block;" id="fig:fig3"></span>
+<img src="{{< blogdown/postref >}}index.zh_files/figure-html/fig3-1.png" alt="显示全部" width="672" />
+<p class="caption">
+Figure 3: 显示全部
+</p>
+</div>
+<p>默认的是参数检验，也是就是Pearson相关性分析，我们可以设置成非参数检验，即Spearman相关性分析，设置type = ‘nonparametric’，见图Figure <a href="#fig:fig4">4</a>所示。另外还有“robust”和“bayes”两种检验方法，也就是Winsorized Pearson和Bayesian Pearson，这个我不懂啥意思，有兴趣的可以玩一下</p>
+<pre class="r"><code> ggcorrmat(mtcars,
+           p.adjust.method = &#39;none&#39;, #不校正p值
+           type = &#39;nonparametric&#39; # 非参数检验，即Spearman
+           )</code></pre>
+<div class="figure" style="text-align: center"><span style="display:block;" id="fig:fig4"></span>
+<img src="{{< blogdown/postref >}}index.zh_files/figure-html/fig4-1.png" alt="Spearman非参数检验" width="672" />
+<p class="caption">
+Figure 4: Spearman非参数检验
+</p>
+</div>
+<p>如果觉得默认的X不好看，还可以设置别的形状，比如圆形，三角形和菱形等等，只需要设置pch的形状即可，如</p>
+<pre class="r"><code>ggcorrmat(mtcars,p.adjust.method = &#39;none&#39;,pch = &#39;diamond&#39;)</code></pre>
+<p><img src="{{< blogdown/postref >}}index.zh_files/figure-html/unnamed-chunk-5-1.png" width="672" /></p>
+<p>以下是可能的形状英语，不过我觉得还是默认的那把叉就可以了</p>
+<pre><code>diamond
+star
+triangle
+circle</code></pre>
+<p>如果觉得配色不好，我们还可以设置不同的颜色差，这里要有三组颜色，比如我们设置蓝色白色和红色，结果见Figure <a href="#fig:fig5">5</a>所示</p>
+<pre class="r"><code>ggcorrmat(mtcars,p.adjust.method = &#39;none&#39;,colors=c(&quot;blue&quot; ,&quot;white&quot; ,&quot;red&quot;))</code></pre>
+<div class="figure" style="text-align: center"><span style="display:block;" id="fig:fig5"></span>
+<img src="{{< blogdown/postref >}}index.zh_files/figure-html/fig5-1.png" alt="更改颜色" width="672" />
+<p class="caption">
+Figure 5: 更改颜色
+</p>
+</div>
+<p>当然我们还可以自定义别的颜色，比如下面这个素颜的配色</p>
+<pre class="r"><code>ggcorrmat(mtcars,p.adjust.method = &#39;none&#39;,colors=c(&quot;#2874C5&quot; ,&quot;white&quot; ,&quot;#f87669&quot;))</code></pre>
+<p><img src="{{< blogdown/postref >}}index.zh_files/figure-html/unnamed-chunk-6-1.png" width="672" /></p>
+<p>我们也可以自定义主题，比如我们喜欢用的prism，然后加上一个标题</p>
+<pre class="r"><code>library(ggprism)
+ggcorrmat(mtcars,p.adjust.method = &#39;none&#39;,
+          colors=c(&quot;#2874C5&quot; ,&quot;white&quot; ,&quot;#f87669&quot;),
+          ggtheme = theme_prism(),
+          title = &quot;Pearson corration&quot;)</code></pre>
+<p><img src="{{< blogdown/postref >}}index.zh_files/figure-html/unnamed-chunk-7-1.png" width="672" /></p>
+<p>如果觉得p&lt;0.05的不合理，我们还可以调一调，比如0.01，这样的结果如Figure <a href="#fig:fig6">6</a>所示，跟Figure <a href="#fig:fig2">2</a>相比，是不是又多了很多XX</p>
+<pre class="r"><code>ggcorrmat(mtcars,p.adjust.method = &#39;none&#39;,colors=c(&quot;#2874C5&quot; ,&quot;white&quot; ,&quot;#f87669&quot;),sig.level = 0.01,matrix.type = &#39;lower&#39;)</code></pre>
+<div class="figure" style="text-align: center"><span style="display:block;" id="fig:fig6"></span>
+<img src="{{< blogdown/postref >}}index.zh_files/figure-html/fig6-1.png" alt="修改p值" width="672" />
+<p class="caption">
+Figure 6: 修改p值
+</p>
+</div>
+<hr />
+<p>同时，还有一个<code>grouped_ggcorrmat()</code>函数可以分面显示相关性结果，这个自己尝试吧</p>

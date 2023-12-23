@@ -1,0 +1,241 @@
+---
+title: 我的硕士论文电子版最后一页的代码
+author: 欧阳松
+date: '2021-08-30'
+slug: 'lastpageformymasterthesis'
+categories: []
+tags: []
+---
+
+之前用bookdown复现了我的硕士论文，其中重新进行了统计计算，地址是<https://swcyo.github.io/masterthesis>，现分享一下方法：
+
+# 原始临床数据表
+
+以前的论文结果是用**SPSS**计算的，很方便。但是本部分内容尝试由R语言生成，原始数据在知网和万网上都可以看到，数据见下表。
+
+    data<-read.csv("/Users/mac/Documents/data.csv")
+    data<-as.data.frame(data)
+    library(dplyr)
+    ## 将位置的数字1和2改为左和右
+    data<-data %>%
+           mutate(location=factor(location,labels = c("Left","Right")))
+
+```{r echo=FALSE}
+data<-read.csv("/Users/mac/Documents/GitHub/我的硕士论文/data.csv")
+data<-as.data.frame(data)
+suppressMessages(library(dplyr))
+data<-data %>%
+       mutate(location=factor(location,labels = c("Left","Right")))
+knitr::kable(data)
+```
+
+------------------------------------------------------------------------
+
+## 数据总结
+
+使用R语言的`epiDisplay`包的`summ(data)`函数可以很快的显示均数，标准差，最大值和最小值，注意，这里是所有的患者，没有算上分组，还有就是location（结石部位）只有左和右，属于因子，只统计数字即可，但是这个包当成数值计算了,用自带的`summary(data)`函数可以统计因子的个数，但是又不能计算标准差，还有一个psych的`describe(data)函数`也很优秀，当然还有很多包都可以一次性统计所有结果，怎么都比SPSS要好得多。
+
+这里吐槽一下自己的硕士论文，结果一中的研究对象里面，我把A（单孔腹腔镜组）和B（标准腹腔镜）两组的年龄、BMI和结石大小数据搞反了，不过统计结果是正确的，毕竟我是正正规规用SPSS做的结果，不是那种瞎编的数据，但还是不得不骂骂自己当时脑子混乱了，好在后面的数据都正确。
+
+### 所有数据汇总统计：
+
+    library(epiDisplay)
+    summ(data)
+
+使用**epiDisplay**的`summ`函数可以一步进行统计，结果见下表：
+
+```{r echo=F}
+library(epiDisplay)
+knitr::kable(summ(data)[["table"]])
+```
+
+### 分组数据统计：
+
+但是我们其实需要的是各组的汇总数据，因此需要把两组的数据提出来汇总，我们可以使用`subset`函数提出分组的数据，然后分别统计，这里附录一下代码吧。。。
+
+### 标准后腹腔镜组的数据统计汇总：
+
+    lul<-subset(data,group=="LUL") # 提取标准腹腔镜组数据
+    summ(lul)
+
+```{r echo=FALSE}
+lul<-subset(data,group=="LUL") # 提取标准腹腔镜组数据
+knitr::kable(summ(lul)[["table"]])
+```
+
+### 单孔腹后腔镜组的数据统计汇总：
+
+    less<-subset(data,group=="LESS")# 提取单孔腹腔镜组数据
+    summ(less)
+
+```{r echo=FALSE}
+less<-subset(data,group=="LESS")# 提取单孔腹腔镜组数据
+knitr::kable(summ(less)[["table"]])
+```
+
+### 一步法分组汇总：
+
+但是这样需要多建两个表，还是不方便，我们可以用**psych**包，可以使用`describeBy`函数，直接就统计好了各组的统计结果，结果很丰富，而且因子还用\*标记出来了，而且统计量更多，代码如下：
+
+    library(psych)
+    describeBy(data,data$group)
+
+```{r echo=FALSE}
+ suppressMessages(library(psych))  
+ describeBy(data,data$group) 
+```
+
+------------------------------------------------------------------------
+
+## Fisher精确概率检验
+
+由于本文存在两个计数资料，即结石部位和性别，但是样本量又少，所以直接用Fisher精确概率检验，当然R语言里面包也很多。
+
+首先，需要把数据提出来，一个table函数可以直接计算好。
+
+```{r}
+location<-table(data$location,data$group)
+location #看一下结果
+fisher.test(location)$p.value # 只需要p值，如果要看所有结果，可以把$及后面去掉
+```
+
+一般情况下是要做**卡方检验**，首先需要计数理论频数，注意理论频数不是个数，需要统计，然后才知道选择那种统计学方法。不过`epiDisplay`包里有个很简单的`cc()`函数，也可以一步把卡方和Fisher的结果全部算好。
+
+```{r}
+epiDisplay::cc(cctable = location) ##可以计算优势比OR值和两种列联表的检验
+```
+
+这里把计算理论频数和各种的检验当时代码放出，自行选择运算方法
+
+```{r}
+#chisq.test(data)$expected  #理论频数的计数；
+
+#chisq.test(data,correct=FALSE)  #一般的卡方检验，不用校正，注意默认是校正，所以一定要改；
+#chisq.test(data,correct=TURE)  #校正卡方检验，适用总数>40但理论频数<5 ；
+
+#fisher.test(data)  # Fisher精确概率检验。
+```
+
+## 两独立样本的T检验或非参数检验？
+
+### 首先要做正态性检验
+
+我的论文里用的是`Levene`检验，这里用`shapiro`检验。正确的统计方法应该是分组统计，我之前选择的是整体统计，其实这样也可以，但是不严谨。
+
+最严谨的办法其实是把每一个变量按照分组分别进行正态检验，如果两组里面哪怕有一组正态分布，一组不正态分布，也是不正态分布，要选择非参数检验。
+
+下面的函数是分别统计，可以用`tapply()`，也可以换成`by()`
+
+```{r}
+with(data,tapply(data$age, group, shapiro.test))
+with(data,tapply(data$BMI, group, shapiro.test))
+with(data,tapply(data$size, group, shapiro.test))
+with(data,tapply(data$operating.time, group, shapiro.test))
+with(data,tapply(data$bleeding.V, group, shapiro.test))
+with(data,tapply(data$eat.time, group, shapiro.test))
+with(data,tapply(data$draw.V, group, shapiro.test))
+with(data,tapply(data$drae.time, group, shapiro.test))
+with(data,tapply(data$hospital.time, group, shapiro.test))
+with(data,tapply(data$satificatiion, group, shapiro.test))
+with(data,tapply(data$cosmics, group, shapiro.test))
+```
+
+之后就是痛苦的手动观察了，我之前用SPSS是当作整体去观察的，不是很严谨，分组统计很严谨，但是也很费时费神，网上现在也有好的在线工具，比如仙桃学术，但是如果全部录入数据的话，统计虽然也是分组做正态性检验，但是最后却选择了整体的结果，也就是统一用一个方法做显著性统计，这样其实也不是很严谨，这种办法确实简化了流程，但是结果欠佳。
+
+关于统计学方法，我懂的也不是很深刻，至于到底选择哪种办法，也只能算见仁见智了。
+
+这里我们看到**年龄、BMI、结石大小、手术时间、出血量、引流量、美容评分**的p值，两组都大于0.05，符合正态分布，备选t检验。
+
+而**肠道恢复时间、拔管时间、住院时间**（LUL组不正态分布）、**满意度（**LELL组不正态）的p值不完全大于0.05，因此要选择非参数检验（我们选择**Wilcoxon检验**）。
+
+### 然后要做方差齐性检验
+
+挑选需要的变量做方差齐性检验，如果P\>0.05就用t检验，如果P\>0.05就用校正的t检验
+
+可以看到**手术时间**不符合方差齐性检验，要选择校正t检验，
+
+而**年龄、BMI、结石大小、手术时间、出血量、引流量、美容评**直接用t检验。
+
+```{r}
+var.test(age ~ group, data = data)$p.value
+var.test(BMI ~ group, data = data)$p.value
+var.test(size ~ group, data = data)$p.value
+var.test(operating.time ~ group, data = data)$p.value
+var.test(bleeding.V ~ group, data = data)$p.value
+var.test(draw.V ~ group, data = data)$p.value
+var.test(cosmics ~ group, data = data)$p.value
+## 非正态分布，其实可以不用做方差齐性检验了，但是可以顺手做一下
+var.test(eat.time  ~ group, data = data)$p.value
+var.test(drae.time  ~ group, data = data)$p.value
+var.test(hospital.time  ~ group, data = data)$p.value
+var.test(satificatiion  ~ group, data = data)$p.value
+```
+
+### 显著性统计检验
+
+默认的其实是双尾检验，其实如果我们要想知道LESS是否比LUL好的时候，应该是要用单尾检验的，这里分为两种情况
+
+1.  基本参数的比较用**双尾检验**，比如年龄、BMI和结石大小（这些都是术前的资料，不影响结果）
+
+那么统计方法就是，记住默认的是不具有齐性，很奇怪的设定
+
+```{r}
+t.test(age ~ group,data = data,var.equal = TRUE,alternative = "two.sided")$p.value
+t.test(BMI ~ group,data = data,var.equal = TRUE,alternative = "two.sided")$p.value
+t.test(size ~ group,data = data,var.equal = TRUE,alternative = "two.sided")$p.value
+```
+
+结果与我论文的一模一样，可重复。。。
+
+2.  单尾事件，其实如果不知道什么结果的话，直接用双尾没有问题，但是如果你想知道LESS是不是比LUL好，就要用单尾假设，理论上先用双尾检验，然后再次用单尾检验一次。
+
+    这里非参数检验会提示注意消息，不用管
+
+```{r}
+## 方差不齐的要校正，也就是要var.equal=F，默认的就是不齐
+t.test(operating.time ~ group,data = data,var.equal = FALSE,alternative = "two.sided")$p.value
+## 方差齐的不用校正，也就是var.equal=T，这个要手动设定
+t.test(bleeding.V ~ group,data = data,var.equal = TRUE,alternative = "two.sided")$p.value
+t.test(draw.V ~ group,data = data,var.equal = TRUE,alternative = "two.sided")$p.value
+t.test(cosmics ~ group,data = data,var.equal = TRUE,alternative = "two.sided")$p.value
+## 非参数检验
+wilcox.test(eat.time ~ group,data = data,var.equal = TRUE,alternative = "two.sided")$p.value
+wilcox.test(drae.time ~ group,data = data,var.equal = TRUE,alternative = "two.sided")$p.value
+wilcox.test(hospital.time ~ group,data = data,var.equal = TRUE,alternative = "two.sided")$p.value
+wilcox.test(satificatiion ~ group,data = data,var.equal = TRUE,alternative = "two.sided")$p.value
+```
+
+------------------------------------------------------------------------
+
+这里的结果计算出来以后，T检验或近似T检验，与我的论文结果数字一致，而非参数检验有细微差异，但是结果趋势也是一模一样。。。
+
+然后是单尾事件，可以自定义好还是坏，函数是greater和less，自己可以尝试一下，我就不演示了
+
+```{r}
+# t.test(operating.time ~ group,data = data,var.equal = FALSE,alternative = "greater")$p.value
+## 方差齐的不用校正，也就是var.equal=T，这个要手动设定
+# t.test(bleeding.V ~ group,data = data,var.equal = TRUE,alternative = "less")$p.value
+# t.test(draw.V ~ group,data = data,var.equal = TRUE,alternative = "less")$p.value
+# t.test(cosmics ~ group,data = data,var.equal = TRUE,alternative = "greater")$p.value
+## 非参数检验
+# wilcox.test(eat.time ~ group,data = data,var.equal = TRUE,alternative = "less")$p.value
+# wilcox.test(drae.time ~ group,data = data,var.equal = TRUE,alternative = "less")$p.value
+# wilcox.test(hospital.time ~ group,data = data,var.equal = TRUE,alternative = "less")$p.value
+# wilcox.test(satificatiion ~ group,data = data,var.equal = TRUE,alternative = "greater")$p.value
+```
+
+## 手术曲线
+
+我的论文里有个SPSS做的手术曲线，这里一步作图
+
+```{r}
+data$seq<-c(1:15,1:12) # 定义手术顺序
+data$seq=factor(data$seq) #转换为因子，不然显示的是数字
+suppressMessages(library(ggpubr))
+ggline(data,"seq","operating.time",
+               facet.by = "group",scale='free',ncol=1,
+               xlab = "Operation sequence",
+               ylab="Operation time (min)",
+               ggtheme = theme_bw(base_size = 12)) + #主题和字号
+              ylim(0,120) # 设置Y轴范围，不设置的话会从最小值开始
+```

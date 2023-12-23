@@ -1,0 +1,2051 @@
+---
+title: tinyarray：一个几乎能满足我所有生信需求的包
+author: 欧阳松
+date: '2021-09-03'
+slug: tinyarray
+categories:
+  - 教程
+  - R
+  - tinyarray
+tags:
+  - 教程
+  - R
+  - TCGA
+  - GEO
+---
+
+<script src="{{< blogdown/postref >}}index_files/header-attrs/header-attrs.js"></script>
+
+
+<p>最早了解到tinyarray这个包是在简书上，作者是<a href="https://www.jianshu.com/u/c93ac360691a"><strong>小洁忘了怎么分身</strong></a> ，当时只是看了一个ID转换的教程，后面发现这是个真正的大神，这简直就是一个包罗万象的包，而且还在不断的更新，功能也越来越完善，作者也不辞辛苦的写教程，大家可以自行前去学习。</p>
+<p>当然作者也有微信公众号，叫做生信星球公众号，微信号: bioinfoplanet，里面也有很多很实用的教程，一直都指引着我，也希望大家多关注学习。</p>
+<p>目前有了一个新的教程，叫做<a href="https://www.jianshu.com/p/f31a5ff62474"><strong>宝藏R包tinyarray：常用图表一键收走</strong></a>，最让人兴奋的是作者说已经把这个包提交到CRAN了，我相信要不了多久就可以上市了，真是造福一方啊，期待中。。。。</p>
+<hr />
+<p>我们在搞生信的时候，最常见的套路是要做PCA图、箱式图、火山图、热图、韦恩图、生存分析等等，高阶一点的还要去下载GEO的数据、去转换基因ID。。。基本这就是一个简单的纯生信套路，以前的我总是去加载各种包，去找各种作图的代码。诚然最后的图都很好看，但是一直没有一个包可以全部集成。</p>
+<p>在这个信息开源的时代，能够把别人的包做个整合其实也挺好，可能有些人会说这就是抄袭，但是我们不应该去纠结抄袭这个词，能够把别人开发的拿来主义也是为了方便大家，迈克杰克逊还有一句歌词不就是<strong>Make a better place for you and for me</strong>吗？</p>
+<p>说了那么多，直接开始介绍吧！</p>
+<div id="安装tinyarray" class="section level2">
+<h2>安装tinyarray</h2>
+<p>目前这个包托管在GitHub上，仓库是<a href="https://github.com/xjsun1221/tinyarray">xjsun1221/tinyarray</a>。由于网络限制原因，有时候需要科学上网才能安装，不过我Fork在我的<a href="https://gitee.com/swcyo/tinyarray">Gitee</a>上，最近也同步了，所以建议用Gitee安装。（写这个教程前是2.21版，刚才看了一下作者9个小时又更新了一下，现在是2.2.3版，估计马上就要上市了，真是孜孜不倦啊。。。）</p>
+<pre><code>install.packages(&quot;remotes&quot;)
+remotes::install_git(&#39;https://gitee.com/swcyo/tinyarray&#39;)</code></pre>
+</div>
+<div id="有哪些功能" class="section level2">
+<h2>有哪些功能</h2>
+<p>我们可以在Packages那里看以下Help文件，可以看到功能很多，有兴趣的可以点开看示例</p>
+<table>
+<thead>
+<tr class="header">
+<th>函数</th>
+<th>介绍</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>box_surv</td>
+<td>box_surv</td>
+</tr>
+<tr class="even">
+<td>cod</td>
+<td>cod</td>
+</tr>
+<tr class="odd">
+<td>cor.full</td>
+<td>cor.test for all varibles</td>
+</tr>
+<tr class="even">
+<td>cor.one</td>
+<td>cor.test for one varible with all varibles</td>
+</tr>
+<tr class="odd">
+<td>deg</td>
+<td>deg</td>
+</tr>
+<tr class="even">
+<td>deseq_data</td>
+<td>deseq_data</td>
+</tr>
+<tr class="odd">
+<td>double_enrich</td>
+<td>draw enrichment bar plots for both up and down genes</td>
+</tr>
+<tr class="even">
+<td>draw_boxplot</td>
+<td>draw boxplot for expression</td>
+</tr>
+<tr class="odd">
+<td>draw_heatmap</td>
+<td>draw a heatmap plot</td>
+</tr>
+<tr class="even">
+<td>draw_heatmap2</td>
+<td>draw heatmap plots</td>
+</tr>
+<tr class="odd">
+<td>draw_KM</td>
+<td>draw_KM</td>
+</tr>
+<tr class="even">
+<td>draw_pca</td>
+<td>draw PCA plots</td>
+</tr>
+<tr class="odd">
+<td>draw_tsne</td>
+<td>draw_tsne</td>
+</tr>
+<tr class="even">
+<td>draw_venn</td>
+<td>draw a venn plot</td>
+</tr>
+<tr class="odd">
+<td>draw_volcano</td>
+<td>draw a volcano plot</td>
+</tr>
+<tr class="even">
+<td>draw_volcano2</td>
+<td>draw_volcano2</td>
+</tr>
+<tr class="odd">
+<td>dumd</td>
+<td>count unique values in every colunms for data.frame</td>
+</tr>
+<tr class="even">
+<td>edges_to_nodes</td>
+<td>edges_to_nodes</td>
+</tr>
+<tr class="odd">
+<td>exists_anno_list</td>
+<td>exists_anno_list</td>
+</tr>
+<tr class="even">
+<td>exprSet_hub1</td>
+<td>exprSet_hub1</td>
+</tr>
+<tr class="odd">
+<td>exp_boxplot</td>
+<td>exp_boxplot</td>
+</tr>
+<tr class="even">
+<td>exp_hub1</td>
+<td>exp_hub1</td>
+</tr>
+<tr class="odd">
+<td>exp_surv</td>
+<td>exp_surv</td>
+</tr>
+<tr class="even">
+<td>find_anno</td>
+<td>find annotation package or files</td>
+</tr>
+<tr class="odd">
+<td>genes</td>
+<td>genes</td>
+</tr>
+<tr class="even">
+<td>geo_download</td>
+<td>geo_download</td>
+</tr>
+<tr class="odd">
+<td>get_cgs</td>
+<td>get_cgs</td>
+</tr>
+<tr class="even">
+<td>get_deg</td>
+<td>get_deg</td>
+</tr>
+<tr class="odd">
+<td>get_deg_all</td>
+<td>get_deg_all</td>
+</tr>
+<tr class="even">
+<td>ggheat</td>
+<td>ggheat</td>
+</tr>
+<tr class="odd">
+<td>hypertest</td>
+<td>hypertest</td>
+</tr>
+<tr class="even">
+<td>interaction_to_edges</td>
+<td>interaction_to_edges</td>
+</tr>
+<tr class="odd">
+<td>intersect_all</td>
+<td>intersect_all</td>
+</tr>
+<tr class="even">
+<td>lnc_anno</td>
+<td>lnc_anno</td>
+</tr>
+<tr class="odd">
+<td>lnc_annov23</td>
+<td>lnc_annov23</td>
+</tr>
+<tr class="even">
+<td>make_tcga_group</td>
+<td>make_tcga_group</td>
+</tr>
+<tr class="odd">
+<td>match_exp_cl</td>
+<td>match_exp_cl</td>
+</tr>
+<tr class="even">
+<td>meta1</td>
+<td>meta1</td>
+</tr>
+<tr class="odd">
+<td>mRNA_anno</td>
+<td>mRNA_anno</td>
+</tr>
+<tr class="even">
+<td>mRNA_annov23</td>
+<td>mRNA_annov23</td>
+</tr>
+<tr class="odd">
+<td>multi_deg</td>
+<td>multi_deg</td>
+</tr>
+<tr class="even">
+<td>multi_deg_all</td>
+<td>multi_deg_all</td>
+</tr>
+<tr class="odd">
+<td>pkg_all</td>
+<td>pkg_all</td>
+</tr>
+<tr class="even">
+<td>plcortest</td>
+<td>plcortest</td>
+</tr>
+<tr class="odd">
+<td>point_cut</td>
+<td>point_cut</td>
+</tr>
+<tr class="even">
+<td>quick_enrich</td>
+<td>quick_enrich</td>
+</tr>
+<tr class="odd">
+<td>sam_filter</td>
+<td>sam_filter</td>
+</tr>
+<tr class="even">
+<td>surv_cox</td>
+<td>surv_cox</td>
+</tr>
+<tr class="odd">
+<td>surv_KM</td>
+<td>surv_KM</td>
+</tr>
+<tr class="even">
+<td>trans_array</td>
+<td>trans_array</td>
+</tr>
+<tr class="odd">
+<td>trans_exp</td>
+<td>trans_exp</td>
+</tr>
+<tr class="even">
+<td>t_choose</td>
+<td>t_choose</td>
+</tr>
+<tr class="odd">
+<td>union_all</td>
+<td>union_all</td>
+</tr>
+</tbody>
+</table>
+<div id="tcga和gtex数据转换" class="section level3">
+<h3>TCGA和GTEx数据转换</h3>
+<p>这是我最早搜索到的教程，也是原创功能。教程上<a href="https://www.jianshu.com/p/c17373dc052c"><strong>TCGA的ID转换可以一步到位了</strong></a>，原理是用xena上的genecode进行转换，同时实现了只转换mRNA或lncRNA</p>
+<p>比如我们下载一个TCGA的数据（建议从Xena上下载）假设下载癌症名称为KICH的count数据放桌面上，格式上tsv，地址是<a href="https://xena-gdc.hiplot.com.cn/download/TCGA-KICH.htseq_counts.tsv" class="uri">https://xena-gdc.hiplot.com.cn/download/TCGA-KICH.htseq_counts.tsv</a>。</p>
+<p>由于xena上的数据都是经过了log2(count+1)的处理，所以我们要转回来</p>
+<pre class="r"><code>exp&lt;-read.csv(&#39;/Users/mac/Desktop/TCGA-KICH.htseq_counts.tsv&#39;,
+              sep=&quot;\t&quot;,row.names = 1,header = T)
+exp = 2^exp -1</code></pre>
+<table style="width:100%;">
+<colgroup>
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th align="left"></th>
+<th align="right">TCGA.KN.8426.11A</th>
+<th align="right">TCGA.KL.8332.01A</th>
+<th align="right">TCGA.KN.8423.01A</th>
+<th align="right">TCGA.KL.8335.01A</th>
+<th align="right">TCGA.KL.8327.01A</th>
+<th align="right">TCGA.KL.8324.11A</th>
+<th align="right">TCGA.KN.8430.01A</th>
+<th align="right">TCGA.KN.8422.11A</th>
+<th align="right">TCGA.KL.8338.01A</th>
+<th align="right">TCGA.KN.8432.11A</th>
+<th align="right">TCGA.KN.8429.01A</th>
+<th align="right">TCGA.KO.8415.11A</th>
+<th align="right">TCGA.KN.8436.11A</th>
+<th align="right">TCGA.KN.8432.01A</th>
+<th align="right">TCGA.KN.8424.11A</th>
+<th align="right">TCGA.KO.8409.01A</th>
+<th align="right">TCGA.KN.8437.01A</th>
+<th align="right">TCGA.KL.8342.01A</th>
+<th align="right">TCGA.KM.8443.01A</th>
+<th align="right">TCGA.KN.8434.01A</th>
+<th align="right">TCGA.KN.8429.11A</th>
+<th align="right">TCGA.KL.8329.01A</th>
+<th align="right">TCGA.KN.8435.11A</th>
+<th align="right">TCGA.KM.8477.01A</th>
+<th align="right">TCGA.KL.8331.01A</th>
+<th align="right">TCGA.KO.8403.01A</th>
+<th align="right">TCGA.KN.8433.01A</th>
+<th align="right">TCGA.KL.8334.01A</th>
+<th align="right">TCGA.KN.8424.01A</th>
+<th align="right">TCGA.KO.8417.01A</th>
+<th align="right">TCGA.KN.8430.11A</th>
+<th align="right">TCGA.KM.8639.01A</th>
+<th align="right">TCGA.KN.8421.01A</th>
+<th align="right">TCGA.KN.8428.01A</th>
+<th align="right">TCGA.KN.8427.01A</th>
+<th align="right">TCGA.KN.8436.01A</th>
+<th align="right">TCGA.KM.8442.01A</th>
+<th align="right">TCGA.KN.8418.01A</th>
+<th align="right">TCGA.KL.8345.01A</th>
+<th align="right">TCGA.KN.8425.01A</th>
+<th align="right">TCGA.KL.8323.01A</th>
+<th align="right">TCGA.KN.8437.11A</th>
+<th align="right">TCGA.KN.8435.01A</th>
+<th align="right">TCGA.KL.8346.01A</th>
+<th align="right">TCGA.KL.8326.01A</th>
+<th align="right">TCGA.KO.8414.01A</th>
+<th align="right">TCGA.KM.8441.01A</th>
+<th align="right">TCGA.KN.8428.11A</th>
+<th align="right">TCGA.KO.8406.01A</th>
+<th align="right">TCGA.KO.8410.01A</th>
+<th align="right">TCGA.KN.8431.01A</th>
+<th align="right">TCGA.KL.8336.11A</th>
+<th align="right">TCGA.KN.8423.11A</th>
+<th align="right">TCGA.KN.8419.11A</th>
+<th align="right">TCGA.KL.8325.01A</th>
+<th align="right">TCGA.KL.8330.01A</th>
+<th align="right">TCGA.KL.8343.01A</th>
+<th align="right">TCGA.KL.8339.01A</th>
+<th align="right">TCGA.KL.8326.11A</th>
+<th align="right">TCGA.KO.8415.01A</th>
+<th align="right">TCGA.KN.8425.11A</th>
+<th align="right">TCGA.KL.8340.01A</th>
+<th align="right">TCGA.KL.8336.01A</th>
+<th align="right">TCGA.KN.8431.11A</th>
+<th align="right">TCGA.KO.8403.11A</th>
+<th align="right">TCGA.KM.8440.01A</th>
+<th align="right">TCGA.KN.8427.11A</th>
+<th align="right">TCGA.KL.8333.01A</th>
+<th align="right">TCGA.KN.8434.11A</th>
+<th align="right">TCGA.KO.8407.01A</th>
+<th align="right">TCGA.KO.8408.01A</th>
+<th align="right">TCGA.KN.8426.01A</th>
+<th align="right">TCGA.KL.8339.11A</th>
+<th align="right">TCGA.KM.8476.01A</th>
+<th align="right">TCGA.KN.8433.11A</th>
+<th align="right">TCGA.KL.8328.01A</th>
+<th align="right">TCGA.KO.8413.01A</th>
+<th align="right">TCGA.KO.8405.01A</th>
+<th align="right">TCGA.KO.8416.01A</th>
+<th align="right">TCGA.KL.8344.01A</th>
+<th align="right">TCGA.KO.8404.01A</th>
+<th align="right">TCGA.KO.8411.01A</th>
+<th align="right">TCGA.KM.8438.01A</th>
+<th align="right">TCGA.KL.8324.01A</th>
+<th align="right">TCGA.KL.8329.11A</th>
+<th align="right">TCGA.KL.8341.01A</th>
+<th align="right">TCGA.KL.8337.01A</th>
+<th align="right">TCGA.KM.8439.01A</th>
+<th align="right">TCGA.KN.8419.01A</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">ENSG00000000003.13</td>
+<td align="right">11729</td>
+<td align="right">958</td>
+<td align="right">10000</td>
+<td align="right">2036</td>
+<td align="right">707</td>
+<td align="right">5793</td>
+<td align="right">4104</td>
+<td align="right">8835</td>
+<td align="right">1759</td>
+<td align="right">12853</td>
+<td align="right">3387</td>
+<td align="right">6809</td>
+<td align="right">9553</td>
+<td align="right">1921</td>
+<td align="right">12604</td>
+<td align="right">1675</td>
+<td align="right">5095</td>
+<td align="right">1788</td>
+<td align="right">4309</td>
+<td align="right">2055</td>
+<td align="right">10588</td>
+<td align="right">5131</td>
+<td align="right">6483</td>
+<td align="right">839</td>
+<td align="right">5523</td>
+<td align="right">2090</td>
+<td align="right">1120</td>
+<td align="right">5868</td>
+<td align="right">4314</td>
+<td align="right">3333</td>
+<td align="right">9061</td>
+<td align="right">9009</td>
+<td align="right">1547</td>
+<td align="right">4680</td>
+<td align="right">2139</td>
+<td align="right">3555</td>
+<td align="right">5877</td>
+<td align="right">1566</td>
+<td align="right">5853</td>
+<td align="right">4150</td>
+<td align="right">12017</td>
+<td align="right">3914</td>
+<td align="right">3029</td>
+<td align="right">4023</td>
+<td align="right">1227</td>
+<td align="right">1285</td>
+<td align="right">3456</td>
+<td align="right">5926</td>
+<td align="right">3272</td>
+<td align="right">12555</td>
+<td align="right">722</td>
+<td align="right">5152</td>
+<td align="right">8882</td>
+<td align="right">9948</td>
+<td align="right">5145</td>
+<td align="right">4408</td>
+<td align="right">2533</td>
+<td align="right">1583</td>
+<td align="right">4560</td>
+<td align="right">1177</td>
+<td align="right">15598</td>
+<td align="right">2905</td>
+<td align="right">2147</td>
+<td align="right">13640</td>
+<td align="right">10881</td>
+<td align="right">4641</td>
+<td align="right">7257</td>
+<td align="right">1418</td>
+<td align="right">7751</td>
+<td align="right">2249</td>
+<td align="right">1739</td>
+<td align="right">2445</td>
+<td align="right">8479</td>
+<td align="right">995</td>
+<td align="right">8023</td>
+<td align="right">3615</td>
+<td align="right">3112</td>
+<td align="right">2708</td>
+<td align="right">2171</td>
+<td align="right">3704</td>
+<td align="right">928</td>
+<td align="right">3885</td>
+<td align="right">1801</td>
+<td align="right">3315</td>
+<td align="right">6154</td>
+<td align="right">3122</td>
+<td align="right">2886</td>
+<td align="right">3560</td>
+<td align="right">1102</td>
+</tr>
+<tr class="even">
+<td align="left">ENSG00000000005.5</td>
+<td align="right">43</td>
+<td align="right">112</td>
+<td align="right">15</td>
+<td align="right">0</td>
+<td align="right">9</td>
+<td align="right">94</td>
+<td align="right">11</td>
+<td align="right">76</td>
+<td align="right">15</td>
+<td align="right">50</td>
+<td align="right">8</td>
+<td align="right">46</td>
+<td align="right">29</td>
+<td align="right">9</td>
+<td align="right">116</td>
+<td align="right">9</td>
+<td align="right">1</td>
+<td align="right">12</td>
+<td align="right">14</td>
+<td align="right">6</td>
+<td align="right">54</td>
+<td align="right">4</td>
+<td align="right">190</td>
+<td align="right">2</td>
+<td align="right">22</td>
+<td align="right">11</td>
+<td align="right">0</td>
+<td align="right">12</td>
+<td align="right">12</td>
+<td align="right">47</td>
+<td align="right">16</td>
+<td align="right">13</td>
+<td align="right">15</td>
+<td align="right">11</td>
+<td align="right">0</td>
+<td align="right">19</td>
+<td align="right">9</td>
+<td align="right">6</td>
+<td align="right">23</td>
+<td align="right">14</td>
+<td align="right">353</td>
+<td align="right">22</td>
+<td align="right">54</td>
+<td align="right">19</td>
+<td align="right">2</td>
+<td align="right">7</td>
+<td align="right">2</td>
+<td align="right">190</td>
+<td align="right">20</td>
+<td align="right">10</td>
+<td align="right">1</td>
+<td align="right">466</td>
+<td align="right">23</td>
+<td align="right">55</td>
+<td align="right">129</td>
+<td align="right">10</td>
+<td align="right">2</td>
+<td align="right">0</td>
+<td align="right">214</td>
+<td align="right">4</td>
+<td align="right">55</td>
+<td align="right">4</td>
+<td align="right">6</td>
+<td align="right">84</td>
+<td align="right">48</td>
+<td align="right">3</td>
+<td align="right">54</td>
+<td align="right">67</td>
+<td align="right">86</td>
+<td align="right">20</td>
+<td align="right">12</td>
+<td align="right">4</td>
+<td align="right">449</td>
+<td align="right">8</td>
+<td align="right">136</td>
+<td align="right">16</td>
+<td align="right">0</td>
+<td align="right">5</td>
+<td align="right">75</td>
+<td align="right">31</td>
+<td align="right">2</td>
+<td align="right">75</td>
+<td align="right">60</td>
+<td align="right">5</td>
+<td align="right">192</td>
+<td align="right">21</td>
+<td align="right">31</td>
+<td align="right">0</td>
+<td align="right">3</td>
+</tr>
+<tr class="odd">
+<td align="left">ENSG00000000419.11</td>
+<td align="right">1906</td>
+<td align="right">1108</td>
+<td align="right">1788</td>
+<td align="right">1260</td>
+<td align="right">774</td>
+<td align="right">1971</td>
+<td align="right">2207</td>
+<td align="right">1804</td>
+<td align="right">1457</td>
+<td align="right">2944</td>
+<td align="right">2426</td>
+<td align="right">1648</td>
+<td align="right">1409</td>
+<td align="right">1540</td>
+<td align="right">1988</td>
+<td align="right">940</td>
+<td align="right">1843</td>
+<td align="right">2295</td>
+<td align="right">2215</td>
+<td align="right">1412</td>
+<td align="right">2834</td>
+<td align="right">2250</td>
+<td align="right">1739</td>
+<td align="right">1520</td>
+<td align="right">2143</td>
+<td align="right">1938</td>
+<td align="right">930</td>
+<td align="right">2720</td>
+<td align="right">2649</td>
+<td align="right">2753</td>
+<td align="right">1721</td>
+<td align="right">1666</td>
+<td align="right">2259</td>
+<td align="right">2697</td>
+<td align="right">3651</td>
+<td align="right">2177</td>
+<td align="right">2256</td>
+<td align="right">3382</td>
+<td align="right">2163</td>
+<td align="right">2042</td>
+<td align="right">1697</td>
+<td align="right">1668</td>
+<td align="right">2576</td>
+<td align="right">1269</td>
+<td align="right">1883</td>
+<td align="right">1980</td>
+<td align="right">1749</td>
+<td align="right">1720</td>
+<td align="right">2092</td>
+<td align="right">2524</td>
+<td align="right">1073</td>
+<td align="right">1613</td>
+<td align="right">1968</td>
+<td align="right">2641</td>
+<td align="right">2033</td>
+<td align="right">2408</td>
+<td align="right">1757</td>
+<td align="right">3011</td>
+<td align="right">2048</td>
+<td align="right">1317</td>
+<td align="right">2069</td>
+<td align="right">1834</td>
+<td align="right">1139</td>
+<td align="right">1989</td>
+<td align="right">1711</td>
+<td align="right">2530</td>
+<td align="right">2279</td>
+<td align="right">2688</td>
+<td align="right">1986</td>
+<td align="right">1807</td>
+<td align="right">1408</td>
+<td align="right">982</td>
+<td align="right">2347</td>
+<td align="right">1178</td>
+<td align="right">1633</td>
+<td align="right">2105</td>
+<td align="right">1908</td>
+<td align="right">1690</td>
+<td align="right">1271</td>
+<td align="right">1972</td>
+<td align="right">1844</td>
+<td align="right">2529</td>
+<td align="right">2244</td>
+<td align="right">1026</td>
+<td align="right">1740</td>
+<td align="right">3060</td>
+<td align="right">1649</td>
+<td align="right">1365</td>
+<td align="right">1090</td>
+</tr>
+<tr class="even">
+<td align="left">ENSG00000000457.12</td>
+<td align="right">1272</td>
+<td align="right">307</td>
+<td align="right">1380</td>
+<td align="right">382</td>
+<td align="right">184</td>
+<td align="right">952</td>
+<td align="right">589</td>
+<td align="right">1442</td>
+<td align="right">325</td>
+<td align="right">1609</td>
+<td align="right">700</td>
+<td align="right">1019</td>
+<td align="right">1028</td>
+<td align="right">453</td>
+<td align="right">1138</td>
+<td align="right">242</td>
+<td align="right">972</td>
+<td align="right">512</td>
+<td align="right">487</td>
+<td align="right">441</td>
+<td align="right">913</td>
+<td align="right">533</td>
+<td align="right">1161</td>
+<td align="right">913</td>
+<td align="right">501</td>
+<td align="right">410</td>
+<td align="right">219</td>
+<td align="right">582</td>
+<td align="right">569</td>
+<td align="right">572</td>
+<td align="right">1033</td>
+<td align="right">884</td>
+<td align="right">245</td>
+<td align="right">643</td>
+<td align="right">515</td>
+<td align="right">532</td>
+<td align="right">541</td>
+<td align="right">583</td>
+<td align="right">553</td>
+<td align="right">1095</td>
+<td align="right">438</td>
+<td align="right">1285</td>
+<td align="right">566</td>
+<td align="right">340</td>
+<td align="right">455</td>
+<td align="right">634</td>
+<td align="right">662</td>
+<td align="right">972</td>
+<td align="right">606</td>
+<td align="right">729</td>
+<td align="right">160</td>
+<td align="right">705</td>
+<td align="right">1813</td>
+<td align="right">1137</td>
+<td align="right">716</td>
+<td align="right">637</td>
+<td align="right">807</td>
+<td align="right">611</td>
+<td align="right">864</td>
+<td align="right">331</td>
+<td align="right">1546</td>
+<td align="right">391</td>
+<td align="right">612</td>
+<td align="right">1288</td>
+<td align="right">1352</td>
+<td align="right">512</td>
+<td align="right">1345</td>
+<td align="right">624</td>
+<td align="right">1114</td>
+<td align="right">378</td>
+<td align="right">203</td>
+<td align="right">542</td>
+<td align="right">1199</td>
+<td align="right">167</td>
+<td align="right">894</td>
+<td align="right">348</td>
+<td align="right">568</td>
+<td align="right">468</td>
+<td align="right">259</td>
+<td align="right">689</td>
+<td align="right">322</td>
+<td align="right">441</td>
+<td align="right">284</td>
+<td align="right">630</td>
+<td align="right">1002</td>
+<td align="right">803</td>
+<td align="right">426</td>
+<td align="right">610</td>
+<td align="right">558</td>
+</tr>
+<tr class="odd">
+<td align="left">ENSG00000000460.15</td>
+<td align="right">178</td>
+<td align="right">109</td>
+<td align="right">165</td>
+<td align="right">62</td>
+<td align="right">32</td>
+<td align="right">146</td>
+<td align="right">145</td>
+<td align="right">194</td>
+<td align="right">89</td>
+<td align="right">263</td>
+<td align="right">156</td>
+<td align="right">141</td>
+<td align="right">180</td>
+<td align="right">62</td>
+<td align="right">209</td>
+<td align="right">38</td>
+<td align="right">168</td>
+<td align="right">129</td>
+<td align="right">103</td>
+<td align="right">132</td>
+<td align="right">202</td>
+<td align="right">137</td>
+<td align="right">227</td>
+<td align="right">88</td>
+<td align="right">117</td>
+<td align="right">95</td>
+<td align="right">56</td>
+<td align="right">137</td>
+<td align="right">154</td>
+<td align="right">144</td>
+<td align="right">180</td>
+<td align="right">158</td>
+<td align="right">59</td>
+<td align="right">463</td>
+<td align="right">425</td>
+<td align="right">154</td>
+<td align="right">109</td>
+<td align="right">101</td>
+<td align="right">144</td>
+<td align="right">191</td>
+<td align="right">184</td>
+<td align="right">241</td>
+<td align="right">145</td>
+<td align="right">105</td>
+<td align="right">92</td>
+<td align="right">97</td>
+<td align="right">116</td>
+<td align="right">158</td>
+<td align="right">150</td>
+<td align="right">140</td>
+<td align="right">31</td>
+<td align="right">288</td>
+<td align="right">297</td>
+<td align="right">102</td>
+<td align="right">213</td>
+<td align="right">96</td>
+<td align="right">178</td>
+<td align="right">163</td>
+<td align="right">144</td>
+<td align="right">76</td>
+<td align="right">198</td>
+<td align="right">94</td>
+<td align="right">172</td>
+<td align="right">190</td>
+<td align="right">211</td>
+<td align="right">90</td>
+<td align="right">145</td>
+<td align="right">152</td>
+<td align="right">157</td>
+<td align="right">121</td>
+<td align="right">78</td>
+<td align="right">77</td>
+<td align="right">148</td>
+<td align="right">17</td>
+<td align="right">137</td>
+<td align="right">78</td>
+<td align="right">121</td>
+<td align="right">60</td>
+<td align="right">87</td>
+<td align="right">212</td>
+<td align="right">137</td>
+<td align="right">119</td>
+<td align="right">48</td>
+<td align="right">61</td>
+<td align="right">143</td>
+<td align="right">212</td>
+<td align="right">96</td>
+<td align="right">84</td>
+<td align="right">76</td>
+</tr>
+<tr class="even">
+<td align="left">ENSG00000000938.11</td>
+<td align="right">1220</td>
+<td align="right">270</td>
+<td align="right">303</td>
+<td align="right">77</td>
+<td align="right">196</td>
+<td align="right">597</td>
+<td align="right">476</td>
+<td align="right">570</td>
+<td align="right">224</td>
+<td align="right">488</td>
+<td align="right">179</td>
+<td align="right">323</td>
+<td align="right">682</td>
+<td align="right">181</td>
+<td align="right">717</td>
+<td align="right">345</td>
+<td align="right">335</td>
+<td align="right">372</td>
+<td align="right">59</td>
+<td align="right">324</td>
+<td align="right">919</td>
+<td align="right">536</td>
+<td align="right">746</td>
+<td align="right">193</td>
+<td align="right">77</td>
+<td align="right">419</td>
+<td align="right">302</td>
+<td align="right">281</td>
+<td align="right">449</td>
+<td align="right">154</td>
+<td align="right">365</td>
+<td align="right">255</td>
+<td align="right">55</td>
+<td align="right">194</td>
+<td align="right">494</td>
+<td align="right">75</td>
+<td align="right">139</td>
+<td align="right">116</td>
+<td align="right">139</td>
+<td align="right">358</td>
+<td align="right">150</td>
+<td align="right">1556</td>
+<td align="right">115</td>
+<td align="right">26</td>
+<td align="right">84</td>
+<td align="right">301</td>
+<td align="right">354</td>
+<td align="right">440</td>
+<td align="right">181</td>
+<td align="right">321</td>
+<td align="right">106</td>
+<td align="right">1275</td>
+<td align="right">400</td>
+<td align="right">1188</td>
+<td align="right">89</td>
+<td align="right">72</td>
+<td align="right">189</td>
+<td align="right">139</td>
+<td align="right">543</td>
+<td align="right">291</td>
+<td align="right">571</td>
+<td align="right">154</td>
+<td align="right">210</td>
+<td align="right">307</td>
+<td align="right">517</td>
+<td align="right">164</td>
+<td align="right">799</td>
+<td align="right">1058</td>
+<td align="right">378</td>
+<td align="right">623</td>
+<td align="right">191</td>
+<td align="right">452</td>
+<td align="right">459</td>
+<td align="right">236</td>
+<td align="right">521</td>
+<td align="right">62</td>
+<td align="right">628</td>
+<td align="right">1914</td>
+<td align="right">401</td>
+<td align="right">331</td>
+<td align="right">1081</td>
+<td align="right">162</td>
+<td align="right">153</td>
+<td align="right">221</td>
+<td align="right">563</td>
+<td align="right">73</td>
+<td align="right">201</td>
+<td align="right">357</td>
+<td align="right">208</td>
+</tr>
+</tbody>
+</table>
+<p>转换的话只要一个<code>trans_exp()</code>函数。如果只想转换mRNA，可以设置mrna_only=T，如果只想转换lncRNA，那就设置lncrna_only=T</p>
+<pre><code># 官方函数
+trans_exp(exp, mrna_only = FALSE, lncrna_only = FALSE, gtex = FALSE)</code></pre>
+<p>比如说我现在只想转换mRNA，只需要输入这个代码,我们看以下表</p>
+<pre class="r"><code>suppressMessages(library(tinyarray)) #加上supperMessages可以不显示提示
+k= trans_exp(exp,mrna_only = T) #只转换mRNA</code></pre>
+<pre><code>## 19712 of genes successfully mapping to mRNA,14805 of genes successfully mapping to lncRNA</code></pre>
+<table style="width:100%;">
+<colgroup>
+<col width="0%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th align="left"></th>
+<th align="right">TCGA.KN.8426.11A</th>
+<th align="right">TCGA.KL.8332.01A</th>
+<th align="right">TCGA.KN.8423.01A</th>
+<th align="right">TCGA.KL.8335.01A</th>
+<th align="right">TCGA.KL.8327.01A</th>
+<th align="right">TCGA.KL.8324.11A</th>
+<th align="right">TCGA.KN.8430.01A</th>
+<th align="right">TCGA.KN.8422.11A</th>
+<th align="right">TCGA.KL.8338.01A</th>
+<th align="right">TCGA.KN.8432.11A</th>
+<th align="right">TCGA.KN.8429.01A</th>
+<th align="right">TCGA.KO.8415.11A</th>
+<th align="right">TCGA.KN.8436.11A</th>
+<th align="right">TCGA.KN.8432.01A</th>
+<th align="right">TCGA.KN.8424.11A</th>
+<th align="right">TCGA.KO.8409.01A</th>
+<th align="right">TCGA.KN.8437.01A</th>
+<th align="right">TCGA.KL.8342.01A</th>
+<th align="right">TCGA.KM.8443.01A</th>
+<th align="right">TCGA.KN.8434.01A</th>
+<th align="right">TCGA.KN.8429.11A</th>
+<th align="right">TCGA.KL.8329.01A</th>
+<th align="right">TCGA.KN.8435.11A</th>
+<th align="right">TCGA.KM.8477.01A</th>
+<th align="right">TCGA.KL.8331.01A</th>
+<th align="right">TCGA.KO.8403.01A</th>
+<th align="right">TCGA.KN.8433.01A</th>
+<th align="right">TCGA.KL.8334.01A</th>
+<th align="right">TCGA.KN.8424.01A</th>
+<th align="right">TCGA.KO.8417.01A</th>
+<th align="right">TCGA.KN.8430.11A</th>
+<th align="right">TCGA.KM.8639.01A</th>
+<th align="right">TCGA.KN.8421.01A</th>
+<th align="right">TCGA.KN.8428.01A</th>
+<th align="right">TCGA.KN.8427.01A</th>
+<th align="right">TCGA.KN.8436.01A</th>
+<th align="right">TCGA.KM.8442.01A</th>
+<th align="right">TCGA.KN.8418.01A</th>
+<th align="right">TCGA.KL.8345.01A</th>
+<th align="right">TCGA.KN.8425.01A</th>
+<th align="right">TCGA.KL.8323.01A</th>
+<th align="right">TCGA.KN.8437.11A</th>
+<th align="right">TCGA.KN.8435.01A</th>
+<th align="right">TCGA.KL.8346.01A</th>
+<th align="right">TCGA.KL.8326.01A</th>
+<th align="right">TCGA.KO.8414.01A</th>
+<th align="right">TCGA.KM.8441.01A</th>
+<th align="right">TCGA.KN.8428.11A</th>
+<th align="right">TCGA.KO.8406.01A</th>
+<th align="right">TCGA.KO.8410.01A</th>
+<th align="right">TCGA.KN.8431.01A</th>
+<th align="right">TCGA.KL.8336.11A</th>
+<th align="right">TCGA.KN.8423.11A</th>
+<th align="right">TCGA.KN.8419.11A</th>
+<th align="right">TCGA.KL.8325.01A</th>
+<th align="right">TCGA.KL.8330.01A</th>
+<th align="right">TCGA.KL.8343.01A</th>
+<th align="right">TCGA.KL.8339.01A</th>
+<th align="right">TCGA.KL.8326.11A</th>
+<th align="right">TCGA.KO.8415.01A</th>
+<th align="right">TCGA.KN.8425.11A</th>
+<th align="right">TCGA.KL.8340.01A</th>
+<th align="right">TCGA.KL.8336.01A</th>
+<th align="right">TCGA.KN.8431.11A</th>
+<th align="right">TCGA.KO.8403.11A</th>
+<th align="right">TCGA.KM.8440.01A</th>
+<th align="right">TCGA.KN.8427.11A</th>
+<th align="right">TCGA.KL.8333.01A</th>
+<th align="right">TCGA.KN.8434.11A</th>
+<th align="right">TCGA.KO.8407.01A</th>
+<th align="right">TCGA.KO.8408.01A</th>
+<th align="right">TCGA.KN.8426.01A</th>
+<th align="right">TCGA.KL.8339.11A</th>
+<th align="right">TCGA.KM.8476.01A</th>
+<th align="right">TCGA.KN.8433.11A</th>
+<th align="right">TCGA.KL.8328.01A</th>
+<th align="right">TCGA.KO.8413.01A</th>
+<th align="right">TCGA.KO.8405.01A</th>
+<th align="right">TCGA.KO.8416.01A</th>
+<th align="right">TCGA.KL.8344.01A</th>
+<th align="right">TCGA.KO.8404.01A</th>
+<th align="right">TCGA.KO.8411.01A</th>
+<th align="right">TCGA.KM.8438.01A</th>
+<th align="right">TCGA.KL.8324.01A</th>
+<th align="right">TCGA.KL.8329.11A</th>
+<th align="right">TCGA.KL.8341.01A</th>
+<th align="right">TCGA.KL.8337.01A</th>
+<th align="right">TCGA.KM.8439.01A</th>
+<th align="right">TCGA.KN.8419.01A</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">TSPAN6</td>
+<td align="right">11729</td>
+<td align="right">958</td>
+<td align="right">10000</td>
+<td align="right">2036</td>
+<td align="right">707</td>
+<td align="right">5793</td>
+<td align="right">4104</td>
+<td align="right">8835</td>
+<td align="right">1759</td>
+<td align="right">12853</td>
+<td align="right">3387</td>
+<td align="right">6809</td>
+<td align="right">9553</td>
+<td align="right">1921</td>
+<td align="right">12604</td>
+<td align="right">1675</td>
+<td align="right">5095</td>
+<td align="right">1788</td>
+<td align="right">4309</td>
+<td align="right">2055</td>
+<td align="right">10588</td>
+<td align="right">5131</td>
+<td align="right">6483</td>
+<td align="right">839</td>
+<td align="right">5523</td>
+<td align="right">2090</td>
+<td align="right">1120</td>
+<td align="right">5868</td>
+<td align="right">4314</td>
+<td align="right">3333</td>
+<td align="right">9061</td>
+<td align="right">9009</td>
+<td align="right">1547</td>
+<td align="right">4680</td>
+<td align="right">2139</td>
+<td align="right">3555</td>
+<td align="right">5877</td>
+<td align="right">1566</td>
+<td align="right">5853</td>
+<td align="right">4150</td>
+<td align="right">12017</td>
+<td align="right">3914</td>
+<td align="right">3029</td>
+<td align="right">4023</td>
+<td align="right">1227</td>
+<td align="right">1285</td>
+<td align="right">3456</td>
+<td align="right">5926</td>
+<td align="right">3272</td>
+<td align="right">12555</td>
+<td align="right">722</td>
+<td align="right">5152</td>
+<td align="right">8882</td>
+<td align="right">9948</td>
+<td align="right">5145</td>
+<td align="right">4408</td>
+<td align="right">2533</td>
+<td align="right">1583</td>
+<td align="right">4560</td>
+<td align="right">1177</td>
+<td align="right">15598</td>
+<td align="right">2905</td>
+<td align="right">2147</td>
+<td align="right">13640</td>
+<td align="right">10881</td>
+<td align="right">4641</td>
+<td align="right">7257</td>
+<td align="right">1418</td>
+<td align="right">7751</td>
+<td align="right">2249</td>
+<td align="right">1739</td>
+<td align="right">2445</td>
+<td align="right">8479</td>
+<td align="right">995</td>
+<td align="right">8023</td>
+<td align="right">3615</td>
+<td align="right">3112</td>
+<td align="right">2708</td>
+<td align="right">2171</td>
+<td align="right">3704</td>
+<td align="right">928</td>
+<td align="right">3885</td>
+<td align="right">1801</td>
+<td align="right">3315</td>
+<td align="right">6154</td>
+<td align="right">3122</td>
+<td align="right">2886</td>
+<td align="right">3560</td>
+<td align="right">1102</td>
+</tr>
+<tr class="even">
+<td align="left">TNMD</td>
+<td align="right">43</td>
+<td align="right">112</td>
+<td align="right">15</td>
+<td align="right">0</td>
+<td align="right">9</td>
+<td align="right">94</td>
+<td align="right">11</td>
+<td align="right">76</td>
+<td align="right">15</td>
+<td align="right">50</td>
+<td align="right">8</td>
+<td align="right">46</td>
+<td align="right">29</td>
+<td align="right">9</td>
+<td align="right">116</td>
+<td align="right">9</td>
+<td align="right">1</td>
+<td align="right">12</td>
+<td align="right">14</td>
+<td align="right">6</td>
+<td align="right">54</td>
+<td align="right">4</td>
+<td align="right">190</td>
+<td align="right">2</td>
+<td align="right">22</td>
+<td align="right">11</td>
+<td align="right">0</td>
+<td align="right">12</td>
+<td align="right">12</td>
+<td align="right">47</td>
+<td align="right">16</td>
+<td align="right">13</td>
+<td align="right">15</td>
+<td align="right">11</td>
+<td align="right">0</td>
+<td align="right">19</td>
+<td align="right">9</td>
+<td align="right">6</td>
+<td align="right">23</td>
+<td align="right">14</td>
+<td align="right">353</td>
+<td align="right">22</td>
+<td align="right">54</td>
+<td align="right">19</td>
+<td align="right">2</td>
+<td align="right">7</td>
+<td align="right">2</td>
+<td align="right">190</td>
+<td align="right">20</td>
+<td align="right">10</td>
+<td align="right">1</td>
+<td align="right">466</td>
+<td align="right">23</td>
+<td align="right">55</td>
+<td align="right">129</td>
+<td align="right">10</td>
+<td align="right">2</td>
+<td align="right">0</td>
+<td align="right">214</td>
+<td align="right">4</td>
+<td align="right">55</td>
+<td align="right">4</td>
+<td align="right">6</td>
+<td align="right">84</td>
+<td align="right">48</td>
+<td align="right">3</td>
+<td align="right">54</td>
+<td align="right">67</td>
+<td align="right">86</td>
+<td align="right">20</td>
+<td align="right">12</td>
+<td align="right">4</td>
+<td align="right">449</td>
+<td align="right">8</td>
+<td align="right">136</td>
+<td align="right">16</td>
+<td align="right">0</td>
+<td align="right">5</td>
+<td align="right">75</td>
+<td align="right">31</td>
+<td align="right">2</td>
+<td align="right">75</td>
+<td align="right">60</td>
+<td align="right">5</td>
+<td align="right">192</td>
+<td align="right">21</td>
+<td align="right">31</td>
+<td align="right">0</td>
+<td align="right">3</td>
+</tr>
+<tr class="odd">
+<td align="left">DPM1</td>
+<td align="right">1906</td>
+<td align="right">1108</td>
+<td align="right">1788</td>
+<td align="right">1260</td>
+<td align="right">774</td>
+<td align="right">1971</td>
+<td align="right">2207</td>
+<td align="right">1804</td>
+<td align="right">1457</td>
+<td align="right">2944</td>
+<td align="right">2426</td>
+<td align="right">1648</td>
+<td align="right">1409</td>
+<td align="right">1540</td>
+<td align="right">1988</td>
+<td align="right">940</td>
+<td align="right">1843</td>
+<td align="right">2295</td>
+<td align="right">2215</td>
+<td align="right">1412</td>
+<td align="right">2834</td>
+<td align="right">2250</td>
+<td align="right">1739</td>
+<td align="right">1520</td>
+<td align="right">2143</td>
+<td align="right">1938</td>
+<td align="right">930</td>
+<td align="right">2720</td>
+<td align="right">2649</td>
+<td align="right">2753</td>
+<td align="right">1721</td>
+<td align="right">1666</td>
+<td align="right">2259</td>
+<td align="right">2697</td>
+<td align="right">3651</td>
+<td align="right">2177</td>
+<td align="right">2256</td>
+<td align="right">3382</td>
+<td align="right">2163</td>
+<td align="right">2042</td>
+<td align="right">1697</td>
+<td align="right">1668</td>
+<td align="right">2576</td>
+<td align="right">1269</td>
+<td align="right">1883</td>
+<td align="right">1980</td>
+<td align="right">1749</td>
+<td align="right">1720</td>
+<td align="right">2092</td>
+<td align="right">2524</td>
+<td align="right">1073</td>
+<td align="right">1613</td>
+<td align="right">1968</td>
+<td align="right">2641</td>
+<td align="right">2033</td>
+<td align="right">2408</td>
+<td align="right">1757</td>
+<td align="right">3011</td>
+<td align="right">2048</td>
+<td align="right">1317</td>
+<td align="right">2069</td>
+<td align="right">1834</td>
+<td align="right">1139</td>
+<td align="right">1989</td>
+<td align="right">1711</td>
+<td align="right">2530</td>
+<td align="right">2279</td>
+<td align="right">2688</td>
+<td align="right">1986</td>
+<td align="right">1807</td>
+<td align="right">1408</td>
+<td align="right">982</td>
+<td align="right">2347</td>
+<td align="right">1178</td>
+<td align="right">1633</td>
+<td align="right">2105</td>
+<td align="right">1908</td>
+<td align="right">1690</td>
+<td align="right">1271</td>
+<td align="right">1972</td>
+<td align="right">1844</td>
+<td align="right">2529</td>
+<td align="right">2244</td>
+<td align="right">1026</td>
+<td align="right">1740</td>
+<td align="right">3060</td>
+<td align="right">1649</td>
+<td align="right">1365</td>
+<td align="right">1090</td>
+</tr>
+<tr class="even">
+<td align="left">SCYL3</td>
+<td align="right">1272</td>
+<td align="right">307</td>
+<td align="right">1380</td>
+<td align="right">382</td>
+<td align="right">184</td>
+<td align="right">952</td>
+<td align="right">589</td>
+<td align="right">1442</td>
+<td align="right">325</td>
+<td align="right">1609</td>
+<td align="right">700</td>
+<td align="right">1019</td>
+<td align="right">1028</td>
+<td align="right">453</td>
+<td align="right">1138</td>
+<td align="right">242</td>
+<td align="right">972</td>
+<td align="right">512</td>
+<td align="right">487</td>
+<td align="right">441</td>
+<td align="right">913</td>
+<td align="right">533</td>
+<td align="right">1161</td>
+<td align="right">913</td>
+<td align="right">501</td>
+<td align="right">410</td>
+<td align="right">219</td>
+<td align="right">582</td>
+<td align="right">569</td>
+<td align="right">572</td>
+<td align="right">1033</td>
+<td align="right">884</td>
+<td align="right">245</td>
+<td align="right">643</td>
+<td align="right">515</td>
+<td align="right">532</td>
+<td align="right">541</td>
+<td align="right">583</td>
+<td align="right">553</td>
+<td align="right">1095</td>
+<td align="right">438</td>
+<td align="right">1285</td>
+<td align="right">566</td>
+<td align="right">340</td>
+<td align="right">455</td>
+<td align="right">634</td>
+<td align="right">662</td>
+<td align="right">972</td>
+<td align="right">606</td>
+<td align="right">729</td>
+<td align="right">160</td>
+<td align="right">705</td>
+<td align="right">1813</td>
+<td align="right">1137</td>
+<td align="right">716</td>
+<td align="right">637</td>
+<td align="right">807</td>
+<td align="right">611</td>
+<td align="right">864</td>
+<td align="right">331</td>
+<td align="right">1546</td>
+<td align="right">391</td>
+<td align="right">612</td>
+<td align="right">1288</td>
+<td align="right">1352</td>
+<td align="right">512</td>
+<td align="right">1345</td>
+<td align="right">624</td>
+<td align="right">1114</td>
+<td align="right">378</td>
+<td align="right">203</td>
+<td align="right">542</td>
+<td align="right">1199</td>
+<td align="right">167</td>
+<td align="right">894</td>
+<td align="right">348</td>
+<td align="right">568</td>
+<td align="right">468</td>
+<td align="right">259</td>
+<td align="right">689</td>
+<td align="right">322</td>
+<td align="right">441</td>
+<td align="right">284</td>
+<td align="right">630</td>
+<td align="right">1002</td>
+<td align="right">803</td>
+<td align="right">426</td>
+<td align="right">610</td>
+<td align="right">558</td>
+</tr>
+<tr class="odd">
+<td align="left">C1orf112</td>
+<td align="right">178</td>
+<td align="right">109</td>
+<td align="right">165</td>
+<td align="right">62</td>
+<td align="right">32</td>
+<td align="right">146</td>
+<td align="right">145</td>
+<td align="right">194</td>
+<td align="right">89</td>
+<td align="right">263</td>
+<td align="right">156</td>
+<td align="right">141</td>
+<td align="right">180</td>
+<td align="right">62</td>
+<td align="right">209</td>
+<td align="right">38</td>
+<td align="right">168</td>
+<td align="right">129</td>
+<td align="right">103</td>
+<td align="right">132</td>
+<td align="right">202</td>
+<td align="right">137</td>
+<td align="right">227</td>
+<td align="right">88</td>
+<td align="right">117</td>
+<td align="right">95</td>
+<td align="right">56</td>
+<td align="right">137</td>
+<td align="right">154</td>
+<td align="right">144</td>
+<td align="right">180</td>
+<td align="right">158</td>
+<td align="right">59</td>
+<td align="right">463</td>
+<td align="right">425</td>
+<td align="right">154</td>
+<td align="right">109</td>
+<td align="right">101</td>
+<td align="right">144</td>
+<td align="right">191</td>
+<td align="right">184</td>
+<td align="right">241</td>
+<td align="right">145</td>
+<td align="right">105</td>
+<td align="right">92</td>
+<td align="right">97</td>
+<td align="right">116</td>
+<td align="right">158</td>
+<td align="right">150</td>
+<td align="right">140</td>
+<td align="right">31</td>
+<td align="right">288</td>
+<td align="right">297</td>
+<td align="right">102</td>
+<td align="right">213</td>
+<td align="right">96</td>
+<td align="right">178</td>
+<td align="right">163</td>
+<td align="right">144</td>
+<td align="right">76</td>
+<td align="right">198</td>
+<td align="right">94</td>
+<td align="right">172</td>
+<td align="right">190</td>
+<td align="right">211</td>
+<td align="right">90</td>
+<td align="right">145</td>
+<td align="right">152</td>
+<td align="right">157</td>
+<td align="right">121</td>
+<td align="right">78</td>
+<td align="right">77</td>
+<td align="right">148</td>
+<td align="right">17</td>
+<td align="right">137</td>
+<td align="right">78</td>
+<td align="right">121</td>
+<td align="right">60</td>
+<td align="right">87</td>
+<td align="right">212</td>
+<td align="right">137</td>
+<td align="right">119</td>
+<td align="right">48</td>
+<td align="right">61</td>
+<td align="right">143</td>
+<td align="right">212</td>
+<td align="right">96</td>
+<td align="right">84</td>
+<td align="right">76</td>
+</tr>
+<tr class="even">
+<td align="left">FGR</td>
+<td align="right">1220</td>
+<td align="right">270</td>
+<td align="right">303</td>
+<td align="right">77</td>
+<td align="right">196</td>
+<td align="right">597</td>
+<td align="right">476</td>
+<td align="right">570</td>
+<td align="right">224</td>
+<td align="right">488</td>
+<td align="right">179</td>
+<td align="right">323</td>
+<td align="right">682</td>
+<td align="right">181</td>
+<td align="right">717</td>
+<td align="right">345</td>
+<td align="right">335</td>
+<td align="right">372</td>
+<td align="right">59</td>
+<td align="right">324</td>
+<td align="right">919</td>
+<td align="right">536</td>
+<td align="right">746</td>
+<td align="right">193</td>
+<td align="right">77</td>
+<td align="right">419</td>
+<td align="right">302</td>
+<td align="right">281</td>
+<td align="right">449</td>
+<td align="right">154</td>
+<td align="right">365</td>
+<td align="right">255</td>
+<td align="right">55</td>
+<td align="right">194</td>
+<td align="right">494</td>
+<td align="right">75</td>
+<td align="right">139</td>
+<td align="right">116</td>
+<td align="right">139</td>
+<td align="right">358</td>
+<td align="right">150</td>
+<td align="right">1556</td>
+<td align="right">115</td>
+<td align="right">26</td>
+<td align="right">84</td>
+<td align="right">301</td>
+<td align="right">354</td>
+<td align="right">440</td>
+<td align="right">181</td>
+<td align="right">321</td>
+<td align="right">106</td>
+<td align="right">1275</td>
+<td align="right">400</td>
+<td align="right">1188</td>
+<td align="right">89</td>
+<td align="right">72</td>
+<td align="right">189</td>
+<td align="right">139</td>
+<td align="right">543</td>
+<td align="right">291</td>
+<td align="right">571</td>
+<td align="right">154</td>
+<td align="right">210</td>
+<td align="right">307</td>
+<td align="right">517</td>
+<td align="right">164</td>
+<td align="right">799</td>
+<td align="right">1058</td>
+<td align="right">378</td>
+<td align="right">623</td>
+<td align="right">191</td>
+<td align="right">452</td>
+<td align="right">459</td>
+<td align="right">236</td>
+<td align="right">521</td>
+<td align="right">62</td>
+<td align="right">628</td>
+<td align="right">1914</td>
+<td align="right">401</td>
+<td align="right">331</td>
+<td align="right">1081</td>
+<td align="right">162</td>
+<td align="right">153</td>
+<td align="right">221</td>
+<td align="right">563</td>
+<td align="right">73</td>
+<td align="right">201</td>
+<td align="right">357</td>
+<td align="right">208</td>
+</tr>
+</tbody>
+</table>
+<p>这样很简单的我们就实验了ID转换，并且提取了mRNA</p>
+<hr />
+</div>
+<div id="画主成分pca图" class="section level3">
+<h3>画主成分PCA图</h3>
+<p>很多时候生信分析第一就是画PCA图，因为可以很快的知道两组的分布情况。 首先我们一定要有分组信息，比如我们按照最常见的肿瘤和正常组织进行分组，然后定义分组列表（因子形式），我们知道TCGA命名规则中第14位和第15位就是肿瘤和正常组织的信息，11是正常组织，01是肿瘤组织,那么可以用下面这个代码进行识别。</p>
+<pre class="r"><code>library(stringr)
+k1 = str_starts(colnames(k),&quot;TCGA&quot;) #k为转换后的表达矩阵
+k2 = as.numeric(str_sub(colnames(k),14,15))&lt;10
+group_list = ifelse(k1&amp;k2,&quot;tumor&quot;,&quot;normal&quot;) #定义组别
+group_list = factor(group_list,levels = c(&quot;normal&quot;,&quot;tumor&quot;)) # 转换为因子
+table(group_list) #查看各自的数量</code></pre>
+<pre><code>## group_list
+## normal  tumor 
+##     24     65</code></pre>
+<p>我们用<code>table()</code>函数可以很快看到正常组织24例，肿瘤组织65例。</p>
+<p>而画PCA图只需要一个<code>draw_pca()</code>，这是因为该函数调用了<strong>factoextra</strong>包的<code>fviz_pca()</code>函数，这样的画我们可以节省很多步骤，因为一个最基础的代码就可以很快的出图，见图 <a href="#fig:pca">1</a></p>
+<pre><code>draw_pca(k,group_list) #k是转为mRNA的图，如果看全部的结果则为exp</code></pre>
+<div class="figure" style="text-align: center"><span style="display:block;" id="fig:pca"></span>
+<img src="{{< blogdown/postref >}}index_files/figure-html/pca-1.png" alt="TCGA-KICH中肿瘤与正常组织的PCA图" width="672" />
+<p class="caption">
+Figure 1: TCGA-KICH中肿瘤与正常组织的PCA图
+</p>
+</div>
+<p>当然我们也可以添加各种参数，比如背景和配色等，这里可以在<code>draw_pca()</code>函数里更改颜色，也可以使用<strong>ggplot2</strong>添加背景和手动上色或者使用<strong>ggsci</strong>进行专业期刊上色，比如我们想改成theme_bw背景，然后换成lancet的配色，见图 <a href="#fig:pca2">2</a></p>
+<pre class="r"><code>draw_pca(k,group_list) +ggplot2::theme_bw()+ggsci::scale_color_lancet()</code></pre>
+<pre><code>## Scale for &#39;colour&#39; is already present. Adding another scale for &#39;colour&#39;,
+## which will replace the existing scale.</code></pre>
+<div class="figure" style="text-align: center"><span style="display:block;" id="fig:pca2"></span>
+<img src="{{< blogdown/postref >}}index_files/figure-html/pca2-1.png" alt="TCGA-KICH中肿瘤与正常组织的PCA图" width="672" />
+<p class="caption">
+Figure 2: TCGA-KICH中肿瘤与正常组织的PCA图
+</p>
+</div>
+<hr />
+</div>
+<div id="指定基因的表达量t检验" class="section level3">
+<h3>指定基因的表达量t检验</h3>
+<p>有时候，你得到了一个hub基因，你想知道哪些基因上调，哪些基因下调，这里基于t检验，给出结果</p>
+<p>即给定一个基因列表，直接基于T检验返回表达量增加/减少/变化的基因，这时候我们可以用t_choose()函数。</p>
+<p>比如我们随机生成20个基因列表</p>
+<pre class="r"><code>hubgenes = sample(rownames(k),20)
+hubgenes</code></pre>
+<pre><code>##  [1] &quot;OR1J4&quot;    &quot;HSPB7&quot;    &quot;ARHGAP20&quot; &quot;RAD21&quot;    &quot;USP37&quot;    &quot;PP2D1&quot;   
+##  [7] &quot;F12&quot;      &quot;ZNF142&quot;   &quot;INIP&quot;     &quot;GABRA5&quot;   &quot;WIF1&quot;     &quot;GANAB&quot;   
+## [13] &quot;PTPRF&quot;    &quot;GCOM1&quot;    &quot;SMAP2&quot;    &quot;MYH7B&quot;    &quot;TMEM174&quot;  &quot;RTN2&quot;    
+## [19] &quot;CDKN3&quot;    &quot;EPB41L5&quot;</code></pre>
+<p>如果我们想看<strong>显著上调</strong>的基因，那么输入这个代码</p>
+<pre class="r"><code>t_choose(hubgenes,k,group_list,up_only = T)</code></pre>
+<pre><code>## [1] &quot;OR1J4&quot; &quot;GANAB&quot; &quot;GCOM1&quot; &quot;CDKN3&quot;</code></pre>
+<p>如果我们想看<strong>显著下调</strong>的基因，那么输入这个代码</p>
+<pre class="r"><code>t_choose(hubgenes,k,group_list,down_only = T)</code></pre>
+<pre><code>##  [1] &quot;HSPB7&quot;    &quot;ARHGAP20&quot; &quot;RAD21&quot;    &quot;USP37&quot;    &quot;ZNF142&quot;   &quot;INIP&quot;    
+##  [7] &quot;PTPRF&quot;    &quot;SMAP2&quot;    &quot;MYH7B&quot;    &quot;TMEM174&quot;  &quot;RTN2&quot;     &quot;EPB41L5&quot;</code></pre>
+</div>
+<div id="画t-sne图" class="section level3">
+<h3>画t-SNE图</h3>
+<p>t-SNE其实是针对单细胞亚群的，但是也可以用基因表达矩阵和分组进行绘制，这里假装是单细胞分群，记住这里要先安装Rtsne，输入以下代码后可以见图 <a href="#fig:tsne">3</a>所示。</p>
+<pre class="r"><code># if(!require(Rtsne))install.packages(&quot;Rtsne&quot;) #没有安装Rtsne的需先安装
+draw_tsne(k,group_list,perplexity = 5) #设置分群数字</code></pre>
+<div class="figure" style="text-align: center"><span style="display:block;" id="fig:tsne"></span>
+<img src="{{< blogdown/postref >}}index_files/figure-html/tsne-1.png" alt="t-SNE图" width="672" />
+<p class="caption">
+Figure 3: t-SNE图
+</p>
+</div>
+</div>
+<div id="画热图" class="section level3">
+<h3>画热图</h3>
+<p>画热图其实是一个比较复杂的过程，我们要设置显示的基因数，还要设置分组，有时候还要进行聚类和归一化等。<strong>tinyarray</strong>是调用<strong>pheatmap</strong>这个包实现的。这里有<code>draw_heatmap()</code>和<code>draw_heatmap2()</code>两个函数，一般情况下选择<code>draw_heatmap()</code>函数即可，<code>draw_heatmap2()</code>需要差异基因的支持。</p>
+<p>输入以下最基础的代码就可以绘制精美的热图，见图 <a href="#fig:heat">4</a>所示，由于设计19712个基因，所以会很慢，我们可以少选一些基因进行绘图，比如提取前100个基因。这里不能实现选择差异最显著的基因进行热图，不过在建明老师的<strong>Annoprobe</strong>包倒是实现了。</p>
+<pre class="r"><code>draw_heatmap(k[1:100,],group_list)</code></pre>
+<div class="figure" style="text-align: center"><span style="display:block;" id="fig:heat"></span>
+<img src="{{< blogdown/postref >}}index_files/figure-html/heat-1.png" alt="热图" width="672" />
+<p class="caption">
+Figure 4: 热图
+</p>
+</div>
+<p>当然我们也可以直接在这个函数里进行细节的修改，比如热图格子的配色和标签的配色，是否显示标签和基因等功能，比如我们做下面的个性化定制，结果见图 <a href="#fig:heat2">5</a>所示.</p>
+<pre class="r"><code>draw_heatmap(
+  k[1:100,],
+  group_list,
+  scale_before = FALSE,
+  n_cutoff = 3,
+  cluster_cols = TRUE, # 按行聚类
+  legend = T, #显示标签
+  show_rownames = FALSE, #是否显示行名，也就是基因名，如果想显示就设置为T
+  annotation_legend = T, #是否显示标签注释标签
+  color = (colorRampPalette(c(&quot;blue&quot;, &quot;white&quot;, &quot;red&quot;)))(100), #设置颜色区间
+  color_an = c(&#39;darkblue&#39;,&#39;firebrick&#39;), #设置分组颜色，自己选择喜欢的配色
+  scale = TRUE, #是否归一化
+  main = &quot;Heatmap&quot; )#设置标题</code></pre>
+<div class="figure" style="text-align: center"><span style="display:block;" id="fig:heat2"></span>
+<img src="{{< blogdown/postref >}}index_files/figure-html/heat2-1.png" alt="热图" width="672" />
+<p class="caption">
+Figure 5: 热图
+</p>
+</div>
+<hr />
+<p>另外还有一个ggheat函数也可以画热图，可以自己试试，这里就不演示了。</p>
+<pre><code>ggheat(t(exp),group_list,show_colnames = F,show_rownames = F)</code></pre>
+<hr />
+</div>
+<div id="画火山图" class="section level3">
+<h3>画火山图</h3>
+<p>关于火山图的绘制，其实就是计算差异表达基因，目前有limma，edgeR和DESeq2三种算法，而<code>draw_volcano()</code>函数支持这三种算法的结果绘制。这个包还有一个get_deg()可以计算差异基因，但是是基于GEO数据，这个可以后面再说。</p>
+<p>而本示例数据是TCGA的count值，如果要进行差异表达分析，最好使用DSEeq2法，我们可以这样算</p>
+<pre class="r"><code>suppressMessages(library(DESeq2)) # 仅支持count输入</code></pre>
+<pre><code>## Warning: 程辑包&#39;GenomeInfoDb&#39;是用R版本4.1.1 来建造的</code></pre>
+<pre><code>## Warning: 程辑包&#39;MatrixGenerics&#39;是用R版本4.1.1 来建造的</code></pre>
+<pre class="r"><code>k&lt;-round(k, digits = 0) # 转换为整数
+#### 第一步，构建DESeq2的DESeq对象
+colData &lt;- data.frame(row.names = colnames(k),group_list = group_list)
+dds &lt;- DESeqDataSetFromMatrix(countData = k,colData = colData,
+                              design = ~ group_list)</code></pre>
+<pre><code>## converting counts to integer mode</code></pre>
+<pre class="r"><code>#### 第二步，进行差异表达分析
+suppressMessages(dds2 &lt;- DESeq(dds))
+res &lt;- results(dds2,contrast=c(&quot;group_list&quot;,&quot;tumor&quot;,&quot;normal&quot;))   # 对照组在后 提取差异分析结果，tumor组对normal组的差异分析结果
+resOrdered &lt;- res[order(res$padj),]
+DEG &lt;- as.data.frame(resOrdered)
+DEG &lt;- na.omit(DEG) #去除NA值</code></pre>
+<table>
+<thead>
+<tr class="header">
+<th align="left"></th>
+<th align="right">baseMean</th>
+<th align="right">log2FoldChange</th>
+<th align="right">lfcSE</th>
+<th align="right">stat</th>
+<th align="right">pvalue</th>
+<th align="right">padj</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">IRX1</td>
+<td align="right">509.0543</td>
+<td align="right">-8.808762</td>
+<td align="right">0.3357484</td>
+<td align="right">-26.23620</td>
+<td align="right">0</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">SLC9A3</td>
+<td align="right">3201.0936</td>
+<td align="right">-7.373119</td>
+<td align="right">0.3011667</td>
+<td align="right">-24.48185</td>
+<td align="right">0</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">ABCA4</td>
+<td align="right">901.1098</td>
+<td align="right">-7.411986</td>
+<td align="right">0.3077482</td>
+<td align="right">-24.08458</td>
+<td align="right">0</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">CDHR5</td>
+<td align="right">738.7964</td>
+<td align="right">-7.638509</td>
+<td align="right">0.3198151</td>
+<td align="right">-23.88414</td>
+<td align="right">0</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">UGT3A1</td>
+<td align="right">1068.5725</td>
+<td align="right">-9.546382</td>
+<td align="right">0.4008942</td>
+<td align="right">-23.81272</td>
+<td align="right">0</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">TMEM207</td>
+<td align="right">219.3206</td>
+<td align="right">-11.015766</td>
+<td align="right">0.4665587</td>
+<td align="right">-23.61067</td>
+<td align="right">0</td>
+<td align="right">0</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p>画热图其实是<strong>ggplot2</strong>的<code>geom_point</code>函数，我们使用的是DESeq2法，也是默认的算法，不需要更改pkg，而这个包里面pkg可以等于1,2,3,4，分别代表 “DESeq2”,“edgeR”,“limma(voom)”和“limma”算法。</p>
+<p>我们运行最基本的代码，见图 <a href="#fig:vol">6</a>所示，标题处甚至已经给我们统计好了上下调的基因</p>
+<pre class="r"><code>draw_volcano(DEG)</code></pre>
+<div class="figure" style="text-align: center"><span style="display:block;" id="fig:vol"></span>
+<img src="{{< blogdown/postref >}}index_files/figure-html/vol-1.png" alt="火山图" width="672" />
+<p class="caption">
+Figure 6: 火山图
+</p>
+</div>
+<p>我们也可以自己定制更多的参数，比如要校正p值，设置p和FC的截断值和颜色等等，比如图 <a href="#fig:vol2">7</a></p>
+<pre class="r"><code>draw_volcano(
+  DEG,
+  lab =&quot;Log2 Fold Changge&quot;, #x轴的标签，默认是跟随pkg自动更改
+  pvalue_cutoff = 0.05,
+  logFC_cutoff = 1,
+  pkg = 1,
+  adjust = T, #使用校正的p值
+  symmetry = FALSE, #是否让两边对称，默认不对称
+  color = c(&quot;#2874C5&quot;, &quot;grey&quot;, &quot;#f87669&quot;) #挑一个自己喜欢的配色
+)</code></pre>
+<div class="figure" style="text-align: center"><span style="display:block;" id="fig:vol2"></span>
+<img src="{{< blogdown/postref >}}index_files/figure-html/vol2-1.png" alt="火山图" width="672" />
+<p class="caption">
+Figure 7: 火山图
+</p>
+</div>
+<hr />
+</div>
+<div id="画韦恩图" class="section level3">
+<h3>画韦恩图</h3>
+<p>韦恩图一般用于多个数据集的汇总，比如有个三个数据的数字或基因，我们想知道哪些有交集的时候，可以用韦恩图，一般用于三种不同算法的差异基因的交集。</p>
+<p>我们随机生成三组数字，然后画三组交集的韦恩图，代码如下，见图 <a href="#fig:venn"><strong>??</strong></a></p>
+<pre class="r"><code>x= list(Deseq2=sample(1:100,30), #列表Deseq2
+         edgeR=sample(1:100,30),#列表edgeR
+         limma=sample(1:100,30))#limma
+tinyarray::draw_venn(x,&quot;venn plot&quot;)</code></pre>
+<hr />
+</div>
+<div id="画生存分析图" class="section level3">
+<h3>画生存分析图</h3>
+<p>一般我们用KM生存分析图，这里是调用<strong>survival</strong>这个包进行统计，然后调用<strong>survminer</strong>这个包进行图片绘制</p>
+<p>示例数据用survival包自带的lung数据，画生存分析曲线必须至少要有三组数据：生存时间、生存状态和分组</p>
+<p>示例是演示按性别分组，看两组的生存差异，我们用<code>draw_KM()</code>函数做人，代码如下，见图 <a href="#fig:KM">8</a></p>
+<pre class="r"><code>s = survival::lung
+draw_KM(meta = s,
+       group_list = s$sex,
+       event_col = &quot;status&quot;)</code></pre>
+<pre><code>## Warning in draw_KM(meta = s, group_list = s$sex, event_col = &quot;status&quot;):
+## group_list was covert to factor</code></pre>
+<div class="figure" style="text-align: center"><span style="display:block;" id="fig:KM"></span>
+<img src="{{< blogdown/postref >}}index_files/figure-html/KM-1.png" alt="生存分析图" width="672" />
+<p class="caption">
+Figure 8: 生存分析图
+</p>
+</div>
+<p>但是由于底层被限制了，我们不能进行更进一步的参数设置，当然我们也可以修改底层代码，或者用survminer画图。如果自己画图，需要先计算fit，然后作图，我们演示一下不用这个包需要哪些步骤，最终见图 <a href="#fig:KM2">9</a></p>
+<pre class="r"><code>library(survival)
+fit&lt;-survfit(Surv(time,status)~sex,data = lung) #计算fit值
+survminer::ggsurvplot(fit, #加载fit数据
+                      palette = c(&quot;#2874C5&quot;, &quot;#f87669&quot;), #配色，等ggpubr
+                      conf.int = T,conf.int.style=&#39;step&#39;, # 置信区间，按虚线显示
+                      pval = T,pval.method = T, #现在p值和方法
+                      surv.median.line = &quot;hv&quot;, #显示中位时间
+                      risk.table = T,risk.table.pos=c(&quot;in&quot;), #显示危险表，并放在表格内
+                      legend=c(0.85,.85),
+                      title=&quot;KM plot&quot;,#设置标签的位置
+                      ggtheme = ggplot2::theme_bw()) #设置一个主题</code></pre>
+<div class="figure" style="text-align: center"><span style="display:block;" id="fig:KM2"></span>
+<img src="{{< blogdown/postref >}}index_files/figure-html/KM2-1.png" alt="KM生存分析图" width="672" />
+<p class="caption">
+Figure 9: KM生存分析图
+</p>
+</div>
+<p>其实，这个包除了画生存曲线以外，还可以算最佳截断值和cox值，函数分别是<code>surv_KM</code>和<code>surv_cox</code>，教程在<a href="https://www.jianshu.com/p/5b623561eb29"><strong>太好用了！批量生存分析，一步到位，还支持最佳截点~</strong></a>，可以自己跑一下。</p>
+</div>
+<div id="画箱式图" class="section level3">
+<h3>画箱式图</h3>
+<p>TCGA的单基因生信分析步骤第一个图一般都是单基因在泛癌中的表达，很多都是用boxplot，这个也是支持的。<code>draw_boxplot()</code>函数就支持，比如我们要看矩阵k的前5个基因在不同分组的情况，代码如下，见图 <a href="#fig:box">10</a></p>
+<pre class="r"><code>draw_boxplot(k[1:5,],group_list)</code></pre>
+<div class="figure" style="text-align: center"><span style="display:block;" id="fig:box"></span>
+<img src="{{< blogdown/postref >}}index_files/figure-html/box-1.png" alt="箱式图" width="672" />
+<p class="caption">
+Figure 10: 箱式图
+</p>
+</div>
+</div>
+<div id="下载geo数据" class="section level3">
+<h3>下载GEO数据</h3>
+<p>建明老师开发了<strong>Annoprobe</strong>包，可以实现很多功能，其中最大的贡献就是动用了腾讯服务器免费搭建了GEO数据平台，支持绝大多数的GEO数据集，但是不可能完全收录的，不过可以进行ID转换倒是很不错的功能。</p>
+<p>这个包也是调用<strong>Annoprobe</strong>包，我就不演示了，大家可以自己看示例</p>
+<p><code>geo_download()可以</code>用来下载GEO数据</p>
+<p><code>get_deg()</code>可以用来计算GEO数据的差异表达基因分析，并且可以注释ID</p>
+<p><code>multi_deg()</code>可以进行多个差异表达分析</p>
+</div>
+<div id="富集分析" class="section level3">
+<h3>富集分析</h3>
+<p>这个是调用了Y叔的<strong>clusterprofiler</strong>包，可以实现简单的KEGG，当然首先要进行差异表达分析，</p>
+<p><code>quick_enrich()</code>可以用来进行快速的KEGG富集分析</p>
+<p><code>double_enrich()</code>可以用来分别对上、下调的基因进行柱状图的绘制</p>
+<hr />
+<p>基本这就是这个包的大部分功能，当然更多的是自己去发现，基本上这个包满足了大多数的需求，调用了N多的包，能够简单的满足需求，又不用过多的去计算，何乐不为呢</p>
+</div>
+</div>

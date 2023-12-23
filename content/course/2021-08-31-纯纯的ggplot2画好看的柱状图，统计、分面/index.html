@@ -1,0 +1,239 @@
+---
+title: 纯纯的ggplot2画好看的柱状图，统计、分面
+author: 欧阳松
+date: '2021-08-31'
+slug: 纯纯的ggplot2画好看的柱状图，统计、分面
+categories:
+  - 教程
+  - R
+tags:
+  - 教程
+  - R Markdown
+  - R
+---
+
+<script src="{{< blogdown/postref >}}index_files/header-attrs/header-attrs.js"></script>
+
+
+<p>之前我在简书上写过几个画柱状图和统计的教程，随着对R语言的熟练，加上一些新包的出现，其实已经有了更简单的办法和代码，我这人很懒，能少写代码就少写，虽然很多啰嗦的代码可以让你更清楚的了解它的含义。</p>
+<p>目前而言，<strong>ggplot2</strong>和<strong>ggpubr</strong>是最常用的统计作图工具，当然也有<strong>ggstatsplot</strong>这种更专业的统计作图包，不过个人而言，我觉得最好的作图工具还是<strong>ggplot2</strong>，但是<strong>ggpubr</strong>的代码更简单，两者各有各的好，熟悉的话一起使用也没有问题。</p>
+<p>柱状图可以很好的看出两组或者多组的比较趋势，也是最常用的统计方法，我们的PCR和WB都离不开它，当然用Prisim可以很简单的出图，不过颜值差了很多。</p>
+<p>比如我们得出了三种基因在对照组和处理组的结果，并做了三重复，我们先把表格读进来，表格可以是这样的：</p>
+<pre class="r"><code>data&lt;-read.csv(&quot;/Users/mac/Desktop/bar.csv&quot;)</code></pre>
+<pre><code>## Warning in read.table(file = file, header = header, sep = sep, quote = quote, :
+## incomplete final line found by readTableHeader on &#39;/Users/mac/Desktop/bar.csv&#39;</code></pre>
+<table>
+<thead>
+<tr class="header">
+<th align="left">gene</th>
+<th align="right">Contraol1</th>
+<th align="right">Contraol2</th>
+<th align="right">Contraol3</th>
+<th align="right">Treat1</th>
+<th align="right">Treat2</th>
+<th align="right">Treat3</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">GeneA</td>
+<td align="right">1.0917683</td>
+<td align="right">0.8745827</td>
+<td align="right">1.0472941</td>
+<td align="right">22.11061</td>
+<td align="right">18.85227</td>
+<td align="right">22.57520</td>
+</tr>
+<tr class="even">
+<td align="left">GeneB</td>
+<td align="right">1.0570180</td>
+<td align="right">1.0570180</td>
+<td align="right">0.8950251</td>
+<td align="right">51.26847</td>
+<td align="right">43.41134</td>
+<td align="right">46.85074</td>
+</tr>
+<tr class="odd">
+<td align="left">GeneC</td>
+<td align="right">0.9749049</td>
+<td align="right">0.9681707</td>
+<td align="right">1.0594631</td>
+<td align="right">14.15592</td>
+<td align="right">16.37398</td>
+<td align="right">19.33755</td>
+</tr>
+</tbody>
+</table>
+<p>作图要用长数据，我们可以转换一下，当然也可以直接用Excel先做成长数据的格式</p>
+<pre class="r"><code>library(reshape2) 
+bar&lt;-melt(data,
+                 id.vars = c(&#39;gene&#39;), # 定义需要保留的部分
+                 variable.name=&#39;sample&#39;, #定义样本的列名
+                 value.name=&#39;value&#39;) #定义数值的列名
+bar$group=rep(c(&#39;control&#39;, &#39;treat&#39;), each = 9) ## 新增一个分组</code></pre>
+<table>
+<thead>
+<tr class="header">
+<th align="left">gene</th>
+<th align="left">sample</th>
+<th align="right">value</th>
+<th align="left">group</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">GeneA</td>
+<td align="left">Contraol1</td>
+<td align="right">1.0917683</td>
+<td align="left">control</td>
+</tr>
+<tr class="even">
+<td align="left">GeneB</td>
+<td align="left">Contraol1</td>
+<td align="right">1.0570180</td>
+<td align="left">control</td>
+</tr>
+<tr class="odd">
+<td align="left">GeneC</td>
+<td align="left">Contraol1</td>
+<td align="right">0.9749049</td>
+<td align="left">control</td>
+</tr>
+<tr class="even">
+<td align="left">GeneA</td>
+<td align="left">Contraol2</td>
+<td align="right">0.8745827</td>
+<td align="left">control</td>
+</tr>
+<tr class="odd">
+<td align="left">GeneB</td>
+<td align="left">Contraol2</td>
+<td align="right">1.0570180</td>
+<td align="left">control</td>
+</tr>
+<tr class="even">
+<td align="left">GeneC</td>
+<td align="left">Contraol2</td>
+<td align="right">0.9681707</td>
+<td align="left">control</td>
+</tr>
+<tr class="odd">
+<td align="left">GeneA</td>
+<td align="left">Contraol3</td>
+<td align="right">1.0472941</td>
+<td align="left">control</td>
+</tr>
+<tr class="even">
+<td align="left">GeneB</td>
+<td align="left">Contraol3</td>
+<td align="right">0.8950251</td>
+<td align="left">control</td>
+</tr>
+<tr class="odd">
+<td align="left">GeneC</td>
+<td align="left">Contraol3</td>
+<td align="right">1.0594631</td>
+<td align="left">control</td>
+</tr>
+<tr class="even">
+<td align="left">GeneA</td>
+<td align="left">Treat1</td>
+<td align="right">22.1106100</td>
+<td align="left">treat</td>
+</tr>
+<tr class="odd">
+<td align="left">GeneB</td>
+<td align="left">Treat1</td>
+<td align="right">51.2684700</td>
+<td align="left">treat</td>
+</tr>
+<tr class="even">
+<td align="left">GeneC</td>
+<td align="left">Treat1</td>
+<td align="right">14.1559200</td>
+<td align="left">treat</td>
+</tr>
+<tr class="odd">
+<td align="left">GeneA</td>
+<td align="left">Treat2</td>
+<td align="right">18.8522700</td>
+<td align="left">treat</td>
+</tr>
+<tr class="even">
+<td align="left">GeneB</td>
+<td align="left">Treat2</td>
+<td align="right">43.4113400</td>
+<td align="left">treat</td>
+</tr>
+<tr class="odd">
+<td align="left">GeneC</td>
+<td align="left">Treat2</td>
+<td align="right">16.3739800</td>
+<td align="left">treat</td>
+</tr>
+<tr class="even">
+<td align="left">GeneA</td>
+<td align="left">Treat3</td>
+<td align="right">22.5752000</td>
+<td align="left">treat</td>
+</tr>
+<tr class="odd">
+<td align="left">GeneB</td>
+<td align="left">Treat3</td>
+<td align="right">46.8507400</td>
+<td align="left">treat</td>
+</tr>
+<tr class="even">
+<td align="left">GeneC</td>
+<td align="left">Treat3</td>
+<td align="right">19.3375500</td>
+<td align="left">treat</td>
+</tr>
+</tbody>
+</table>
+<div id="ggplot2作图" class="section level2">
+<h2>ggplot2作图</h2>
+<p>我们先用<strong>ggplot2</strong>画图看看趋势，这里有一个办法可以一步计算均数和标准差，那就是加载<strong>ggpubr</strong></p>
+<pre class="r"><code>library(ggplot2) 
+suppressMessages(library(ggpubr))
+p&lt;-ggplot(bar,
+       aes(group,value,color=group,fill=group))+
+  geom_bar(stat=&quot;summary&quot;,fun=mean,position=&quot;dodge&quot;)+ #柱状图
+  stat_summary(fun.data = &#39;mean_sd&#39;, geom = &quot;errorbar&quot;, width = 0.5,position = position_dodge(0.9))+ ##一定要加载ggpubr，调用函数可以计算均数、标准差、CI等
+  facet_grid(~gene,scales = &#39;free&#39;)+ #分面
+#  theme_minimal(base_size = 13)+ #自己定义一个主题和字体大小
+  scale_color_manual(values = c(&#39;steelblue&#39;,&#39;brown&#39;))+ # 定义一下配色
+  scale_fill_manual(values = c(&#39;steelblue&#39;,&#39;brown&#39;))+ #填充的配色也定义一下
+    labs(x=NULL,y=&#39;Relative gene expression&#39;)
+p</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-5-1.png" width="672" /></p>
+<pre class="r"><code>## 我们再做一个t检验，当然首先还是要看能不能用t检验，这个可以参照我之前的教程
+p1&lt;-p+
+  geom_signif(comparisons = list(c(&quot;control&quot;,&quot;treat&quot;)),map_signif_level=T,test = &#39;t.test&#39;)
+p1</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-5-2.png" width="672" /></p>
+<p>可以看到对照组和处理组的差别很大，有时候甚至看不到对照组的误差棒，这个时候我们可以用Y叔开发的<strong>ggbreak</strong>给它截断，然后还可以给每个数据标上一个点，这样可以清楚的知道真实数据，这里推荐用<code>geom_jitter()</code>定义数据（之前我用过<code>geom_dotplot()</code>，但是最后的结果是底下的那个点特别大，这个问题我跟Y叔的团队反映过，得到的答复是改不了） 不知道为什么截断以后，显著性标识遮挡了，可能也是bug，AI调一下就可以</p>
+<pre class="r"><code>library(ggbreak) # 截断的包
+library(ggsignif) # 统计
+p1+geom_jitter(color=&#39;gray&#39;, #定义一个点的颜色
+              size=2, width = 0.2)+
+  scale_y_break(c(1.5, 10), scales=0.8) #设置上下截断的坐标</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-6-1.png" width="672" /></p>
+<p>这样一个近乎完美的柱状图就做好。</p>
+<hr />
+</div>
+<div id="ggpubr作图" class="section level2">
+<h2>ggpubr作图</h2>
+<p>当然ggpubr的代码更简单，一步到位，一个包里就包含了作图和统计，但是限制的地方也多，很难一次性做到完美，比如用了ggbreak就看不到头，</p>
+<pre class="r"><code>library(ggpubr)
+ggbarplot(bar,&#39;group&#39;,&#39;value&#39;,
+          fill = &#39;group&#39;,color = &#39;group&#39;,
+          facet.by = &#39;gene&#39;,
+          palette = c(&#39;steelblue&#39;,&#39;brown&#39;),
+          ggtheme = theme_bw(),legend = &#39;none&#39;,
+          add = c(&#39;mean_sd&#39;,&#39;jitter&#39;),
+          ,add.params = list(color=&#39;black&#39;))+ 
+  stat_compare_means(comparisons = list(c(&quot;control&quot;,&quot;treat&quot;)),
+                     label = &quot;p.signif&quot;, method = &#39;t.test&#39;)</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-7-1.png" width="672" /></p>
+</div>

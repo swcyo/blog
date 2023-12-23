@@ -1,0 +1,65 @@
+---
+title: ggfun的其他功能
+author: 欧阳松
+date: '2021-10-12'
+slug: ggfun2
+categories:
+  - ggplot2
+  - ggfun
+tags:
+  - ggplot2
+enableToc: no
+---
+
+<script src="{{< blogdown/postref >}}index_files/header-attrs/header-attrs.js"></script>
+
+
+<p>前面写了<a href="/course/ggfun/">使用ggfun给ggplot2添加一个圆润的方框</a>，不过<strong>ggfun</strong>这个包除了添加圆润的外框外，还有一些别的功能，而且在<code>User guides</code>里是有教程示例的，</p>
+<p>要注意的是Github上其实也有个ggfun，但是不是Y叔开发的ggfun，Y叔的ggfun已经收录在CRAN上，所以是可以直接安装的，截止本文时间，最新的版本是0.0.4</p>
+<pre><code>install.packages(&quot;ggfun&quot;)</code></pre>
+<p>教程上一共提供了四个方面的功能：</p>
+<ul>
+<li>element_roundrect</li>
+<li>gglegend</li>
+<li>set_font</li>
+<li>facet_set</li>
+</ul>
+<p>element_roundrect我们已经试过了，我们可以把剩下三个按照教程跑一跑</p>
+<div id="gglegend" class="section level2">
+<h2>gglegend</h2>
+<pre class="r"><code>library(grid)
+library(ggplot2)
+library(ggfun)
+p &lt;- ggplot(mtcars, aes(mpg, disp)) + geom_point()
+data &lt;- data.frame(colour = c(&quot;red&quot;,  &quot;blue&quot;), VALUE = c(&quot;A&quot;, &quot;B&quot;))
+gglegend(aes(colour = VALUE, label=VALUE), data, geom_text, p)</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-1-1.png" width="672" /></p>
+</div>
+<div id="set_font" class="section level2">
+<h2>set_font</h2>
+<pre class="r"><code>d &lt;- data.frame(x=rnorm(10), y=rnorm(10), lab=LETTERS[1:10])
+p &lt;- ggplot(d, aes(x, y)) + geom_text(aes(label=lab), size=5)
+set_font(p, family=&quot;Times&quot;, fontface=&quot;italic&quot;, color=&#39;firebrick&#39;)</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-2-1.png" width="672" /></p>
+</div>
+<div id="facet_set" class="section level2">
+<h2>facet_set</h2>
+<p>手动修改分面标签</p>
+<pre class="r"><code>library(ggplot2)
+library(ggfun)
+p &lt;- ggplot(mtcars, aes(disp, drat)) + 
+  geom_point() + 
+  facet_grid(cols=vars(am), rows=vars(cyl))
+p + facet_set(label=c(`0`=&quot;Zero&quot;, `6`=&quot;Six&quot;))</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-3-1.png" width="672" /></p>
+<p>支持贴标签</p>
+<pre class="r"><code>p + facet_set(label=label_both)</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-4-1.png" width="672" /></p>
+<p>给图片添加一个分面标签</p>
+<pre class="r"><code>p + facet_set(label=&quot;TEST&quot;)</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-5-1.png" width="672" /></p>
+<p>通过联合ggplotify，我们可以使用<code>facet_set</code>函数向R中的几乎任何绘图添加facet标签。</p>
+<pre class="r"><code>ggplotify::as.ggplot(~barplot(1:10, col=rainbow(10))) +
+  facet_set(&#39;a barplot in base&#39;)</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-6-1.png" width="672" /></p>
+</div>

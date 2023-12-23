@@ -1,0 +1,319 @@
+---
+title: 统计多个基因列表交集并画韦恩图和Upset图
+author: 欧阳松
+date: '2021-09-05'
+slug: veen-upset
+output:
+  html_document:
+    toc: true
+categories:
+  - 教程
+  - R
+tags:
+  - GEO
+  - 韦恩图
+  - upset
+---
+
+有时候，我们从GEO数据库挖掘了好几组数据集的差异表达基因，我们需要统计这些基因列表的交集，一般可以用韦恩图和Upset图。而韦恩图一般适合小样本的交集，而多个样本的话可以用Upset图来表示。
+
+比如，我们通过GEO2R工具，获得了差异基因列表的结果，假设有6个基因列表，我们可以把显著性差异表达基因提取处理，用excel制作一个genelist，表头是数据集，每列是基因，保存为`list.csv`,导入进来以后，头几列示例见表 \@ref(tab:list)所示
+
+``` {.r}
+list<-read.csv("/list.csv")
+head(list)
+```
+
+```{r,echo=FALSE}
+list <- read.csv("~/Desktop/list.csv")
+```
+
+```{r list,echo=FALSE}
+knitr::kable(head(list),caption = "六组基因列表")
+```
+
+------------------------------------------------------------------------
+
+但是这个表其实是有问题的，那就是这些列表里**有些基因是重复的**，而且还有**NA**值，我们需要把各自的重复值和NA值删除。记住，一定是删除各列的重复值，而不是全部的表格。
+
+处理重复值和NA值，我不会一步操作，但我们可以把列表单独提取处理，然后分别去除重复值和NA值，然后指定成list的形式（当然表格形式也是可以的，不过不同行数的list怎么合并成一个表格我不会，除非导出来用excel）。
+
+``` {.r}
+## 单独提出各个list
+listA<-list$A
+listB<-list$B
+listC<-list$C
+listD<-list$D
+listE<-list$E
+listF<-list$F
+## 去除各自列表的重复值
+listA<-listA[!duplicated(listA)]
+listB<-listB[!duplicated(listB)]
+listC<-listC[!duplicated(listC)]
+listD<-listD[!duplicated(listD)]
+listE<-listE[!duplicated(listE)]
+listF<-listF[!duplicated(listF)]
+## 去除各自列表的NA值
+listA<-na.omit(listA)
+listB<-na.omit(listB)
+listC<-na.omit(listC)
+listD<-na.omit(listD)
+listE<-na.omit(listE)
+listF<-na.omit(listF)
+## 合并list
+list<-list(A=listA,B=listB,C=listC,D=listD,E=listE,F=listF)
+```
+
+
+
+------------------------------------------------------------------------
+
+## 绘制韦恩图
+
+一般而言，主流画韦恩图的包是**VennDiagram**，教程非常多，比如[**使用VennDiagram包绘制韦恩图**](https://www.jianshu.com/p/285b4ac66768)
+
+但是这里我想推荐一下**ggVennDiagram**这个包，有一天在Y数的公众号瞎溜达，看到一篇的[ggVennDiagram 诞生记](https://mp.weixin.qq.com/s/peNWKC5m7EWEv6w3m4rsIA)文章，知道这个包可以用**ggplot2**的语句，而且不限基因列表限制。
+
+我以前喜欢用[联川生物的在线工具](https://www.omicstudio.cn/tool/6)画韦恩图，我承认他家可以画很漂亮的韦恩图，并且还是在线交互式绘图，我看过很多在线工具，但是他家的确实是最好看的。而这个工具利用的就是VennDiagram这个包，但是缺点是最多只能画5个，所以还是推荐**ggVennDiagram**这个包，可能颜值差了点，但是效果还是不错的。
+
+先看最基本的函数，见图 \@ref(fig:venn)所示。
+
+``` {.r}
+library(ggVennDiagram)
+ggVennDiagram(list)
+```
+
+```{r venn,echo=FALSE,fig.cap="6个基因列表的韦恩图",fig.align='center'}
+library(ggVennDiagram)
+ggVennDiagram(list)
+```
+
+可以看到默认显示的是交集数字和比例，然后按照集合的数字填充颜色，对于很多个交集的话，这样的图确实很难看，可是这个包符合ggolot2语句，所以是可以高度DIY的。我们看一下help的函数
+
+``` 
+ggVennDiagram(
+  x,
+  category.names = names(x), #自定义数据集的名称
+  show_intersect = FALSE, #是否交互式演示
+  set_color = "black", # 数据集的颜色，默认即可
+  set_size = NA, #数据集标签的大小，默认即可
+  label = c("both", "count", "percent", "none"), # 显示数值、比例还是不显示
+  label_alpha = 0.5, #各个标签集合的外框透明度，0为全透明，默认0.5
+  label_geom = c("label", "text"), #显示数字和标签框
+  label_color = "black",#标签颜色
+  label_size = NA, #标签字体大小
+  label_percent_digit = 0, #标签的百分位数
+  label_txtWidth = 40, #标签文本的宽度
+  edge_lty = "solid", #标签边缘类型，默认实心
+  edge_size = 1, #标签边缘大小
+  ...
+)
+```
+
+可以看到可支持的函数很多，作者也写了一些[引导说明](https://mirrors.bfsu.edu.cn/CRAN/web/packages/ggVennDiagram/vignettes/using-ggVennDiagram.html)，大家可以自己尝试跑一些。
+
+比如我们只显示数字，设置为虚线显示，见图 \@ref(fig:veen2)所示。
+
+```{r veen2,fig.cap="韦恩图",fig.align='center'}
+ggVennDiagram(
+  list,
+  label = "count",
+  edge_lty = "dashed",
+  edge_size = 0.5
+)
+```
+
+然而，ggVennDiagram是支持ggplot2语句的，也就是说我们可以继续叠加修改，比如换个颜色，加个主题，加个标题什么的，还有把那个count的标签去掉什么的，最终效果见图 \@ref(fig:veen3)所示，也可以换个配色，见图 \@ref(fig:veen4)所示。
+
+```{r veen3,fig.cap="韦恩图",fig.align='center'}
+library(ggplot2)
+ggVennDiagram(
+  list,
+  label = "count",
+  edge_lty = "dashed",
+  edge_size = 0.5)+
+  scale_fill_gradient(low="steelblue",high = "brown")+
+  theme_bw()+
+  ggtitle("Veen plot for six sets")+
+  theme(legend.position = 'none')
+```
+
+```{r veen4,fig.cap="韦恩图",fig.align='center'}
+ggVennDiagram(
+  list,
+  label = "count",
+  edge_lty = "dashed",
+  edge_size = 0.5)+
+  scale_fill_distiller(palette = "RdBu")+
+  theme_void()+
+  ggtitle("Veen plot for six sets")+
+  theme(legend.position = 'none')
+```
+
+------------------------------------------------------------------------
+
+可是这依然不够ggplot2，更多的可以看[ggVennDiagram 的新生](https://mp.weixin.qq.com/s/6kDXPrJRyXab6HpVjq6JBw)这篇文章，我们可以把数据转换，比如给个华丽丽的标签，见图 \@ref(fig:veen5)所示。
+
+```{r}
+venn = Venn(list)
+data = process_data(venn)
+```
+
+```{r veen5,fig.cap="韦恩图",fig.align='center'}
+ggplot() +
+  geom_sf(aes(fill = count), data = venn_region(data)) +
+  geom_sf(aes(color = id), data = venn_setedge(data), show.legend = FALSE) +
+  geom_sf_text(aes(label = name), data = venn_setlabel(data)) +
+  geom_sf_label(aes(label = count), data = venn_region(data)) +
+  theme_void()+
+    theme(legend.position = 'none')+
+   ggtitle("Veen plot for six sets")
+```
+
+而我们喜欢按数据集填充颜色，把fill改成id即可，最后效果见图 \@ref(fig:veen6)所示
+
+```{r veen6,fig.cap="韦恩图",fig.align='center'}
+ggplot() +
+  geom_sf(aes(fill = id), data = venn_region(data)) +
+  geom_sf(aes(color = id), data = venn_setedge(data), show.legend = FALSE) +
+  geom_sf_text(aes(label = name), data = venn_setlabel(data)) +
+  geom_sf_label(aes(label = count), data = venn_region(data)) +
+  theme_void()+
+    theme(legend.position = 'none')+
+   ggtitle("Veen plot for six sets")
+```
+
+------------------------------------------------------------------------
+
+## 绘制Upset图
+
+当数据集多于5组的适合，画韦恩图就吃力了，因为圈圈太多，所以很不好看。这个时候就可以用Upset这种图来表示了。而推荐用**UpsetR**这个包，目前在CRAN上也收录了，很方便的可以安装。
+
+``` {.r}
+install.package('UpSetR)
+```
+
+**UpsetR**这个包默认的画图其实不是list的形式，而是各个交集以0和1的expression形式，用来表示有还是无。这个时候就需要需要我们先把数据处理好，这个可以使用**UpSetR**自带的`fromList()`函数实现，很简单的一句话，最后的表格见表 2所示。
+
+```{r}
+library(UpSetR)
+data2<-fromList(list)
+```
+
+
+
+```{r,echo=FALSE}
+DT::datatable(data2,caption = "Table 2: 六组基因列表的集合")
+```
+
+
+
+当然我们也可以不转换数据，只要加上一句fromList(list)也可以画图，现在我们用最基本的函数进行下Upset图的绘制，效果见图 \@ref(fig:upset)所示。
+
+```{r upset,fig.align='center',fig.cap="六组数据集的Upset图"}
+upset(data2) # 要先加载UpSetR
+### 如果不想对list进行转换，也可以直接用下面这个代码
+# upset(fromList(list))
+```
+
+很明显的，这里有个很大的bug，那就是明明有6个数据集，那就是**默认只显示了5个数据集（nset=5）**，既然默认的参数统计不出来，我们就手动添加进来。
+
+另外这个函数的功能相当的多，可以各种排序（按频率排序，按频数排序，还可以按数据集分组），还可以给点填色等等。具体的可以在示例说明找到，一切都等你发现
+
+比如我们按freq排序，设置6个数据集，见图 \@ref(fig:upset2)所示。
+
+```{r upset2,fig.align='center',fig.cap="六组个数据列表的Upset图"}
+upset(fromList(list),nsets = 6,order.by = "freq")
+## upset(fromList(list),sets = c("A","B","C","D","E","F")) #也可以按需设置
+```
+
+我们想知道6个数据集都交集的情况，还想标个颜色，可以这样，见图 \@ref(fig:upset3)所示。
+
+```{r upset3,fig.align='center',fig.cap="六组数据列表的Upset图，标记全部交集"}
+upset(fromList(list),nsets = 6,order.by = "freq",
+      queries = list(list(query = intersects, 
+                          params = list("ListA","ListB","ListC","ListD","ListE","ListF"), 
+                          active = T)))
+```
+
+**UpSetR**是一个很强大的包，功能很多，但有一个问题就是不能使用ggplot语句，导出的图也不是ggplot，这个我们可以用Y叔的**ggplotify**转换。当然其实还有一个叫**ggupset**的包可以使用ggplot语句的，但是需要数据处理，语法很复杂，有兴趣自己百度学习。
+
+------------------------------------------------------------------------
+
+## 两组图的结合
+
+Upset图有个缺点就是，如果按频数画图，右上角会空出很大一块，我们能不能把韦恩图和Upset图组合到一起，这个问题Y叔已经考虑并解决过了，可以参考转[UpSet图为ggplot?](https://mp.weixin.qq.com/s/g6rRGhtKQd_mdRMKxteNVw)
+
+这里用到了Y叔叔的**yyplot**这个神包，然而这个包也是很难装上的，因为这是Y叔的私人包，需要补装很多包，而很多包都是只有Github上才能安装，比如**gglayer**这个包，你在CRAN和BiocManager上都上找不到的，只有Y叔的Github上的包才能安装，但是又经常访问困难。而且用yyplot画韦恩图，需要用[ggvenn]{.ul}这个函数，但是这个函数又要配置**Java**环境，所以个中曲折自己摸索吧，实在不能使用就放弃把。
+
+``` {.r}
+remotes::install_git('https://hub.fastgit.org/GuangchuangYu/gglayer/')
+remotes::install_git('https://hub.fastgit.org/GuangchuangYu/yyplot/')
+library(yyplot)
+```
+
+在安装yyplot过程中可能会出现很多问题，因为依赖许多包，还有一些只有Github才有，所以你可以直接把源码下载下来，本来有个install_local的函数可以直接安装zip文件的，但我还是建议解压以后用下面的代码安装，因为他可能提示你哪些包没有安装，比如我第一次安装就提示很多包没有安装
+
+``` R
+install.packages("/Users/mac/Downloads/yyplot-master",repos=NULL,type="source") 
+## ERROR: dependencies 'dlstats', 'meme', 'qrcode', 'RISmed', 'rsvg', 'rvcheck', 'scholar' are not available for package 'yyplot'
+```
+
+---
+
+**题外话**：最近rvcheck，这个包更新到0.2版了，但是如果安装最新版会提示错误:
+> 'namespace:rvcheck'没有出口'get_aes_var'这个对象 
+
+然而降低安装就能够安装yyplot，这个希望后面可以解决 降低安装的代码是                                                         
+
+> R remotes::install_version("rvcheck",version = "0.1.8")                                                       
+---
+
+
+我们可以不用Y叔的yyplot画韦恩图（因为很难安装），用**ggVennDiagram**的图即可，两种图的组合原理是两个ggplot图形的叠加，这里要用到Y叔的**ggimge**这个包（Y叔是无处不在的），最后效果见图 \@ref(fig:combine)所示。
+
+```{r combine,fig.align='center',fig.cap="6个数据列表的Upset图，标记全部交集"}
+library(ggplotify) #把别的图转为ggplot2
+library(ggimage) # 组合图片
+p1<-upset(fromList(list),nsets = 6,order.by = "freq",
+          queries = list(list(query = intersects, 
+                              params = list("ListA","ListB","ListC","ListD","ListE","ListF"), 
+                              active = T)))
+g1<-as.ggplot(p1) # 转换为ggplot2图片
+g2<-ggplot() +
+  geom_sf(aes(fill = id), data = venn_region(data)) +
+  geom_sf(aes(color = id), data = venn_setedge(data), show.legend = FALSE) +
+  geom_sf_text(aes(label = name), data = venn_setlabel(data)) +
+  geom_sf_label(aes(label = count), data = venn_region(data)) +
+  theme_void()+
+    theme(legend.position = 'none')
+g3<-g1 + geom_subview(subview = g2 , x=.8, y=.7, w=.45, h=.45)
+g3
+```
+
+但是这里有一个bug，就是**左侧的bar不见了**，不知道是不是我电脑系统的问题，还是版本不同的问题。。。
+
+如果要用yyplot画韦恩图的画，可以这样，最后效果见图 \@ref(fig:combine2)
+
+```{r combine2,fig.align='center',fig.cap="6个数据列表的Upset图，标记全部交集"}
+suppressMessages(library(yyplot))
+g4<-ggvenn(fromList(list))
+g5<-g1 + geom_subview(subview = g4 + theme_void(), x=.7, y=.7, w=.45, h=.45)
+g5
+```
+
+------------------------------------------------------------------------
+
+## 在线交互式作图
+
+有很多网站可以在线交互式作图，有国产开发的，也有shiny，比如：
+
+<https://www.omicstudio.cn/tool/6>
+
+<https://www.hiplot.com.cn>
+
+[gehlenborglab.shinyapps.io/upsetr/](http://gehlenborglab.shinyapps.io/upsetr/ "http://gehlenborglab.shinyapps.io/upsetr/")
+
+<https://asntech.shinyapps.io/intervene/>
+
+更多的在线功能等着大家发现。

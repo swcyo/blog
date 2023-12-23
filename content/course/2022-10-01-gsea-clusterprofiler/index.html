@@ -1,0 +1,503 @@
+---
+title: "使用排序值的基因集进行GSEA之clusterProfiler"
+author: "欧阳松"
+date: "2022-10-01"
+slug: []
+categories:
+- GSEA
+- "Pre-ranked GSEA"
+- clusterProfiler
+tags:
+- GSEA
+- "Pre-ranked GSEA"
+- clusterProfiler
+description: null
+hideToc: yes
+enableToc: yes
+enableTocContent: no
+tocFolding: no
+tocPosition: inner
+tocLevels:
+- h2
+- h3
+- h4
+series:
+- ~
+image: null
+---
+
+
+
+<p>今天，终于要将大头了,使用clusterProfiler来做富集分析，就我目前而言，我不喜欢ORA富集分析，是因为ORA要分上调和下调，虽然有一些办法可以同步进行，但是整体运行GSEA不香吗？按照NES直接分为上调和下调，不是更简单明了吗？</p>
+<p>其实<strong>clusterProfiler</strong>和<strong>fgsea</strong>的运行原理差不多，需要一个排序值和一个gmt，而且我看了一下代码，普通的结果激素fgsea，只不过clusterProfiler又添加了qvalue值和校正p值的方法，结果更加丰富吧，而且clusterProfiler可以在线爬gmt数据，这也省了不少工作，只是在运行GO的时候，时间特别长，所以一般我推荐用<code>gseKEGG</code>就可以了，当然如果你觉得KEGG太老套，也可以运行g<code>seWP</code>去爬Wikipathway的结果，如果还觉得不新鲜，还可以使用<strong>ReactomePA</strong>包去运行<code>gsepathway</code>，不过那个包有500M。。。</p>
+<p>我们学习如何<strong>clusterProfiler</strong>用来进行KEGG分析，同时可视化结果，关于可视化主要是运行<strong>enrichplo</strong>t包，这个我可以后面单独再学习。</p>
+<div id="数据的准备" class="section level2">
+<h2>数据的准备</h2>
+<p>跟fgsea一样，进行GSEA需要两组数据，一个<code>rank</code>文件，一个<code>gmt</code>文件。</p>
+<p>但是<strong>clusterProfiler</strong>可以直接爬KEGG的gmt，所以我们其实只需要准备带数值基因列表就可以了。</p>
+<blockquote>
+<ul>
+<li>如果你准备好来自己的GMT文件，那么需要运行的函数是<code>GSEA()</code>，我之前在简书写过一个个教程：<a href="https://www.jianshu.com/p/bb7442bb8cad">R做GSEA富集分析 - 简书 (jianshu.com)</a>，可以参考。</li>
+</ul>
+</blockquote>
+<p>关于有了差异分析结果，不知道怎么做GSEA，主要因为不知道怎么定义genelist，可以看Y叔的这个教程<a href="https://mp.weixin.qq.com/s/aht5fQ10nH_07CYttKFH7Q">听说你有RNAseq数据却不知道怎么跑GSEA (qq.com)</a></p>
+<p>我们继续用之前教程的数据，之前我们说把数据保存为制表符分隔的文本文件，然后该后缀为<code>.rnk</code>，实际上仍然只是一个<code>txt</code>，我们直接导入进入,这里我们一定要注意基因的名称是symbol还是ENTREZ，<strong>clusterProfiler</strong>推荐用ENTREZ，所以我们还要进行基因名的转换,可以直接用<strong>clusterProfiler</strong>的<code>bitr()</code>函数转换</p>
+<pre class="r"><code>library(clusterProfiler)
+gsea.rnk&lt;-read.table(&#39;/Users/mac/Desktop/gsea.rnk.txt&#39;,header = F)
+gene=bitr(gsea.rnk$V1,fromType=&quot;SYMBOL&quot;,toType=&quot;ENTREZID&quot;,OrgDb = org.Hs.eg.db::org.Hs.eg.db)  #开始ID转换
+gene &lt;- dplyr::distinct(gene,SYMBOL,.keep_all=TRUE)## 去除重复基因
+gene_df &lt;- data.frame(rank=gsea.rnk$V2, 
+                      SYMBOL = gsea.rnk$V1)
+gene_df &lt;- merge(gene_df,gene,by=&quot;SYMBOL&quot;)
+#定义基因列表，对rank值进行从高到低排序
+geneList&lt;-gene_df $rank
+names(geneList)=as.character(gene_df $ENTREZID)
+geneList=sort(geneList,decreasing = T)
+remove(gsea.rnk,gene,gene_df)</code></pre>
+<p>接下来，我们读取<code>.gmt</code>文件，由于可以在线爬KEGG，所以一般无需准备，但是有时候我们也会遇到断网的情况，这时候有两种办法：</p>
+<ol style="list-style-type: decimal">
+<li><p>使用下载好的gmt文件，<strong>clusterProfiler</strong>自带<code>read.gmt</code>函数，可以直接读取，当然现在Y叔开始研发gson格式了，还写了<a href="https://mp.weixin.qq.com/s/c17CKZoYEBjHxH_YAcDHeA">KEGG的富集分析终于真的本地化了</a>这篇文章，这个可能未来会有变化吧。</p></li>
+<li><p>使用离线版kegg.db，这个需要提取下载好，到时候设置<code>use_internal_data=F</code>即可，这个可以参考<a href="https://mp.weixin.qq.com/s/PwrdQAkG3pTlwMB6Mj8wXQ">多物种批量下载KEGG数据并做成KEGG.db包</a>这个文章。我可以推荐用离线的办法。</p></li>
+</ol>
+<p>简单演示就是：</p>
+<pre><code>remotes::install_github(&quot;YuLab-SMU/createKEGGdb&quot;)
+library(createKEGGdb)
+create_kegg_db(&#39;hsa&#39;) # 创建人类数据库
+install.packages(&quot;./KEGG.db_1.0.tar.gz&quot;, repos=NULL)
+library(KEGG.db)
+
+gmt&lt;-read.gmt(&quot;/Users/mac/Desktop/c2.cp.kegg.v2022.1.Hs.entrez.gmt&quot;) </code></pre>
+</div>
+<div id="gsea分析" class="section level2">
+<h2>GSEA分析</h2>
+<p>有了genelist和离线的KEGG数据包，我们就可以快速的运算GSEA了</p>
+<pre><code>## 离线结果
+keggoffine&lt;-gseKEGG(geneList = geneList,
+              organism = &quot;hsa&quot;,
+              minGSSize = 10,
+              maxGSSize = 500,
+              eps = 0, #为了获得更精准的结果，可以设置为0
+              pvalueCutoff = 0.05, #如果想获得更多结果，可设置p=1或0.9
+              pAdjustMethod = &quot;BH&quot;,#p值校正方法
+              use_internal_data = T #用本地KEGG
+              )
+## 在线结果              
+keggonine&lt;-gseKEGG(geneList = geneList,
+              organism = &quot;hsa&quot;,
+              minGSSize = 20,
+              maxGSSize = 1000,
+              eps = 0, #为了获得更精准的结果，可以设置为0
+              pvalueCutoff = 0.05,
+              pAdjustMethod = &quot;BH&quot;,
+              use_internal_data = F #用网络KEGG
+              )</code></pre>
+<p>由于是使用ENTREZID进行了运算，计算的基因名都是ENTREZID代码，这时候建议转换为SYMBOl，而这个可以直接使用<code>setReadable()</code>函数实现，可以发现3M的结果变成了7M。</p>
+<p>另外clusterProfiler之所以叫clusterProfiler，使用cluster就是多簇的意思，我们可以将两个结果合并起来，这个直接用<code>merge_result()</code>函数实现。</p>
+<pre class="r"><code>keggonine &lt;- setReadable(keggonine, &#39;org.Hs.eg.db&#39;, &#39;ENTREZID&#39;)
+keggoffine &lt;- setReadable(keggoffine, &#39;org.Hs.eg.db&#39;, &#39;ENTREZID&#39;)
+## 将两组数据合并
+kegg&lt;-merge_result(list(KEGGoffline=keggoffine,KEGGonline=keggonine))</code></pre>
+</div>
+<div id="如何看结果" class="section level2">
+<h2>如何看结果</h2>
+<p>可以直接使用keggoffine@result或者data.frame(keggoffine)直接提取结果，如果需要导出来，可以使用以下函数直接保存到本地文件夹，我们可以看看前几列数据，离线数据见Table <a href="#tab:table1">1</a>所示，在线数据见Table <a href="#tab:table2">2</a>所示。</p>
+<pre><code>a=data.frame(keggoffine)
+write.csv(a,&#39;keggoffine.csv&#39;)</code></pre>
+<table>
+<caption><span id="tab:table1">Table 1: </span>离线KEGG结果</caption>
+<colgroup>
+<col width="8%" />
+<col width="38%" />
+<col width="7%" />
+<col width="15%" />
+<col width="5%" />
+<col width="6%" />
+<col width="8%" />
+<col width="6%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th align="left"></th>
+<th align="left">Description</th>
+<th align="right">setSize</th>
+<th align="right">enrichmentScore</th>
+<th align="right">NES</th>
+<th align="right">pvalue</th>
+<th align="right">p.adjust</th>
+<th align="right">qvalue</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">hsa04060</td>
+<td align="left">Cytokine-cytokine receptor interaction</td>
+<td align="right">265</td>
+<td align="right">0.580</td>
+<td align="right">2.838</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">hsa05169</td>
+<td align="left">Epstein-Barr virus infection</td>
+<td align="right">187</td>
+<td align="right">0.624</td>
+<td align="right">2.917</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">hsa04145</td>
+<td align="left">Phagosome</td>
+<td align="right">147</td>
+<td align="right">0.644</td>
+<td align="right">2.937</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">hsa05152</td>
+<td align="left">Tuberculosis</td>
+<td align="right">164</td>
+<td align="right">0.619</td>
+<td align="right">2.848</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">hsa05164</td>
+<td align="left">Influenza A</td>
+<td align="right">155</td>
+<td align="right">0.625</td>
+<td align="right">2.871</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+</tr>
+</tbody>
+</table>
+<table>
+<caption><span id="tab:table2">Table 2: </span>在线KEGG结果</caption>
+<colgroup>
+<col width="8%" />
+<col width="38%" />
+<col width="7%" />
+<col width="15%" />
+<col width="5%" />
+<col width="6%" />
+<col width="8%" />
+<col width="6%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th align="left"></th>
+<th align="left">Description</th>
+<th align="right">setSize</th>
+<th align="right">enrichmentScore</th>
+<th align="right">NES</th>
+<th align="right">pvalue</th>
+<th align="right">p.adjust</th>
+<th align="right">qvalue</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">hsa04060</td>
+<td align="left">Cytokine-cytokine receptor interaction</td>
+<td align="right">265</td>
+<td align="right">0.580</td>
+<td align="right">2.838</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">hsa05169</td>
+<td align="left">Epstein-Barr virus infection</td>
+<td align="right">187</td>
+<td align="right">0.624</td>
+<td align="right">2.917</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">hsa04145</td>
+<td align="left">Phagosome</td>
+<td align="right">147</td>
+<td align="right">0.644</td>
+<td align="right">2.937</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">hsa05152</td>
+<td align="left">Tuberculosis</td>
+<td align="right">164</td>
+<td align="right">0.619</td>
+<td align="right">2.848</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">hsa05164</td>
+<td align="left">Influenza A</td>
+<td align="right">155</td>
+<td align="right">0.625</td>
+<td align="right">2.871</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+</tr>
+</tbody>
+</table>
+<p>可以看到两者几乎一致（除了在线的速度更慢。。。），接着就是最秀的可视化环节了。</p>
+</div>
+<div id="可视化数据" class="section level2">
+<h2>可视化数据</h2>
+<p><strong>clusterProfiler</strong>的结果有自带的dotplot、gseaplot、cnetplot和ridgeplot等可视化函数，但是最全面的其实是<strong>enrichplot</strong>包，关于<strong>enrichplot</strong>包的介绍可以看<a href="https://mp.weixin.qq.com/s/93XIeDF3mUFX0koX6mTRpA">enrichplot: 让你们对clusterProfiler系列包无法自拔</a>这个教程，当然你也可以关注Y叔的公众号，会经常更新各种功能，欲罢不能。</p>
+<p>当然，为了符号我自己的一些需求，我还修改了部分参数，改成了<strong>myenrichplot</strong>包，等以后有时间再研究怎么开发新包吧，这里要最近以往的<strong>clusterProfiler</strong>的结果里q值是qvalues，目前改成了qvalue，所以对于以前的结果，<strong>myenrichplot</strong>包在<code>gsaplot2()</code>中还使用不了</p>
+<div id="dotplot" class="section level3">
+<h3>Dotplot</h3>
+<p>为了更好的显示效果，我们这时候可以关闭<strong>clusterProfiler</strong>的了，直接用我的<strong>myenrichplot</strong>包，后面有美化需求我还可以再修改。</p>
+<p>在Y叔GSEA结果里，隐藏了一个sign的结果，也就是按<strong>NES</strong>是否大于0为激活或抑制，有了这个分组，我们就可以很好的显示哪些是激活通路，哪些是抑制通路，而且逻辑是各组相同的数量，这里应用到的函数可以看我写的<a href="/course/fgsea/">使用排序值的基因集进行GSEA之fgsea</a>教程里。这里我修改里原来的配色，而且对标签添加里一个外框，同时对于合并的两组结果也是可以使用的。<strong>myenrichplot</strong>包的Dotplot见Figure <a href="#fig:fig1">1</a>所示，而<strong>enrichplot</strong>包的Dotplot见Figure <a href="#fig:fig2">2</a>所示，当然我们也可以同时比较两组结果，见Figure <a href="#fig:fig3">3</a>所示。可以发现我的结果出的图是不是很素雅，而且在分面上，我把首字母改成了大写。</p>
+<pre class="r"><code># remotes::install_git(&#39;https://gitee.com/swcyo/myenrichplot&#39;) #目前是1.21.2版
+suppressMessages(library(myenrichplot)) ## 我修改的包
+library(ggplot2) 
+p1&lt;-dotplot(keggoffine,split=&quot;.sign&quot;, ## GSEA结果里隐藏的小技能
+        showCategory = 10, #选择各组要显示的数量
+        label_format = 40, #现在可以设置文本的长度里
+        title=&quot;GSEA-KEGG&quot;)+
+  facet_grid(~.sign)
+p1</code></pre>
+<div class="figure" style="text-align: center"><span style="display:block;" id="fig:fig1"></span>
+<img src="{{< blogdown/postref >}}index_files/figure-html/fig1-1.png" alt="myenrichplot的dotplot" width="672" />
+<p class="caption">
+Figure 1: myenrichplot的dotplot
+</p>
+</div>
+<pre class="r"><code>### 看看enrichplot的图
+p2&lt;-enrichplot::dotplot(keggoffine,split=&quot;.sign&quot;,
+                        showCategory = 10,
+                        label_format = 40,
+                        title=&quot;GSEA-KEGG&quot;)+
+                 facet_grid(~.sign)
+p2</code></pre>
+<div class="figure" style="text-align: center"><span style="display:block;" id="fig:fig2"></span>
+<img src="{{< blogdown/postref >}}index_files/figure-html/fig2-1.png" alt="enrichplot的dotplot" width="672" />
+<p class="caption">
+Figure 2: enrichplot的dotplot
+</p>
+</div>
+<pre class="r"><code>p3&lt;-dotplot(kegg,split=&quot;.sign&quot;,showCategory = 6,label_format = 40,title=&quot;CLuster-GSEA-KEGG&quot;)+facet_grid(~.sign)
+p3</code></pre>
+<div class="figure" style="text-align: center"><span style="display:block;" id="fig:fig3"></span>
+<img src="{{< blogdown/postref >}}index_files/figure-html/fig3-1.png" alt="两组的dotplot" width="672" />
+<p class="caption">
+Figure 3: 两组的dotplot
+</p>
+</div>
+</div>
+<div id="gsea-plot" class="section level3">
+<h3>GSEA-plot</h3>
+<p>GSEA的核心是单个结果的rank和曲线，<strong>enrichplot</strong>里有<code>gseaplot()</code>，<code>gseaplot2()</code>、<code>gsearank()</code>等参数，其中<code>gseaplot2()</code>是可以显示p值的，还能画多条曲线，而为了修改一些配色，增加NES和q值等功能，我对原包进行了修改，打包成了<strong>myenrichplot</strong>。</p>
+<blockquote>
+<ul>
+<li>提示：最新版的<strong>clusterProfiler</strong>的q值列名是<code>qvalue</code>，而不是之前的结果<code>qvalues</code>，如果你运行我的包提示定义了错误的列，只能说你要更新<strong>clusterProfiler</strong>了。</li>
+</ul>
+</blockquote>
+<div id="gseaplot" class="section level4">
+<h4>1、gseaplot()</h4>
+<p>其实是由两部分组成的，上部分为Ranked list，下部分为运行ES值，可以单独提出来，默认显示全部，设置by=“runningScore”显示运行ES，by=“preranked”显示Ranked list，当然如果但看结果的画设置p[1]，或是p[2]也可以。这个图只能画一条曲线，默认的颜色是绿色，我改成来红色，并且加上了NES、P值和q值，结果见Figure <a href="#fig:fig4">4</a>所示。</p>
+<pre class="r"><code>p4&lt;-gseaplot(keggoffine,
+             1, #选择第几条通路，也可以用&quot;hsa04060&quot;来表示
+             title = keggoffine$Description[1] #最简单的提取办法
+             )
+p4</code></pre>
+<div class="figure" style="text-align: center"><span style="display:block;" id="fig:fig4"></span>
+<img src="{{< blogdown/postref >}}index_files/figure-html/fig4-1.png" alt="gseaplot" width="432" />
+<p class="caption">
+Figure 4: gseaplot
+</p>
+</div>
+<pre class="r"><code>## p4[1]</code></pre>
+</div>
+<div id="gsearank" class="section level4">
+<h4>2、gsearank()</h4>
+<p>同样一次只能画一条曲线，不过我修改了背景和文字位置，同时定义了是否要显示NES、p和q值，只需要设置<code>pvalue_table = T</code>，这个功能<strong>enrichplot</strong>还没有，见Figure <a href="#fig:fig5">5</a>所示。</p>
+<pre class="r"><code>p5&lt;-gsearank(keggoffine,17,title = keggoffine$Description[17],
+             pvalue_table = T, ##新增的功能
+         output = &#39;plot&#39;#如果想看具体结果，则选&#39;table&#39;
+         )
+p5</code></pre>
+<div class="figure" style="text-align: center"><span style="display:block;" id="fig:fig5"></span>
+<img src="{{< blogdown/postref >}}index_files/figure-html/fig5-1.png" alt="gsearank" width="432" />
+<p class="caption">
+Figure 5: gsearank
+</p>
+</div>
+</div>
+<div id="gseaplot2" class="section level4">
+<h4>3、gseaplot2()</h4>
+<p>可以画单条曲线，也可以画多条曲线，还可以显示p值等信息，我的修改版里添加了ES为0的基线，修改了显示p值的结果，修改了背景和字体，还修改底下图的配色。</p>
+<p>先看看单条曲线的结果，显示一下p值，见Figure <a href="#fig:fig6">6</a>所示。</p>
+<pre class="r"><code>p6&lt;-gseaplot2(keggoffine,1,
+              title = keggoffine$Description[1],
+              color = &quot;#FA5860&quot;, #设置线条颜色
+              base_size = 12, #设置字体大小
+              rel_heights = c(1.5, 0.5, 1), # 设置三组图的比例
+              subplots = 1:3, #设置需要显示的图，如c(1,2)
+              pvalue_table = TRUE, #设置显示p值
+              ES_geom = &quot;line&quot; #还有一种&#39;dot&#39;的点图
+              )
+p6</code></pre>
+<div class="figure" style="text-align: center"><span style="display:block;" id="fig:fig6"></span>
+<img src="{{< blogdown/postref >}}index_files/figure-html/fig6-1.png" alt="单条gseaplot2" width="432" />
+<p class="caption">
+Figure 6: 单条gseaplot2
+</p>
+</div>
+<p>接着我们可以看多条曲线的结果，我们可以按序列号看结果，也可以自定义需要的结果，还可以修改一些配色，见Figure <a href="#fig:fig7">7</a>所示。</p>
+<pre class="r"><code>p7&lt;-gseaplot2(keggoffine,1:5,
+              title = &#39;KEGG-GSEA&#39;,
+              color = ggsci::pal_lancet()(5),## 提取ggsci中lancet的配色，数字要对应
+              base_size = 12, #设置字体大小
+              rel_heights = c(1.5, 0.5, 1), # 设置三组图的比例
+              subplots = 1:3, #设置需要显示的图，如c(1,2)
+              pvalue_table = TRUE, #设置显示p值
+              ES_geom = &quot;line&quot; #还有一种&#39;dot&#39;的点图
+              )
+p7</code></pre>
+<div class="figure" style="text-align: center"><span style="display:block;" id="fig:fig7"></span>
+<img src="{{< blogdown/postref >}}index_files/figure-html/fig7-1.png" alt="多条gseaplot2" width="451.2" />
+<p class="caption">
+Figure 7: 多条gseaplot2
+</p>
+</div>
+<p>当然，如果你对正则表达式很熟悉，也可以筛选出显著上调和显著下调的结果，比如我们用最简单的<code>head</code>和<code>tail</code>函数分别提示ES最高和最低的结果，然后分别拼图，见Figure <a href="#fig:fig8">8</a>所示。</p>
+<pre class="r"><code>## ES最高的5个通路名
+up&lt;-rownames(keggoffine@result)[head(order(keggoffine@result$enrichmentScore))]
+## ES最低的5个通路名
+down&lt;-rownames(keggoffine@result)[tail(order(keggoffine@result$enrichmentScore))]
+## 分别绘制上下调的通路
+phead&lt;-gseaplot2(keggoffine,geneSetID = up,
+                 title = &quot;GSEA-KEGG-Activated&quot;,
+                 pvalue_table = T)
+ptail&lt;-gseaplot2(keggoffine,geneSetID = down,
+                 title = &quot;GSEA-KEGG-Suppressed&quot;,
+                 pvalue_table = T)
+## 使用aplot进行拼图
+aplot::gglist(gglist = list(phead, ptail), ncol=1)</code></pre>
+<div class="figure" style="text-align: center"><span style="display:block;" id="fig:fig8"></span>
+<img src="{{< blogdown/postref >}}index_files/figure-html/fig8-1.png" alt="分别上下调" width="441.6" />
+<p class="caption">
+Figure 8: 分别上下调
+</p>
+</div>
+</div>
+<div id="标记基因" class="section level4">
+<h4>标记基因</h4>
+<p>以前的<strong>enrichplot</strong>是不能标记基因的，最近通过<code>geom_gsea_gene()</code>函数又把这个功能加进去了，可以看<a href="https://mp.weixin.qq.com/s/-y7DShsFiR4IDTuGAFHR3A">你想在GSEA可视化图中标注几个基因？</a>这个教程，虽然有个<strong>GseaVis</strong>的包也有这个功能，不过原生地还是最香。具体的操作可以自己看教程，这里只复现以下。</p>
+<pre class="r"><code>g = sample(keggoffine[[keggoffine$ID[1]]],5) ##先提取第一个通路的五个基因
+p6[[1]] = p6[[1]]  + geom_gsea_gene(g, geom=ggrepel::geom_text_repel)
+p6</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-4-1.png" width="432" /></p>
+</div>
+</div>
+<div id="barplot" class="section level3">
+<h3>Barplot</h3>
+<p>GSEA本身是没有barplot的，因为Y叔压根就没设置，不过我们可以自定义结果，比如按NES分成两组，然后按p值的颜色进行排序，结果见Figure <a href="#fig:fig9">9</a>所示。目前我开发了一个<strong>GSEAbae</strong>的包，已经发布到了Github上，参数类似<strong>barplot()</strong>，可以很方便的绘图，后期可以继续更新。</p>
+<pre class="r"><code># remotes::install_git(&#39;swcyo/GSEAbar&#39;) 安装GSEAbar包
+library(GSEAbar)
+gseabar(keggoffine,
+        color = &quot;p.adjust&quot;, # 按p值显示颜色
+        n = 12, #各组显示的数量,当然如果有一组没有那么多，则显示所有结果
+        font.size = 14, #字体大小
+        title = &quot;GSEA-barplot&quot;, # 标题
+        length = 45 #文本的长度
+        )</code></pre>
+<div class="figure" style="text-align: center"><span style="display:block;" id="fig:fig9"></span>
+<img src="{{< blogdown/postref >}}index_files/figure-html/fig9-1.png" alt="gseabarplot" width="672" />
+<p class="caption">
+Figure 9: gseabarplot
+</p>
+</div>
+<p>关于Barplot还有这样一种方法，先按NES分组，然后按log10P值的的图，这个需要定义log10P的方向，其中正相关为正值，负相关为负值。我的<strong>GSEAbar</strong>同样可以实现，见Figure <a href="#fig:fig10">10</a>所示。</p>
+<pre class="r"><code>gseabar2(keggoffine,
+         n = 10, #各组显示的数量,当然如果有一组没有那么多，则显示所有结果
+         font.size = 12,#字体大小
+         title = &quot;GSEA-barplot&quot;, # 标题
+         length = 40,#文本的长度
+         color = c(&quot;#2874C5&quot;, &quot;#f87669&quot;) #各组的颜色
+         )</code></pre>
+<div class="figure" style="text-align: center"><span style="display:block;" id="fig:fig10"></span>
+<img src="{{< blogdown/postref >}}index_files/figure-html/fig10-1.png" alt="gseabarplot2" width="672" />
+<p class="caption">
+Figure 10: gseabarplot2
+</p>
+</div>
+</div>
+<div id="ridgeplot" class="section level3">
+<h3>Ridgeplot</h3>
+<p>这个是山峦图，x轴以NES为界，正数就是激活，负数就是抑制，结果见Figure <a href="#fig:fig11">11</a>所示。</p>
+<pre class="r"><code>ridgeplot(keggoffine,label_format = 40)</code></pre>
+<pre><code>## Picking joint bandwidth of 0.0329</code></pre>
+<div class="figure" style="text-align: center"><span style="display:block;" id="fig:fig11"></span>
+<img src="{{< blogdown/postref >}}index_files/figure-html/fig11-1.png" alt="山峦图" width="672" />
+<p class="caption">
+Figure 11: 山峦图
+</p>
+</div>
+</div>
+<div id="emaplot" class="section level3">
+<h3>Emaplot</h3>
+<p>用来通路与通路关系，需要先使用<code>pairwise_termsim</code>函数，否则不能作图，当然我们也可以cluster多图。</p>
+<pre class="r"><code>emapplot(pairwise_termsim(kegg))+scale_fill_manual(values = c(&quot;#2874C5&quot;, &quot;#f87669&quot;))</code></pre>
+<div class="figure" style="text-align: center"><span style="display:block;" id="fig:unnamed-chunk-5"></span>
+<img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-5-1.png" alt="山峦图" width="672" />
+<p class="caption">
+Figure 12: 山峦图
+</p>
+</div>
+</div>
+<div id="cnetplot" class="section level3">
+<h3>Cnetplot</h3>
+<p>用来显示通路与基因关系，同样可以cluster</p>
+<pre class="r"><code>cnetplot(pairwise_termsim(kegg))+scale_fill_manual(values = c(&quot;#2874C5&quot;, &quot;#f87669&quot;))</code></pre>
+<pre><code>## Warning: ggrepel: 351 unlabeled data points (too many overlaps). Consider
+## increasing max.overlaps</code></pre>
+<div class="figure" style="text-align: center"><span style="display:block;" id="fig:unnamed-chunk-6"></span>
+<img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-6-1.png" alt="CNET plot" width="672" />
+<p class="caption">
+Figure 13: CNET plot
+</p>
+</div>
+</div>
+<div id="treeplot" class="section level3">
+<h3>Treeplot</h3>
+<p>这个是新上的图，非常不错，也可以clustcluster，但是结果太好，还是单个出图好看</p>
+<pre class="r"><code>treeplot(pairwise_termsim(keggoffine))</code></pre>
+<div class="figure" style="text-align: center"><span style="display:block;" id="fig:unnamed-chunk-7"></span>
+<img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-7-1.png" alt="TREE plot" width="672" />
+<p class="caption">
+Figure 14: TREE plot
+</p>
+</div>
+</div>
+<div id="upsetplot" class="section level3">
+<h3>Upsetplot</h3>
+<pre><code>upsetplot(keggoffine)</code></pre>
+</div>
+<div id="heatplot" class="section level3">
+<h3>Heatplot</h3>
+<pre><code>heatplot(keggonine)</code></pre>
+<p>另外结合pathview可以重绘KEGG的图，还基因表达量标记颜色，这个以后再说。</p>
+<p>目前大概是这些功能，当然也会一直更新下去，有动手能力的可以继续努力画图。</p>
+</div>
+</div>

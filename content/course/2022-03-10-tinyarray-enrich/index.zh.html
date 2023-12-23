@@ -1,0 +1,135 @@
+---
+title: 使用tinyarray做富集分析（GO和KEGG一步到位）
+author: 欧阳松
+date: '2022-03-10'
+slug: tinyarray-enrich
+categories:
+  - 教程
+  - tinyarray
+tags:
+  - tinyarray
+  - 富集分析
+---
+
+<script src="{{< blogdown/postref >}}index.zh_files/header-attrs/header-attrs.js"></script>
+<script src="{{< blogdown/postref >}}index.zh_files/htmlwidgets/htmlwidgets.js"></script>
+<link href="{{< blogdown/postref >}}index.zh_files/datatables-css/datatables-crosstalk.css" rel="stylesheet" />
+<script src="{{< blogdown/postref >}}index.zh_files/datatables-binding/datatables.js"></script>
+<script src="{{< blogdown/postref >}}index.zh_files/jquery/jquery-3.6.0.min.js"></script>
+<link href="{{< blogdown/postref >}}index.zh_files/dt-core/css/jquery.dataTables.min.css" rel="stylesheet" />
+<link href="{{< blogdown/postref >}}index.zh_files/dt-core/css/jquery.dataTables.extra.css" rel="stylesheet" />
+<script src="{{< blogdown/postref >}}index.zh_files/dt-core/js/jquery.dataTables.min.js"></script>
+<link href="{{< blogdown/postref >}}index.zh_files/crosstalk/css/crosstalk.css" rel="stylesheet" />
+<script src="{{< blogdown/postref >}}index.zh_files/crosstalk/js/crosstalk.min.js"></script>
+
+
+<p>富集分析的教程很多，当然最优秀的是<strong>clusterProfiler</strong>，而<strong>tinyarray</strong>也是可以做富集分析的，而且必须基于<strong>clusterProfiler</strong>，它可以自动实现GO和KEGG的结果，还可以实现上下调基因分别的柱状图，当然如果你没有Y叔的<strong>clusterProfiler</strong>，你肯定也是跑不出来的。。。</p>
+<p>这里有两个函数，一个是<code>quick_enrich()</code>函数，一个是<code>double_enrich()</code>函数，我们分别看看结果（能不能跑出来取决与访问KEGG的速度，建议深夜跑。。。。不要问我为什么）</p>
+<div id="quick_enrich" class="section level2">
+<h2>quick_enrich()</h2>
+<p>介绍是<em>do diffiencial analysis according to exprission set and group information,for human only</em>，翻译成人话就是<strong>根据表达集和群体信息进行差异分析，仅供人类使用</strong>，如果你想做的别的生物，需要去修改函数</p>
+<p>官方指令是</p>
+<pre><code>quick_enrich(genes, kkgo_file = &quot;kkgo_file.Rdata&quot;, destdir = getwd())</code></pre>
+<p>这里的genes是一个已经转换好的genelist，格式可以是symbol或者entrizid，当时如果你的基因列表是symbol，后台是自动转换成entrizid，而且还去除了重复基因，这里使用的是<strong>clusterProfiler</strong>里的<code>bitr()</code>函数，如果你转换不了，那是因为你还需要安装<strong>org.Hs.eg.db</strong>这个包，这个包的安装需要下面的代码</p>
+<blockquote>
+<p>BiocManager::install(“org.Hs.eg.db”)</p>
+</blockquote>
+<hr />
+<p>我们试试示例的genes这个genelist直接跑一下这个快速enrich，时间可能会比较长，如果你想快点的话，可以修改函数，然后使用内部参数use_internal_data = T来快速跑KEGG，当然慢还有一个原因就是跑GO需要很长的时间，因为这里的GO默认的是all，而不是bp，所以时间会比较长</p>
+<pre class="r"><code>library(tinyarray)
+g = quick_enrich(genes,destdir = tempdir())</code></pre>
+<p>我们点一下生成的g可以发现，有4个结果，分别是“kk” “go” “kk.dot” “go.dot”四个数据，前面两个分别是kegg和go的结果，而后面两个分别是KEGG和GO的点状图，如果细心的话，其实可以发现这个包已经把基因名改成了symbol，并且还限制了GO的文本长度是45等等…</p>
+<p>如果我们需要提取GO个KEGG的结果，只需要使用data.frame即可</p>
+<pre class="r"><code>kk&lt;-data.frame(g$kk)
+go&lt;-data.frame(g$go)</code></pre>
+<p>简单看一下KEGG的结果</p>
+<pre><code>g[[1]][1:6,1:6] \#\# 或者gg\$kk[1:6,1:6]
+## kk[1:6,1:6]</code></pre>
+<pre class="r"><code>DT::datatable(data.frame(g$kk)[1:6,1:6])</code></pre>
+<div id="htmlwidget-1" style="width:100%;height:auto;" class="datatables html-widget"></div>
+<script type="application/json" data-for="htmlwidget-1">{"x":{"filter":"none","vertical":false,"data":[["hsa05032","hsa05033","hsa04727","hsa04723","hsa04020","hsa04721"],["hsa05032","hsa05033","hsa04727","hsa04723","hsa04020","hsa04721"],["Morphine addiction","Nicotine addiction","GABAergic synapse","Retrograde endocannabinoid signaling","Calcium signaling pathway","Synaptic vesicle cycle"],["20/205","14/205","19/205","22/205","27/205","15/205"],["91/8115","40/8115","89/8115","148/8115","240/8115","78/8115"],[6.00688887232634e-14,3.60205309708664e-13,4.6161208952581e-13,1.37655706195305e-11,4.71099999415692e-11,7.0172729642218e-10],[1.44165332935832e-11,3.69289671620648e-11,3.69289671620648e-11,8.25934237171833e-10,2.26127999719532e-09,2.80690918568872e-08]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th> <\/th>\n      <th>ID<\/th>\n      <th>Description<\/th>\n      <th>GeneRatio<\/th>\n      <th>BgRatio<\/th>\n      <th>pvalue<\/th>\n      <th>p.adjust<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"columnDefs":[{"className":"dt-right","targets":[5,6]},{"orderable":false,"targets":0}],"order":[],"autoWidth":false,"orderClasses":false}},"evals":[],"jsHooks":[]}</script>
+<p>我们看看默认的图吧，KEGG的图</p>
+<pre class="r"><code>g$kk.dot</code></pre>
+<p><img src="{{< blogdown/postref >}}index.zh_files/figure-html/unnamed-chunk-4-1.png" width="672" /></p>
+<p>GO的图，自动分面，并且文本长度限制为45，如果想修改，可以看我之前的教程</p>
+<pre class="r"><code>g$go.dot</code></pre>
+<p><img src="{{< blogdown/postref >}}index.zh_files/figure-html/unnamed-chunk-5-1.png" width="672" /></p>
+<p>如果你安装了enrichplot的画，我们还可以对KEGG的结果进一步优化，更多的结果可以参考Y叔的教程<a href="https://yulab-smu.top/biomedical-knowledge-mining-book/enrichplot.html">Chapter 15 Visualization of functional enrichment result</a>,比如我们来个cnetplot，我认为这是基因和通路的关联</p>
+<pre class="r"><code>library(enrichplot)
+cnetplot(g$kk)</code></pre>
+<p><img src="{{< blogdown/postref >}}index.zh_files/figure-html/unnamed-chunk-6-1.png" width="672" /></p>
+<p>我们画个环状的图图</p>
+<pre class="r"><code>cnetplot(g$kk,foldChange = genes, circular = TRUE, colorEdge = TRUE)</code></pre>
+<pre><code>## Warning: ggrepel: 2 unlabeled data points (too many overlaps). Consider
+## increasing max.overlaps</code></pre>
+<p><img src="{{< blogdown/postref >}}index.zh_files/figure-html/unnamed-chunk-7-1.png" width="672" /></p>
+<p>最新的enrichplot添加了treeplot，我们也可以跑一跑，先pairwise_termsim一下，我觉得这个图是聚类</p>
+<pre class="r"><code>edox&lt;-pairwise_termsim(g$kk)
+treeplot(edox)</code></pre>
+<pre><code>## Warning: The &quot;label&quot; has(have) been found in tree data. You might need to rename the
+## variable(s) in the data of &quot;geom_cladelab&quot; to avoid this warning!</code></pre>
+<pre><code>## Warning: It is deprecated to specify `guide = FALSE` to remove a guide. Please
+## use `guide = &quot;none&quot;` instead.
+
+## Warning: It is deprecated to specify `guide = FALSE` to remove a guide. Please
+## use `guide = &quot;none&quot;` instead.</code></pre>
+<p><img src="{{< blogdown/postref >}}index.zh_files/figure-html/unnamed-chunk-8-1.png" width="672" /></p>
+<p>还有一个emapplot我们试试，也就是通路和通路之间的联系</p>
+<pre class="r"><code>emapplot(edox)</code></pre>
+<p><img src="{{< blogdown/postref >}}index.zh_files/figure-html/unnamed-chunk-9-1.png" width="672" /></p>
+<p>另外还有一个upset的图</p>
+<pre class="r"><code>upsetplot(g$kk)</code></pre>
+<p><img src="{{< blogdown/postref >}}index.zh_files/figure-html/unnamed-chunk-10-1.png" width="672" /></p>
+<p>你就说花不花吧。。。。</p>
+<hr />
+</div>
+<div id="double_enrich" class="section level2">
+<h2>double_enrich()</h2>
+<p>说完了快速的enrich，我们再说一个double_enrich()，顾名思义就是可以画两边，其实就是分别将上调基因和下调基因同时绘图，因为传统的把所有基因做富集分析，我们不知道哪个是激活，哪个是抑制，而分别做又浪费时间，这个double_enrich()可以很好的看到那个是激活的结果，那个是抑制的结果</p>
+<p>这里的示例是自动的deg数据，其实我们如果用自己的数据的话，那么你的数据必须要有这样的两列数据：</p>
+<ul>
+<li><p>一列的列名必须是<code>change</code>，结果里必须要有up和down（已经计算好的上下调标志）</p></li>
+<li><p>另一列的列名必须是<code>ENTREZID</code>，基因必须是entrezid格式，如果是symbol或者其他格式，我们就需要手动进行转换</p></li>
+</ul>
+<p>运行的函数很简单，只需要一行代码，我们先命名一下</p>
+<pre><code>double_enrich(deg, n = 10, color = c(&quot;#2874C5&quot;, &quot;#f87669&quot;))
+## 这里的n默认是各自显示10个，bar的颜色也可以自己修改</code></pre>
+<p>我们用示例数据跑一下，漫长的等待一下</p>
+<pre class="r"><code>d&lt;-double_enrich(deg)</code></pre>
+<pre><code>## Scale for &#39;y&#39; is already present. Adding another scale for &#39;y&#39;, which will
+## replace the existing scale.
+## Scale for &#39;y&#39; is already present. Adding another scale for &#39;y&#39;, which will
+## replace the existing scale.</code></pre>
+<p>点击d可以看到是两个结果，一个kp，一个gp，也就是一个KEGG，一个GO，我们分别看看结果，提取数据的话照样用只需要可以</p>
+<pre class="r"><code>d$kp</code></pre>
+<p><img src="{{< blogdown/postref >}}index.zh_files/figure-html/unnamed-chunk-12-1.png" width="672" /></p>
+<pre class="r"><code>d$gp</code></pre>
+<p><img src="{{< blogdown/postref >}}index.zh_files/figure-html/unnamed-chunk-12-2.png" width="672" /></p>
+<p>如果想提取数据，只需要下面这个代码，比如KEGG</p>
+<pre class="r"><code>KEGG&lt;-d$kp$data</code></pre>
+<p>我们发现美美的一张双面bar图的X轴是pl，我们可以手动修改为log10 Pvalue，我们需要注意的是bar的X轴其实是转置的y轴，所以改名需要用的是ylab，同时y轴的注释我们改掉，如果嫌弃文本的长度太短，还可以修改</p>
+<pre class="r"><code>library(ggplot2)
+library(stringr)
+ d$kp+
+   ylab(&#39;log10 (Pvalue)&#39;) +
+   xlab(NULL)+
+   scale_x_discrete(labels=function(x) str_wrap(x, width=45))</code></pre>
+<p><img src="{{< blogdown/postref >}}index.zh_files/figure-html/unnamed-chunk-14-1.png" width="672" /></p>
+<p>我们还可以把两张图拼成一张图，用cowplot的plot_wrap即可，我们适度美化一下</p>
+<pre class="r"><code>pkegg&lt;- d$kp+
+   ylab(&#39;log10 (Pvalue)&#39;) +
+   xlab(NULL)+
+  ggtitle(&quot;KEGG&quot;)+
+   scale_x_discrete(labels=function(x) str_wrap(x, width=45))
+pgo&lt;-d$gp+
+   ylab(&#39;log10 (Pvalue)&#39;) +
+   xlab(NULL)+
+  ggtitle(&quot;GO&quot;)+
+   scale_x_discrete(labels=function(x) str_wrap(x, width=45))
+cowplot::plot_grid(pkegg,pgo,
+                   ncol = 1, # 设置成一列
+                   labels = &quot;AUTO&quot; # 加个ABC
+                   )</code></pre>
+<p><img src="{{< blogdown/postref >}}index.zh_files/figure-html/unnamed-chunk-15-1.png" width="672" style="display: block; margin: auto;" /></p>
+<p>是不是简单多了呢。。。</p>
+</div>

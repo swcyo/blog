@@ -1,0 +1,89 @@
+---
+title: 可视化矩阵的相关性分析之GGally
+author: 欧阳松
+date: '2021-10-18'
+slug: GGally
+categories:
+  - GGally
+tags:
+  - 相关性分析
+---
+
+<script src="{{< blogdown/postref >}}index_files/header-attrs/header-attrs.js"></script>
+<script src="{{< blogdown/postref >}}index_files/htmlwidgets/htmlwidgets.js"></script>
+<link href="{{< blogdown/postref >}}index_files/datatables-css/datatables-crosstalk.css" rel="stylesheet" />
+<script src="{{< blogdown/postref >}}index_files/datatables-binding/datatables.js"></script>
+<script src="{{< blogdown/postref >}}index_files/jquery/jquery-3.6.0.min.js"></script>
+<link href="{{< blogdown/postref >}}index_files/dt-core/css/jquery.dataTables.min.css" rel="stylesheet" />
+<link href="{{< blogdown/postref >}}index_files/dt-core/css/jquery.dataTables.extra.css" rel="stylesheet" />
+<script src="{{< blogdown/postref >}}index_files/dt-core/js/jquery.dataTables.min.js"></script>
+<link href="{{< blogdown/postref >}}index_files/crosstalk/css/crosstalk.css" rel="stylesheet" />
+<script src="{{< blogdown/postref >}}index_files/crosstalk/js/crosstalk.min.js"></script>
+
+
+<p>学习文档来自<a href="https://mp.weixin.qq.com/s/t2yyCVWAWBG1Urb70FymSw">GGally包可视化相关性矩阵的详细教程 (qq.com)</a></p>
+<p><strong>GGally</strong>是一个功能强大的可视化包，号称是<a href="https://www.jianshu.com/p/ea23666dcc42"><strong>集相关关系图、箱线图、直方图等于一身的R绘图包</strong></a><strong>，</strong>而对相关性分析则使用的是 <code>ggcorr()</code>函数,最大的好处就是不需要使用cor()函数进行计算，后台直接就计算好了。</p>
+<p>比如还是使用mtcars的数据</p>
+<pre><code>rm(list = ls())
+library(GGally)
+data(mtcars)
+mtcars</code></pre>
+<div id="htmlwidget-1" style="width:100%;height:auto;" class="datatables html-widget"></div>
+<script type="application/json" data-for="htmlwidget-1">{"x":{"filter":"none","vertical":false,"data":[["Mazda RX4","Mazda RX4 Wag","Datsun 710","Hornet 4 Drive","Hornet Sportabout","Valiant","Duster 360","Merc 240D","Merc 230","Merc 280","Merc 280C","Merc 450SE","Merc 450SL","Merc 450SLC","Cadillac Fleetwood","Lincoln Continental","Chrysler Imperial","Fiat 128","Honda Civic","Toyota Corolla","Toyota Corona","Dodge Challenger","AMC Javelin","Camaro Z28","Pontiac Firebird","Fiat X1-9","Porsche 914-2","Lotus Europa","Ford Pantera L","Ferrari Dino","Maserati Bora","Volvo 142E"],[21,21,22.8,21.4,18.7,18.1,14.3,24.4,22.8,19.2,17.8,16.4,17.3,15.2,10.4,10.4,14.7,32.4,30.4,33.9,21.5,15.5,15.2,13.3,19.2,27.3,26,30.4,15.8,19.7,15,21.4],[6,6,4,6,8,6,8,4,4,6,6,8,8,8,8,8,8,4,4,4,4,8,8,8,8,4,4,4,8,6,8,4],[160,160,108,258,360,225,360,146.7,140.8,167.6,167.6,275.8,275.8,275.8,472,460,440,78.7,75.7,71.1,120.1,318,304,350,400,79,120.3,95.1,351,145,301,121],[110,110,93,110,175,105,245,62,95,123,123,180,180,180,205,215,230,66,52,65,97,150,150,245,175,66,91,113,264,175,335,109],[3.9,3.9,3.85,3.08,3.15,2.76,3.21,3.69,3.92,3.92,3.92,3.07,3.07,3.07,2.93,3,3.23,4.08,4.93,4.22,3.7,2.76,3.15,3.73,3.08,4.08,4.43,3.77,4.22,3.62,3.54,4.11],[2.62,2.875,2.32,3.215,3.44,3.46,3.57,3.19,3.15,3.44,3.44,4.07,3.73,3.78,5.25,5.424,5.345,2.2,1.615,1.835,2.465,3.52,3.435,3.84,3.845,1.935,2.14,1.513,3.17,2.77,3.57,2.78],[16.46,17.02,18.61,19.44,17.02,20.22,15.84,20,22.9,18.3,18.9,17.4,17.6,18,17.98,17.82,17.42,19.47,18.52,19.9,20.01,16.87,17.3,15.41,17.05,18.9,16.7,16.9,14.5,15.5,14.6,18.6],[0,0,1,1,0,1,0,1,1,1,1,0,0,0,0,0,0,1,1,1,1,0,0,0,0,1,0,1,0,0,0,1],[1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,0,0,0,0,0,1,1,1,1,1,1,1],[4,4,4,3,3,3,3,4,4,4,4,3,3,3,3,3,3,4,4,4,3,3,3,3,3,4,5,5,5,5,5,4],[4,4,1,1,2,1,4,2,2,4,4,3,3,3,4,4,4,1,2,1,1,2,2,4,2,1,2,2,4,6,8,2]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th> <\/th>\n      <th>mpg<\/th>\n      <th>cyl<\/th>\n      <th>disp<\/th>\n      <th>hp<\/th>\n      <th>drat<\/th>\n      <th>wt<\/th>\n      <th>qsec<\/th>\n      <th>vs<\/th>\n      <th>am<\/th>\n      <th>gear<\/th>\n      <th>carb<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"columnDefs":[{"className":"dt-right","targets":[1,2,3,4,5,6,7,8,9,10,11]},{"orderable":false,"targets":0}],"order":[],"autoWidth":false,"orderClasses":false}},"evals":[],"jsHooks":[]}</script>
+<div id="绘制简单图形" class="section level2">
+<h2><strong>绘制简单图形</strong></h2>
+<p><strong>GGally</strong>不需要<code>cor()</code>函数可以计算相关性系数，因此可以省去计算步骤，可以一步出图，如下图</p>
+<pre class="r"><code>ggcorr(mtcars)</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-2-1.png" width="672" /></p>
+</div>
+<div id="自定义图形" class="section level2">
+<h2><strong>自定义图形</strong></h2>
+<div id="修改几何对象" class="section level3">
+<h3><strong>修改几何对象</strong></h3>
+<p>默认图形输出的是方框，可以修改调整为circle，其他可以为tile，text或blank之一。</p>
+<pre class="r"><code>ggcorr(mtcars,
+       geom = &quot;circle&quot;) # 设置为圆形</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-3-1.png" width="672" /></p>
+</div>
+<div id="修改图形颜色" class="section level3">
+<h3><strong>修改图形颜色</strong></h3>
+<p>函数默认低、中、高颜色分别为“#3B9AB2”、“#EEEEEE”、“#F21A00”，可以修改这些色值来设置其他颜色。</p>
+<pre class="r"><code>ggcorr(mtcars,
+       low = &quot;brown&quot;, # 对应低颜色
+       mid = &quot;gray&quot;, # 对应中间颜色
+       high = &quot;steelblue&quot;) # 对应高颜色</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-4-1.png" width="672" /></p>
+</div>
+<div id="图上显示相关系数" class="section level3">
+<h3><strong>图上显示相关系数</strong></h3>
+<p>图形上默认是不显示相关系数的，可以在图形上显示相关系数，加个<code>label=T</code>即可。</p>
+<pre class="r"><code>ggcorr(mtcars,
+       label = TRUE)</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-5-1.png" width="672" /></p>
+<p>上面默认显示的相关系数比较拥挤，不够美观，我们可以使用相关参数来修改。</p>
+<p>可以调整digits、label_alpha、label_color、label_round、label_size等参数来调整相关系数的文本属性。</p>
+<pre class="r"><code>ggcorr(mtcars,
+       label = TRUE,
+       digits = 2, # 设置小数位数
+       label_alpha = 0.8, # 设置透明度
+       label_color = &quot;steelblue&quot;, # 设置文本颜色
+       label_size = 1.6)  # 设置文本大小</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-6-1.png" width="672" /></p>
+</div>
+<div id="间断相关性系数" class="section level3">
+<h3><strong>间断相关性系数</strong></h3>
+<p>可以将连续性的相关系数划分为几段，转为分段显示。</p>
+<pre class="r"><code>ggcorr(mtcars,
+       nbreaks = 6, # 分为6段
+       palette = &quot;PuOr&quot;) # 设置调色板</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-7-1.png" width="672" /></p>
+<p>如需要深入学习其他内容可查看<a href="https://briatte.github.io/ggcorr/">帮助文件</a>哦！,比如这个</p>
+<pre class="r"><code>ggcorr(mtcars, geom = &quot;blank&quot;, label = TRUE, hjust = 0.75) +
+  geom_point(size = 10, aes(color = coefficient &gt; 0, alpha = abs(coefficient) &gt; 0.5)) +
+  scale_alpha_manual(values = c(&quot;TRUE&quot; = 0.25, &quot;FALSE&quot; = 0)) +
+  guides(color = FALSE, alpha = FALSE)</code></pre>
+<pre><code>## Warning: `guides(&lt;scale&gt; = FALSE)` is deprecated. Please use `guides(&lt;scale&gt; =
+## &quot;none&quot;)` instead.</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-8-1.png" width="672" /></p>
+</div>
+</div>

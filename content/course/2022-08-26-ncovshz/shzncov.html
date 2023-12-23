@@ -1,0 +1,161 @@
+---
+title: ggplot画一个石河子疫情趋势图
+author: 欧阳松
+date: '2022-08-25'
+slug: ncovshz
+categories:
+  - ggplot2
+  - ggfun
+tags:
+  - 画图
+description: 石河子2022年8月疫情趋势
+hideToc: no
+enableToc: no
+enableTocContent: no
+tocFolding: no
+tocPosition: inner
+tocLevels:
+  - h2
+  - h3
+  - h4
+series: ~
+image: ~
+---
+
+<script src="/rmarkdown-libs/header-attrs/header-attrs.js"></script>
+<script src="/rmarkdown-libs/htmlwidgets/htmlwidgets.js"></script>
+<link href="/rmarkdown-libs/datatables-css/datatables-crosstalk.css" rel="stylesheet" />
+<script src="/rmarkdown-libs/datatables-binding/datatables.js"></script>
+<script src="/rmarkdown-libs/jquery/jquery-3.6.0.min.js"></script>
+<link href="/rmarkdown-libs/dt-core/css/jquery.dataTables.min.css" rel="stylesheet" />
+<link href="/rmarkdown-libs/dt-core/css/jquery.dataTables.extra.css" rel="stylesheet" />
+<script src="/rmarkdown-libs/dt-core/js/jquery.dataTables.min.js"></script>
+<link href="/rmarkdown-libs/crosstalk/css/crosstalk.css" rel="stylesheet" />
+<script src="/rmarkdown-libs/crosstalk/js/crosstalk.min.js"></script>
+
+
+<p>自2022年8月6日石河子发现新冠疫情以来，到现在已经过去20天，好多人都隔离在家不能出，这两天疫情有清零趋势，希望后面能有好消息吧，之前我在简书上发过绘制疫情地图的教程，不过很多教程已经老了，反正隔离也没事，又重新拿出了R来画画图，就算打发时间吧。。。</p>
+<div id="数据获取" class="section level3">
+<h3>数据获取</h3>
+<p>目前有许多微信公众号有公布石河子的疫情情况，不过我选择最官方的兵团卫健委的数据，<a href="http://wsj.xjbt.gov.cn/xxgk/tjxx/">兵团卫生健康委员会--统计信息 (xjbt.gov.cn)</a>，比如今天的数据就是来自<a href="http://wsj.xjbt.gov.cn/c/2022-08-25/8242221.shtml">兵团卫生健康委员会--统计信息--8月24日新疆生产建设兵团新型冠状病毒肺炎疫情最新情况 (xjbt.gov.cn)</a></p>
+<blockquote>
+<p>8月24日0-24时，新疆生产建设兵团无新增确诊病例和无症状感染者。44例无症状感染者解除隔离医学观察，其中，第四师38例，第六师1例，第八师石河子市5例。</p>
+<p>截至8月24日24时，新疆生产建设兵团现有确诊病例0例；现有无症状感染者243例，其中，第四师24例，第六师37例，第八师石河子市181例，第十三师1例。</p>
+</blockquote>
+<p>每天的变化无法就是时间、地区和数字，有了这些数据，我们就可以<strong>手动</strong>新建一个表格，定义为<a href="/course/2022-08-26-ncovshz/shz.csv">shz.csv</a>（点击可下载），当然如果会爬虫的话，可能自动更方便，奈何我不会爬虫（爬多了怕河蟹）,结果见下表所示</p>
+<pre><code>shz&lt;-read.csv(&#39;~/shz.csv&#39;) ## 设置存放目录</code></pre>
+<div id="htmlwidget-1" style="width:100%;height:auto;" class="datatables html-widget"></div>
+<script type="application/json" data-for="htmlwidget-1">{"x":{"filter":"none","vertical":false,"caption":"<caption>2022年8月至今石河子疫情趋势<\/caption>","data":[["1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16","17","18","19","20","21","22","23","24"],["8月1日","8月2日","8月3日","8月4日","8月5日","8月6日","8月7日","8月8日","8月9日","8月10日","8月11日","8月12日","8月13日","8月14日","8月15日","8月16日","8月17日","8月18日","8月19日","8月20日","8月21日","8月22日","8月23日","8月24日"],[0,0,0,0,0,2,5,0,13,12,14,18,25,16,32,32,26,23,12,9,7,5,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,6,0,1,6,7,36,9,5],[0,0,0,0,0,2,7,7,20,32,46,64,89,105,137,169,189,212,223,226,226,195,186,181]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th> <\/th>\n      <th>日期<\/th>\n      <th>每日新增人数<\/th>\n      <th>每日解除隔离人数<\/th>\n      <th>现有总人数<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"columnDefs":[{"className":"dt-right","targets":[2,3,4]},{"orderable":false,"targets":0}],"order":[],"autoWidth":false,"orderClasses":false}},"evals":[],"jsHooks":[]}</script>
+</div>
+<div id="数据处理" class="section level2">
+<h2>数据处理</h2>
+<p>首先，我们需要将短数据转换为长数据，可以使用<strong>reshape2</strong>这个包的<code>melt()</code>函数实现。</p>
+<pre class="r"><code>library(reshape2) 
+long&lt;-melt(shz,
+           id.vars = c(&#39;日期&#39;), ## 截取需要保留的值
+           variable.name=&#39;组别&#39;, ## 设置一列分组
+           value.name=&#39;数量&#39;) ## 设置一列数值</code></pre>
+<p>结果见下表</p>
+<div id="htmlwidget-2" style="width:100%;height:auto;" class="datatables html-widget"></div>
+<script type="application/json" data-for="htmlwidget-2">{"x":{"filter":"none","vertical":false,"caption":"<caption>长数据转换后结果<\/caption>","data":[["1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16","17","18","19","20","21","22","23","24","25","26","27","28","29","30","31","32","33","34","35","36","37","38","39","40","41","42","43","44","45","46","47","48","49","50","51","52","53","54","55","56","57","58","59","60","61","62","63","64","65","66","67","68","69","70","71","72"],["8月1日","8月2日","8月3日","8月4日","8月5日","8月6日","8月7日","8月8日","8月9日","8月10日","8月11日","8月12日","8月13日","8月14日","8月15日","8月16日","8月17日","8月18日","8月19日","8月20日","8月21日","8月22日","8月23日","8月24日","8月1日","8月2日","8月3日","8月4日","8月5日","8月6日","8月7日","8月8日","8月9日","8月10日","8月11日","8月12日","8月13日","8月14日","8月15日","8月16日","8月17日","8月18日","8月19日","8月20日","8月21日","8月22日","8月23日","8月24日","8月1日","8月2日","8月3日","8月4日","8月5日","8月6日","8月7日","8月8日","8月9日","8月10日","8月11日","8月12日","8月13日","8月14日","8月15日","8月16日","8月17日","8月18日","8月19日","8月20日","8月21日","8月22日","8月23日","8月24日"],["每日新增人数","每日新增人数","每日新增人数","每日新增人数","每日新增人数","每日新增人数","每日新增人数","每日新增人数","每日新增人数","每日新增人数","每日新增人数","每日新增人数","每日新增人数","每日新增人数","每日新增人数","每日新增人数","每日新增人数","每日新增人数","每日新增人数","每日新增人数","每日新增人数","每日新增人数","每日新增人数","每日新增人数","每日解除隔离人数","每日解除隔离人数","每日解除隔离人数","每日解除隔离人数","每日解除隔离人数","每日解除隔离人数","每日解除隔离人数","每日解除隔离人数","每日解除隔离人数","每日解除隔离人数","每日解除隔离人数","每日解除隔离人数","每日解除隔离人数","每日解除隔离人数","每日解除隔离人数","每日解除隔离人数","每日解除隔离人数","每日解除隔离人数","每日解除隔离人数","每日解除隔离人数","每日解除隔离人数","每日解除隔离人数","每日解除隔离人数","每日解除隔离人数","现有总人数","现有总人数","现有总人数","现有总人数","现有总人数","现有总人数","现有总人数","现有总人数","现有总人数","现有总人数","现有总人数","现有总人数","现有总人数","现有总人数","现有总人数","现有总人数","现有总人数","现有总人数","现有总人数","现有总人数","现有总人数","现有总人数","现有总人数","现有总人数"],[0,0,0,0,0,2,5,0,13,12,14,18,25,16,32,32,26,23,12,9,7,5,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,6,0,1,6,7,36,9,5,0,0,0,0,0,2,7,7,20,32,46,64,89,105,137,169,189,212,223,226,226,195,186,181]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th> <\/th>\n      <th>日期<\/th>\n      <th>组别<\/th>\n      <th>数量<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"columnDefs":[{"className":"dt-right","targets":3},{"orderable":false,"targets":0}],"order":[],"autoWidth":false,"orderClasses":false}},"evals":[],"jsHooks":[]}</script>
+</div>
+<div id="绘图" class="section level2">
+<h2>绘图</h2>
+<p>有了长数据，我们便可以画图了，我们用散点图来设置趋势，这里我用的是<strong>ggpubr</strong>这个包的<code>ggline()</code>函数，绘图简单</p>
+<div id="不分面绘图" class="section level3">
+<h3>不分面绘图</h3>
+<p>结果见Figure <a href="#fig:fig1">1</a>所示。</p>
+<pre class="r"><code>library(ggpubr)
+p&lt;-ggline(long, x = &quot;日期&quot;, y = &quot;数量&quot;, 
+       color = &quot;组别&quot;,shape=&#39;组别&#39;, 
+       ggtheme = theme_bw(),
+       title = &quot;2022年8月至今石河子疫情趋势&quot;,
+       label = T##显示数值
+)+
+  rotate_x_text(45)+ ## X轴45度
+  theme(text=element_text(family=&quot;FZXiaoBiaoSong-B05S&quot;,size=12), ## 设置字体
+        plot.title = element_text(hjust = 0.5)  ### 标题居中
+  )
+
+p</code></pre>
+<div class="figure" style="text-align: center"><span style="display:block;" id="fig:fig1"></span>
+<img src="/zh/course/2022-08-26-ncovshz/shzncov_files/figure-html/fig1-1.png" alt="2022年8月至今石河子疫情整体趋势" width="672" />
+<p class="caption">
+Figure 1: 2022年8月至今石河子疫情整体趋势
+</p>
+</div>
+<p>结合之前我写的ggfun那个包的函数，可以再美化，比如加个圆润的方框，见Figure <a href="#fig:fig2">2</a>所示</p>
+<pre class="r"><code>library(ggfun)
+p1&lt;-p+theme(legend.background=element_roundrect(color=&quot;#808080&quot;, linetype=4))
+p1</code></pre>
+<div class="figure" style="text-align: center"><span style="display:block;" id="fig:fig2"></span>
+<img src="/zh/course/2022-08-26-ncovshz/shzncov_files/figure-html/fig2-1.png" alt="设置一个方框" width="672" />
+<p class="caption">
+Figure 2: 设置一个方框
+</p>
+</div>
+<p>当然，我们也可以换一个主题，比如<strong>ggpubr</strong>自带的<code>theme_pubclean()</code>主题，我们看看效果，见Figure <a href="#fig:fig3">3</a>所示。</p>
+<pre class="r"><code>ggline(long, x = &quot;日期&quot;, y = &quot;数量&quot;, 
+       color = &quot;组别&quot;,shape=&#39;组别&#39;, 
+       ggtheme = theme_pubclean(), ## 换个主题
+       palette = &#39;lancet&#39;, ## 换个配色
+       title = &quot;2022年8月至今石河子疫情趋势&quot;,
+       label = T##显示数值
+)+
+  rotate_x_text(45)+ ## X轴45度
+  theme(text=element_text(family=&quot;FZXiaoBiaoSong-B05S&quot;,size=12), ## 设置字体
+        plot.title = element_text(hjust = 0.5)  ### 标题居中
+  )+
+  theme(legend.background=element_roundrect(color=&quot;#808080&quot;, linetype=4))</code></pre>
+<div class="figure" style="text-align: center"><span style="display:block;" id="fig:fig3"></span>
+<img src="/zh/course/2022-08-26-ncovshz/shzncov_files/figure-html/fig3-1.png" alt="设置一个方框" width="672" />
+<p class="caption">
+Figure 3: 设置一个方框
+</p>
+</div>
+</div>
+<div id="分面绘图" class="section level3">
+<h3>分面绘图</h3>
+<p>这个数据里有三种数据，我们可以使用facet进行分面，适当美化，见Figure <a href="#fig:fig4">4</a>所示</p>
+<pre class="r"><code>p2&lt;-ggline(long, x = &quot;日期&quot;, y = &quot;数量&quot;, 
+       color = &quot;组别&quot;,shape=&#39;组别&#39;, 
+       ggtheme = theme_bw(),
+       palette = &#39;lancet&#39;,
+       legend=&#39;none&#39;, ## 取消标签
+       facet.by = &quot;组别&quot;,scale=&#39;free&#39;, ##分面
+       title = &quot;2022年8月石河子疫情趋势&quot;,
+       label = T ##显示数值
+)+
+  rotate_x_text(45)+ ## X轴45度
+  theme(text=element_text(family=&quot;FZXiaoBiaoSong-B05S&quot;,size=12), ## 设置字体
+        plot.title = element_text(hjust = 0.5)  ### 标题居中
+  )
+
+p2</code></pre>
+<div class="figure" style="text-align: center"><span style="display:block;" id="fig:fig4"></span>
+<img src="/zh/course/2022-08-26-ncovshz/shzncov_files/figure-html/fig4-1.png" alt="分面效果" width="672" />
+<p class="caption">
+Figure 4: 分面效果
+</p>
+</div>
+<p>当然我们使用ggfun还可以添加一个分面标签，取得title，看着更好看，见Figure <a href="#fig:fig5">5</a></p>
+<pre class="r"><code>ggline(long, x = &quot;日期&quot;, y = &quot;数量&quot;, 
+       color = &quot;组别&quot;,shape=&#39;组别&#39;, 
+       ggtheme = theme_bw(),
+       palette = &#39;lancet&#39;,
+       legend=&#39;none&#39;, ## 取消标签
+       facet.by = &quot;组别&quot;,scale=&#39;free&#39;, ##分面
+       label = T ##显示数值
+)+
+    rotate_x_text(45)+ ## X轴45度
+    theme(text=element_text(family=&quot;FZXiaoBiaoSong-B05S&quot;,size=12)) + ## 设置中文字体
+  facet_set(label = &quot;2022年8月石河子疫情趋势&quot;)+ ## 使用ggfun添加分面标题
+  theme(text=element_text(family=&quot;FZXiaoBiaoSong-B05S&quot;,size=14)) ## 分面设置中文字体</code></pre>
+<div class="figure" style="text-align: center"><span style="display:block;" id="fig:fig5"></span>
+<img src="/zh/course/2022-08-26-ncovshz/shzncov_files/figure-html/fig5-1.png" alt="分面标签效果" width="672" />
+<p class="caption">
+Figure 5: 分面标签效果
+</p>
+</div>
+</div>
+</div>

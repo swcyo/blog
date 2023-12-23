@@ -1,0 +1,113 @@
+---
+title: 多个基因的生存分析曲线一步绘制法
+author: 欧阳松
+date: '2021-09-12'
+slug: multi-km-facet
+categories:
+  - 教程
+  - TCGA
+  - R
+tags:
+  - 生存分析
+---
+
+有时候你通过各种挖掘，筛选出了一些基因，你可能需要对这些基因进行生存分析，常规的办法可能要去下载所有的基因表达量和临床表型，然后再去一个个分析。说真的，这样很低效，我们可以利用**survminer**包的`ggsurvplot_facet()`函数进行分面绘制，类似于ggolot2的facet。
+
+## 多基因生存分析数据的获得
+
+我建议去xena浏览器的可视化卡片去直接筛选数据，这样可以节省很多很多时间，而且我建议你使用TPM的基因表达定量，在xena上有TCGA和GDC的hub，但是单位都不是TPM，而含有TPM的基因单位和生存数据保存在Pan-Cancer Atlas Hub里面。
+
+我们使用[xena的中国镜像站](https://xena.hiplot.com.cn/)登录网址:
+
+-   第一列输入：**TCGA Pan-Cancer**
+
+-   第二列在Phenotypic，勾选**cancer type abbreviation**、**sample_type**、**OS**和**OS.time**（当然还有别的生存时间和状态，按需下载）
+
+-   后续列在Genomic里输入需要的基因名，**gene expression RNAseq**勾选**TOIL RSEM tpm**
+
+-   可以在上方的文本框内输入所要的肿瘤缩写（如BLCA）后点击Filter筛选当前肿瘤，继续输入Primary Tumor提取肿瘤样本
+
+-   点击下载，保存为"data.tsv"
+
+这里需要解释一下，由于肿瘤的生存分析不应该设计正常样本，最好也不设计转移样本，所以我们要将"Primary Tumor"单独过滤除了。比如我随便输入了（RFC1、RFC2、RFC3、RCF4、RFC5、BEST1、BEST、BEST3和BEST4）九个基因，想看看这九个基因在BLCA中的OS生存曲线，示例数据见[data.tsv](/course/multi-km-facet/data.tsv)。
+
+## 数据的处理
+
+我们首先读取这个tsv表格，看看前几列的数据，其中表中部分基因的表达量是NA，我们需要去除NA值，然后把不需要的sample列去除
+
+    data<-read.csv("/data.tsv",sep="\t",row.names = 1,header = T)
+    data[1:10,1:10]
+    data<-na.omit(data)
+    data<-data[,-1]
+
+```{r data,echo=FALSE}
+data<-read.csv("/Users/mac/Documents/Gitee/Rblog/content/course/2021-09-12-multi-km-facet/data.tsv",sep="\t",row.names = 1,header = T)
+data<-na.omit(data)
+data<-data[,-1]
+```
+
+我们一般按基因表达定位的中位数进行分组，这里有九个基因，我们可以设置一个函数，然后合并。
+
+```{r}
+## 设置批量函数
+keep<-function(x){
+  ifelse(x>median(x),"High","Low")
+}
+
+data2<-apply(data[5:ncol(data)], 2, keep) #从6列开始批量运行
+
+#将生存信息(Time，Status)与High/Low分类好的矩阵合并
+survival<-cbind(data[,1:2],data2)
+colnames(survival)<-c('status','time','RFC1','RFC2','RCF3','RFC4','RFC5','BEST1','BEST2','BEST3','BEST4') #重命名一下表格
+```
+
+接下来，我们需要将短数据，转换为长数据。
+
+```{r}
+library(reshape)
+survival2<-melt(survival,id.vars=c("status","time"))
+```
+
+## 多基因生存曲线分面绘制
+
+进行一步批量生存分析，最终结果见图\@ref(fig:km)所示
+
+    library(survival)
+    library(survminer)
+
+```{r,echo=FALSE}
+suppressMessages(library(survival))
+suppressMessages(library(survminer))
+```
+
+```{r km,fig.cap='多基因生存曲线分面绘制',fig.align='center'}
+fit<- survfit(Surv(time, status) ~ value, data = survival2)
+
+ggsurvplot_facet(fit,survival2,
+                 palette = "lancet",
+                 linetype=3,
+                 pval = T,pval.method = T,
+                 conf.int = T,conf.int.style='step',
+                 surv.median.line = "hv",
+                 scales = "free",
+                 short.panel.labs = T,
+                 facet.by = "variable",
+                 ggtheme=theme_linedraw(),legend.title="Group")
+```
+
+结果显示好像我随机挑的这个基因在膀胱癌中都不咋的，没一个有意义，但我们可以换换配色和主题
+
+```{r}
+ggsurvplot_facet(fit,survival2,
+                 palette = "jco",
+                 linetype=3,
+                 pval = T,pval.method = T,
+                 conf.int = T,conf.int.style='step',
+                 surv.median.line = "hv",
+                 scales = "free",
+                 short.panel.labs = T,
+                 facet.by = "variable",
+                 ggtheme=theme_pubclean(),legend.title="Group")
+```
+
+---更多细节需要多练习

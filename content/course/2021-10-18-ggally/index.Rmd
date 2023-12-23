@@ -1,0 +1,98 @@
+---
+title: 可视化矩阵的相关性分析之GGally
+author: 欧阳松
+date: '2021-10-18'
+slug: GGally
+categories:
+  - GGally
+tags:
+  - 相关性分析
+---
+
+学习文档来自[GGally包可视化相关性矩阵的详细教程 (qq.com)](https://mp.weixin.qq.com/s/t2yyCVWAWBG1Urb70FymSw)
+
+**GGally**是一个功能强大的可视化包，号称是[**集相关关系图、箱线图、直方图等于一身的R绘图包**](https://www.jianshu.com/p/ea23666dcc42)**，**而对相关性分析则使用的是 `ggcorr()`函数,最大的好处就是不需要使用cor()函数进行计算，后台直接就计算好了。
+
+比如还是使用mtcars的数据
+
+    rm(list = ls())
+    library(GGally)
+    data(mtcars)
+    mtcars
+
+```{r,echo=FALSE}
+suppressMessages(library(GGally))
+data(mtcars)
+DT::datatable(mtcars)
+```
+
+## **绘制简单图形**
+
+**GGally**不需要`cor()`函数可以计算相关性系数，因此可以省去计算步骤，可以一步出图，如下图
+
+```{r}
+ggcorr(mtcars)
+```
+
+## **自定义图形**
+
+### **修改几何对象**
+
+默认图形输出的是方框，可以修改调整为circle，其他可以为tile，text或blank之一。
+
+```{r}
+ggcorr(mtcars,
+       geom = "circle") # 设置为圆形
+```
+
+### **修改图形颜色**
+
+函数默认低、中、高颜色分别为"\#3B9AB2"、"\#EEEEEE"、"\#F21A00"，可以修改这些色值来设置其他颜色。
+
+```{r}
+ggcorr(mtcars,
+       low = "brown", # 对应低颜色
+       mid = "gray", # 对应中间颜色
+       high = "steelblue") # 对应高颜色
+```
+
+### **图上显示相关系数**
+
+图形上默认是不显示相关系数的，可以在图形上显示相关系数，加个`label=T`即可。
+
+```{r}
+ggcorr(mtcars,
+       label = TRUE)
+```
+
+上面默认显示的相关系数比较拥挤，不够美观，我们可以使用相关参数来修改。
+
+可以调整digits、label_alpha、label_color、label_round、label_size等参数来调整相关系数的文本属性。
+
+```{r}
+ggcorr(mtcars,
+       label = TRUE,
+       digits = 2, # 设置小数位数
+       label_alpha = 0.8, # 设置透明度
+       label_color = "steelblue", # 设置文本颜色
+       label_size = 1.6)  # 设置文本大小
+```
+
+### **间断相关性系数**
+
+可以将连续性的相关系数划分为几段，转为分段显示。
+
+```{r}
+ggcorr(mtcars,
+       nbreaks = 6, # 分为6段
+       palette = "PuOr") # 设置调色板
+```
+
+如需要深入学习其他内容可查看[帮助文件](https://briatte.github.io/ggcorr/)哦！,比如这个
+
+```{r}
+ggcorr(mtcars, geom = "blank", label = TRUE, hjust = 0.75) +
+  geom_point(size = 10, aes(color = coefficient > 0, alpha = abs(coefficient) > 0.5)) +
+  scale_alpha_manual(values = c("TRUE" = 0.25, "FALSE" = 0)) +
+  guides(color = FALSE, alpha = FALSE)
+```

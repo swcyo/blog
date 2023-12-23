@@ -1,0 +1,148 @@
+---
+title: ggplot画一个石河子疫情趋势图
+author: 欧阳松
+date: '2022-08-25'
+slug: ncovshz
+categories:
+  - ggplot2
+  - ggfun
+tags:
+  - 画图
+description: 石河子2022年8月疫情趋势
+hideToc: no
+enableToc: no
+enableTocContent: no
+tocFolding: no
+tocPosition: inner
+tocLevels:
+  - h2
+  - h3
+  - h4
+series: ~
+image: ~
+---
+
+自2022年8月6日石河子发现新冠疫情以来，到现在已经过去20天，好多人都隔离在家不能出，这两天疫情有清零趋势，希望后面能有好消息吧，之前我在简书上发过绘制疫情地图的教程，不过很多教程已经老了，反正隔离也没事，又重新拿出了R来画画图，就算打发时间吧。。。
+
+### 数据获取
+
+目前有许多微信公众号有公布石河子的疫情情况，不过我选择最官方的兵团卫健委的数据，[兵团卫生健康委员会\--统计信息 (xjbt.gov.cn)](http://wsj.xjbt.gov.cn/xxgk/tjxx/)，比如今天的数据就是来自[兵团卫生健康委员会\--统计信息\--8月24日新疆生产建设兵团新型冠状病毒肺炎疫情最新情况 (xjbt.gov.cn)](http://wsj.xjbt.gov.cn/c/2022-08-25/8242221.shtml)
+
+> 8月24日0-24时，新疆生产建设兵团无新增确诊病例和无症状感染者。44例无症状感染者解除隔离医学观察，其中，第四师38例，第六师1例，第八师石河子市5例。
+>
+> 截至8月24日24时，新疆生产建设兵团现有确诊病例0例；现有无症状感染者243例，其中，第四师24例，第六师37例，第八师石河子市181例，第十三师1例。
+
+每天的变化无法就是时间、地区和数字，有了这些数据，我们就可以**手动**新建一个表格，定义为[shz.csv](/course/2022-08-26-ncovshz/shz.csv)（点击可下载），当然如果会爬虫的话，可能自动更方便，奈何我不会爬虫（爬多了怕河蟹）,结果见下表所示
+
+    shz<-read.csv('~/shz.csv') ## 设置存放目录
+
+```{r ,echo=FALSE}
+shz<-read.csv('/Users/mac/Documents/GitHub/Rblog/content/zh/course/2022-08-26-ncovshz/shz.csv')
+DT::datatable(shz,caption = "2022年8月至今石河子疫情趋势")
+```
+
+## 数据处理
+
+首先，我们需要将短数据转换为长数据，可以使用**reshape2**这个包的`melt()`函数实现。
+
+```{r}
+library(reshape2) 
+long<-melt(shz,
+           id.vars = c('日期'), ## 截取需要保留的值
+           variable.name='组别', ## 设置一列分组
+           value.name='数量') ## 设置一列数值
+```
+
+结果见下表
+
+```{r,echo=FALSE}
+DT::datatable(long,caption = "长数据转换后结果")
+```
+
+## 绘图
+
+有了长数据，我们便可以画图了，我们用散点图来设置趋势，这里我用的是**ggpubr**这个包的`ggline()`函数，绘图简单
+
+### 不分面绘图
+
+结果见Figure \@ref(fig:fig1)所示。
+
+```{r fig1, fig.align='center', fig.cap="2022年8月至今石河子疫情整体趋势", message=FALSE, warning=FALSE}
+library(ggpubr)
+p<-ggline(long, x = "日期", y = "数量", 
+       color = "组别",shape='组别', 
+       ggtheme = theme_bw(),
+       title = "2022年8月至今石河子疫情趋势",
+       label = T##显示数值
+)+
+  rotate_x_text(45)+ ## X轴45度
+  theme(text=element_text(family="FZXiaoBiaoSong-B05S",size=12), ## 设置字体
+        plot.title = element_text(hjust = 0.5)  ### 标题居中
+  )
+
+p
+```
+
+结合之前我写的ggfun那个包的函数，可以再美化，比如加个圆润的方框，见Figure \@ref(fig:fig2)所示
+
+```{r fig2, fig.align='center', fig.cap="设置一个方框", message=FALSE, warning=FALSE}
+library(ggfun)
+p1<-p+theme(legend.background=element_roundrect(color="#808080", linetype=4))
+p1
+```
+
+当然，我们也可以换一个主题，比如**ggpubr**自带的`theme_pubclean()`主题，我们看看效果，见Figure \@ref(fig:fig3)所示。
+
+```{r fig3, fig.align='center', fig.cap="设置一个方框", message=FALSE, warning=FALSE}
+ggline(long, x = "日期", y = "数量", 
+       color = "组别",shape='组别', 
+       ggtheme = theme_pubclean(), ## 换个主题
+       palette = 'lancet', ## 换个配色
+       title = "2022年8月至今石河子疫情趋势",
+       label = T##显示数值
+)+
+  rotate_x_text(45)+ ## X轴45度
+  theme(text=element_text(family="FZXiaoBiaoSong-B05S",size=12), ## 设置字体
+        plot.title = element_text(hjust = 0.5)  ### 标题居中
+  )+
+  theme(legend.background=element_roundrect(color="#808080", linetype=4))
+```
+
+### 分面绘图
+
+这个数据里有三种数据，我们可以使用facet进行分面，适当美化，见Figure \@ref(fig:fig4)所示
+
+```{r fig4, fig.align='center', fig.cap="分面效果"}
+p2<-ggline(long, x = "日期", y = "数量", 
+       color = "组别",shape='组别', 
+       ggtheme = theme_bw(),
+       palette = 'lancet',
+       legend='none', ## 取消标签
+       facet.by = "组别",scale='free', ##分面
+       title = "2022年8月石河子疫情趋势",
+       label = T ##显示数值
+)+
+  rotate_x_text(45)+ ## X轴45度
+  theme(text=element_text(family="FZXiaoBiaoSong-B05S",size=12), ## 设置字体
+        plot.title = element_text(hjust = 0.5)  ### 标题居中
+  )
+
+p2
+```
+
+当然我们使用ggfun还可以添加一个分面标签，取得title，看着更好看，见Figure \@ref(fig:fig5)
+
+```{r fig5, fig.align='center', fig.cap="分面标签效果",}
+ggline(long, x = "日期", y = "数量", 
+       color = "组别",shape='组别', 
+       ggtheme = theme_bw(),
+       palette = 'lancet',
+       legend='none', ## 取消标签
+       facet.by = "组别",scale='free', ##分面
+       label = T ##显示数值
+)+
+    rotate_x_text(45)+ ## X轴45度
+    theme(text=element_text(family="FZXiaoBiaoSong-B05S",size=12)) + ## 设置中文字体
+  facet_set(label = "2022年8月石河子疫情趋势")+ ## 使用ggfun添加分面标题
+  theme(text=element_text(family="FZXiaoBiaoSong-B05S",size=14)) ## 分面设置中文字体
+```

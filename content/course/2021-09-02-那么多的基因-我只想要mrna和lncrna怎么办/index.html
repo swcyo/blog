@@ -1,0 +1,677 @@
+---
+title: 那么多的基因，我只想要mRNA和lncRNA（或者miRNA）怎么办？
+author: 欧阳松
+date: '2021-09-02'
+slug: 那么多的基因-我只想要mrna和lncrna怎么办
+categories:
+  - 教程
+  - R
+  - TCGA
+tags:
+  - 教程
+  - R
+  - TCGA
+  - mRNA
+  - lncRNA
+---
+
+<script src="{{< blogdown/postref >}}index_files/header-attrs/header-attrs.js"></script>
+
+
+<p>之前我在简书上写了一篇“<a href="https://www.jianshu.com/p/ebbd22a36d3b">如何只下载TCGA肿瘤或正常标本的count</a>”的教程，原以为没什么人看的。不过这两天简书上有朋友私信我，如何只下载lncRNA的数据。这个功能在<strong>GDCRNATools</strong>里好像上不支持的，因为这个包都是下载全部的RNA数据（包括其他的TCGA工具基本都是只下载RNA数据），具体要区分mRNA和lncRNA是要有专门注释文件的。</p>
+<p>我这里想借鉴两种方法，链接在这里：</p>
+<ol style="list-style-type: decimal">
+<li><p><a href="https://zhuanlan.zhihu.com/p/359012216">利用R代码从UCSC XENA下载mRNA, lncRNA, miRNA表达数据并匹配临床信息</a></p></li>
+<li><p><a href="https://www.jianshu.com/p/c17373dc052c">TCGA的ID转换可以一步到位了</a></p></li>
+</ol>
+<div id="如何下载注释文件" class="section level2">
+<h2>如何下载注释文件</h2>
+<p>我们从TCGA下载的RNA基因，包括从生物公司做全基因测序的结果，一般都有将近6万个基因。默认给的基因名就是<strong>ensembl</strong> 格式（也就是ENSG00开头的基因），当然公司一般都是给你一个注释文件，把你转换成<strong>symbol</strong>格式的基因（比如TP53）。但话多说一句，做富集分析最好选用<strong>entrezid</strong>格式（一串数字）</p>
+<p>我们不是要关注怎么转换基因的ID，而是要知道如何下载注释文件，以前有很多眼花缭乱的教程告诉我们怎么去下载注释文件，然而随着生物信息的发展，各种R包层出不穷，完全可以一步就给你转换好。但是转换好了基因，你依旧不知道哪个是mRNA，哪个是lncRNA（或许有，比如tinyarray，但是依然有缺点），因为我们需要的是<strong>注释</strong>，不是<strong>转换</strong>。</p>
+<p>我们需要的基因注释文件，常用的叫做<a href="https://www.gencodegenes.org/">genecode</a>（记得区分物种）。但是这个鬼东西经常更新，我以前用的是v22版，后面又出了v23版，现在官网又有了v38版，但是无论是哪一版，我觉得差不了太多，不过要注意的是不同的版本，注释出来的结果可能也是有细微差异。</p>
+<div id="获得注释文件有以下几种方法" class="section level3">
+<h3>获得注释文件有以下几种方法：</h3>
+<div id="官网下载" class="section level4">
+<h4>官网下载 🌟</h4>
+<p>最好的办法当然是去<a href="https://www.gencodegenes.org/human/">官网下载</a>最新的GTF文件，但那个东西文件有几十M，还经常下载中断，而我从来没有下载成功过，所以我并不推荐。</p>
+</div>
+<div id="找生物公司" class="section level4">
+<h4>找生物公司 🌟 🌟</h4>
+<p>如果你刚好需要做一个转录组测序，那么生物公司基本都会给你一个<strong>gene.xls</strong>的文件，我之前的那个公司大概是5万8千个基因左右，文件包括有gene_id、gene_name、gene_chr、gene_start、gene_end、gene_strand、gene_length、gene_biotype、gene_description等文件，大概这个样子。</p>
+<table>
+<colgroup>
+<col width="9%" />
+<col width="7%" />
+<col width="6%" />
+<col width="7%" />
+<col width="6%" />
+<col width="7%" />
+<col width="7%" />
+<col width="20%" />
+<col width="27%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>gene_id</th>
+<th>gene_name</th>
+<th>gene_chr</th>
+<th>gene_start</th>
+<th>gene_end</th>
+<th>gene_strand</th>
+<th>gene_length</th>
+<th>gene_biotype</th>
+<th>gene_description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>ENSG00000285994</td>
+<td>AL731559.1</td>
+<td>10</td>
+<td>12563151</td>
+<td>12567351</td>
+<td>+</td>
+<td>3732</td>
+<td>sense_intronic</td>
+<td>novel transcript, sense intronic to CAMK1D</td>
+</tr>
+<tr class="even">
+<td>ENSG00000285993</td>
+<td>AC018931.1</td>
+<td>18</td>
+<td>46409197</td>
+<td>46410645</td>
+<td>-</td>
+<td>1246</td>
+<td>antisense</td>
+<td>novel transcript, antisense to RNF165</td>
+</tr>
+<tr class="odd">
+<td>ENSG00000285992</td>
+<td>AC120036.5</td>
+<td>8</td>
+<td>47129262</td>
+<td>47132628</td>
+<td>+</td>
+<td>956</td>
+<td>lincRNA</td>
+<td>novel transcript</td>
+</tr>
+<tr class="even">
+<td>ENSG00000285991</td>
+<td>AL355312.5</td>
+<td>6</td>
+<td>149817937</td>
+<td>149896011</td>
+<td>-</td>
+<td>5065</td>
+<td>protein_coding</td>
+<td>novel transcript</td>
+</tr>
+<tr class="odd">
+<td>ENSG00000285990</td>
+<td>AL589743.7</td>
+<td>14</td>
+<td>19244904</td>
+<td>19269380</td>
+<td>-</td>
+<td>647</td>
+<td>transcribed_unprocessed_pseudogene</td>
+<td>neurobeachin (NBEA) pseudogene</td>
+</tr>
+<tr class="even">
+<td>ENSG00000285989</td>
+<td>AL357123.1</td>
+<td>X</td>
+<td>138558996</td>
+<td>138559298</td>
+<td>+</td>
+<td>303</td>
+<td>TEC</td>
+<td>TEC</td>
+</tr>
+<tr class="odd">
+<td>ENSG00000285988</td>
+<td>AL392086.3</td>
+<td>10</td>
+<td>6737418</td>
+<td>6840712</td>
+<td>+</td>
+<td>614</td>
+<td>lincRNA</td>
+<td>novel transcript, LINP1-LINC00707 readthrough</td>
+</tr>
+<tr class="even">
+<td>ENSG00000285987</td>
+<td>AL157886.1</td>
+<td>9</td>
+<td>84316514</td>
+<td>84657077</td>
+<td>+</td>
+<td>3205</td>
+<td>antisense</td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>ENSG00000285986</td>
+<td>BX248415.1</td>
+<td>1</td>
+<td>196850283</td>
+<td>196884793</td>
+<td>+</td>
+<td>614</td>
+<td>unprocessed_pseudogene</td>
+<td>complement factor H related 3 (CFHR3) pseudogene</td>
+</tr>
+</tbody>
+</table>
+<p>我上传到了百度网盘</p>
+<blockquote>
+<p>链接: <a href="https://pan.baidu.com/s/1VVYMGg6AzLzv-vKpuGkV1A" class="uri">https://pan.baidu.com/s/1VVYMGg6AzLzv-vKpuGkV1A</a><br />
+密码: 3rnq</p>
+</blockquote>
+</div>
+<div id="xena下载" class="section level4">
+<h4>Xena下载 🌟 🌟 🌟 🌟</h4>
+<p>UCSC大学有一个<a href="https://xenabrowser.net/">Xena</a>的网址，以前服务器是国外的，访问不稳定，后面Hiplot跟他们搞了合作，弄了个免费的<a href="https://xena.hiplot.com.cn/">Xena中国镜像</a>，所以方便了很多，但是目前只有v22版的，但我觉得够用。</p>
+<p>随便找个GDC Hub的的数据集，然后随便选一个RNAseq的基因表达类型就可以找到注释文件下载</p>
+<p>网址是<a href="https://xena-gdc.hiplot.com.cn/download/gencode.v22.annotation.gene.probeMap" class="uri">https://xena-gdc.hiplot.com.cn/download/gencode.v22.annotation.gene.probeMap</a></p>
+<p>这里是probeMap格式，可以用excel直接打开的，长这样：</p>
+<table>
+<thead>
+<tr class="header">
+<th>id</th>
+<th>gene</th>
+<th>chrom</th>
+<th>chromStart</th>
+<th>chromEnd</th>
+<th>strand</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>ENSG00000223972.5</td>
+<td>DDX11L1</td>
+<td>chr1</td>
+<td>11869</td>
+<td>14409</td>
+<td>+</td>
+</tr>
+<tr class="even">
+<td>ENSG00000227232.5</td>
+<td>WASH7P</td>
+<td>chr1</td>
+<td>14404</td>
+<td>29570</td>
+<td>-</td>
+</tr>
+<tr class="odd">
+<td>ENSG00000278267.1</td>
+<td>MIR6859-3</td>
+<td>chr1</td>
+<td>17369</td>
+<td>17436</td>
+<td>-</td>
+</tr>
+<tr class="even">
+<td>ENSG00000243485.3</td>
+<td>RP11-34P13.3</td>
+<td>chr1</td>
+<td>29554</td>
+<td>31109</td>
+<td>+</td>
+</tr>
+</tbody>
+</table>
+<p>但是这个表里，并没有biotype，我这里给一个百度云盘的文件，v22版的tsv格式，也可以直接用excel打开</p>
+<blockquote>
+<p>链接: <a href="https://pan.baidu.com/s/1juzwlSLXUVEVxpD0cTyCag" class="uri">https://pan.baidu.com/s/1juzwlSLXUVEVxpD0cTyCag</a></p>
+<p>密码: 1940</p>
+</blockquote>
+<p>这个文件长这个样子：</p>
+<table>
+<colgroup>
+<col width="10%" />
+<col width="7%" />
+<col width="5%" />
+<col width="5%" />
+<col width="5%" />
+<col width="4%" />
+<col width="20%" />
+<col width="7%" />
+<col width="12%" />
+<col width="7%" />
+<col width="7%" />
+<col width="5%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>gene_id</th>
+<th>gene_name</th>
+<th>seqname</th>
+<th>start</th>
+<th>end</th>
+<th>strand</th>
+<th>gene_type</th>
+<th>gene_status</th>
+<th>havana_gene</th>
+<th>full_length</th>
+<th>exon_length</th>
+<th>exon_num</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>ENSG00000223972.5</td>
+<td>DDX11L1</td>
+<td>chr1</td>
+<td>11869</td>
+<td>14409</td>
+<td>+</td>
+<td>transcribed_unprocessed_pseudogene</td>
+<td>KNOWN</td>
+<td>OTTHUMG00000000961.2</td>
+<td>2541</td>
+<td>1735</td>
+<td>9</td>
+</tr>
+<tr class="even">
+<td>ENSG00000238009.5</td>
+<td>RP11-34P13.7</td>
+<td>chr1</td>
+<td>89295</td>
+<td>133723</td>
+<td>-</td>
+<td>lincRNA</td>
+<td>NOVEL</td>
+<td>OTTHUMG00000001096.2</td>
+<td>44429</td>
+<td>3726</td>
+<td>17</td>
+</tr>
+<tr class="odd">
+<td>ENSG00000230415.1</td>
+<td>RP5-902P8.10</td>
+<td>chr1</td>
+<td>1275223</td>
+<td>1280420</td>
+<td>+</td>
+<td>lincRNA</td>
+<td>NOVEL</td>
+<td>OTTHUMG00000002234.2</td>
+<td>5198</td>
+<td>513</td>
+<td>5</td>
+</tr>
+<tr class="even">
+<td>ENSG00000236335.1</td>
+<td>RP4-591L5.1</td>
+<td>chr1</td>
+<td>30409560</td>
+<td>30411638</td>
+<td>-</td>
+<td>lincRNA</td>
+<td>NOVEL</td>
+<td>OTTHUMG00000003682.1</td>
+<td>2079</td>
+<td>507</td>
+<td>3</td>
+</tr>
+<tr class="odd">
+<td>ENSG00000213842.2</td>
+<td>SUGT1P2</td>
+<td>chr3</td>
+<td>32752910</td>
+<td>32753901</td>
+<td>+</td>
+<td>processed_pseudogene</td>
+<td>KNOWN</td>
+<td>OTTHUMG00000155904.1</td>
+<td>992</td>
+<td>992</td>
+<td>1</td>
+</tr>
+<tr class="even">
+<td>ENSG00000227337.1</td>
+<td>AC139452.2</td>
+<td>chr3</td>
+<td>32785646</td>
+<td>32786116</td>
+<td>+</td>
+<td>processed_pseudogene</td>
+<td>KNOWN</td>
+<td>OTTHUMG00000155776.1</td>
+<td>471</td>
+<td>471</td>
+<td>1</td>
+</tr>
+<tr class="odd">
+<td>ENSG00000206557.5</td>
+<td>TRIM71</td>
+<td>chr3</td>
+<td>32818018</td>
+<td>32897826</td>
+<td>+</td>
+<td>protein_coding</td>
+<td>KNOWN</td>
+<td>OTTHUMG00000155778.3</td>
+<td>79809</td>
+<td>8685</td>
+<td>4</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p><strong>PS：</strong>我发现这几个注释文件的基因数量并不一致，甚至mRNA（protein_coding）都有上千个缺口，但我觉得仍然涵盖了我们常用的基因。</p>
+</div>
+</div>
+</div>
+<div id="如何区分mrna和lncrna" class="section level2">
+<h2>如何区分mRNA和lncRNA</h2>
+<p>在开始转换前，我们需要知道mRNA和lncRNA，或者说miRNA到底包括哪些基因？</p>
+<p>本文不做科普，想要了解他们的基因类型，可以点击下面这个链接：</p>
+<p><a href="http://vega.archive.ensembl.org/info/about/gene_and_transcript_types.html">gene and transcript types</a></p>
+<p>大致的介绍如下：</p>
+<p><img src="biotype.png" alt="Biotype" /><br />
+有了biotype，可以制作转换成mRNA、lncRNA和miRNA的文件了。在第一篇借鉴文章里作者说他最终汇总到了一个Gene_info.xlsx），但他又偏偏不告诉这个文件在哪里，后面连我自己都忘记了，我是怎么凭一己之力下载到了这个文件，现在分享在百度网盘上</p>
+<blockquote>
+<p>链接: <a href="https://pan.baidu.com/s/12oPmYKG-TVi4lhcud5_0JQ" class="uri">https://pan.baidu.com/s/12oPmYKG-TVi4lhcud5_0JQ</a></p>
+<p>密码: n7v0</p>
+</blockquote>
+<p>这里有三个sheet，分别是lncRNA_info（14852）、mRNA_info（18192个）和miRNA_info（1670个），总共算起来有34714个基因。</p>
+<p>PS：这里我并没有自己统计，还剩2万5千多个基因是什么，也可能是假基因之类的。</p>
+<hr />
+<p>剩下的，完全可以参照第一篇文章进行注释</p>
+<div id="读入excel文件的gene注释信息这里用到从biotype上下载好的excel文件" class="section level3">
+<h3><strong>读入EXCEL文件的gene注释信息，这里用到从biotype上下载好的EXCEL文件</strong></h3>
+<pre><code># 注释mRNA，lncRNA和miRNA
+mRNA_info &lt;- read.xlsx(&quot;./RawData/Gene_info.xlsx&quot;,sheet = &quot;mRNA_info&quot;)
+lncRNA_info &lt;- read.xlsx(&quot;./RawData/Gene_info.xlsx&quot;,sheet = &quot;lncRNA_info&quot;)
+miRNA_info &lt;- read.xlsx(&quot;./RawData/Gene_info.xlsx&quot;,sheet = &quot;miRNA_info&quot;)</code></pre>
+</div>
+<div id="根据基因的注释信息提取对应的表达矩阵" class="section level3">
+<h3><strong>根据基因的注释信息，提取对应的表达矩阵</strong></h3>
+<pre><code>### 统计mRNA
+mRNA_gset &lt;- TCGA_gset[rownames(TCGA_gset) %in% mRNA_info$gene_name,]
+dim(mRNA_gset) 
+write.csv(mRNA_gset,&quot;./TCGA_output/TCGA_HNSC_mRNA.csv&quot;,quote = F,row.names = T)
+### 统计lncRNA
+lncRNA_gset &lt;- TCGA_gset[rownames(TCGA_gset) %in% lncRNA_info$gene_name,]
+dim(lncRNA_gset) 
+write.csv(lncRNA_gset,&quot;./TCGA_output/TCGA_HNSC_lncRNA.csv&quot;,quote = F,row.names = T)
+### 统计miRNA
+miRNA_gset &lt;- TCGA_gset[rownames(TCGA_gset) %in% miRNA_info$gene_name,]
+dim(miRNA_gset)
+write.csv(miRNA_gset,&quot;./TCGA_output/TCGA_HNSC_miRNA.csv&quot;,quote = F,row.names = T)</code></pre>
+<p>这样就很快的制成了三个表格，分别进行了提取。</p>
+</div>
+</div>
+<div id="如何只使用一个r包实现注释和转换" class="section level2">
+<h2>如何只使用一个R包实现注释和转换</h2>
+<p>在第二篇文章里，小洁忘了分身写了一个R包，叫做<strong>tinyarray</strong>，可以很好的处理这个问题，然而这个包却托管在Github上，如果你可以正常访问Github当然没有问题，仓库是<a href="https://github.com/xjsun1221/tinyarray">xjsun1221/tinyarray</a>。</p>
+<p>然而我觉得你应该很难安装的，所以我Fork到了我的gitee上面，因此，可以很快的安装</p>
+<pre><code>devtools::install_git(&#39;https://gitee.com/swcyo/tinyarray&#39;)</code></pre>
+<p>中途提示你缺哪个包，你就安装哪个包，目前这个包非常强大，集成了很多很多的功能，可以处理GEO和TCGA的很多数据，还可以很快捷的画火山图、热图、PCA图、生存分析、富集分析等等，ID转换只是其中一个小部分，以后可以写个专门的教程推广一下。</p>
+<hr />
+<p>这里我们需要的gene id是TCGA或者GTEx上的格式，也就是<strong>ensembl</strong> 格式，格式后面可以带点（版本号），也可以不带点，总之就是一个<code>trans_exp()</code>函数。</p>
+<p>使用这个包的示例文档来说明一下，先随机生成100个基因，其中5个TCGA患者，5个GTEx患者</p>
+<pre class="r"><code>suppressMessages(library(tinyarray)) 
+exp = matrix(rnorm(1000),ncol = 10)
+rownames(exp) = sample(mRNA_annov23$gene_id,100)
+colnames(exp) = c(paste0(&quot;TCGA&quot;,1:5),paste0(&quot;GTEX&quot;,1:5))</code></pre>
+<p>我们简单看一下前几个数据</p>
+<table>
+<colgroup>
+<col width="14%" />
+<col width="8%" />
+<col width="8%" />
+<col width="8%" />
+<col width="8%" />
+<col width="8%" />
+<col width="8%" />
+<col width="7%" />
+<col width="8%" />
+<col width="8%" />
+<col width="8%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th align="left"></th>
+<th align="right">TCGA1</th>
+<th align="right">TCGA2</th>
+<th align="right">TCGA3</th>
+<th align="right">TCGA4</th>
+<th align="right">TCGA5</th>
+<th align="right">GTEX1</th>
+<th align="right">GTEX2</th>
+<th align="right">GTEX3</th>
+<th align="right">GTEX4</th>
+<th align="right">GTEX5</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">ENSG00000117519.15</td>
+<td align="right">-2.3668855</td>
+<td align="right">0.1262266</td>
+<td align="right">-0.9932833</td>
+<td align="right">-1.5790701</td>
+<td align="right">0.8062750</td>
+<td align="right">-1.1574091</td>
+<td align="right">0.6819423</td>
+<td align="right">0.1313676</td>
+<td align="right">-1.7710247</td>
+<td align="right">0.9222995</td>
+</tr>
+<tr class="even">
+<td align="left">ENSG00000056998.18</td>
+<td align="right">-1.2683769</td>
+<td align="right">0.6173742</td>
+<td align="right">-0.4102326</td>
+<td align="right">-0.4675051</td>
+<td align="right">-0.4013815</td>
+<td align="right">-0.4755779</td>
+<td align="right">0.3729509</td>
+<td align="right">0.0998766</td>
+<td align="right">4.0454228</td>
+<td align="right">-1.8475756</td>
+</tr>
+<tr class="odd">
+<td align="left">ENSG00000111732.10</td>
+<td align="right">-1.1942220</td>
+<td align="right">-1.6520688</td>
+<td align="right">0.5840357</td>
+<td align="right">2.0436953</td>
+<td align="right">-1.0568737</td>
+<td align="right">-0.0134119</td>
+<td align="right">1.2309836</td>
+<td align="right">1.2240721</td>
+<td align="right">1.7842533</td>
+<td align="right">-0.3847856</td>
+</tr>
+<tr class="even">
+<td align="left">ENSG00000205795.4</td>
+<td align="right">-0.5871370</td>
+<td align="right">-1.0147223</td>
+<td align="right">1.5645194</td>
+<td align="right">-1.0254634</td>
+<td align="right">0.0907559</td>
+<td align="right">1.6620515</td>
+<td align="right">1.1592646</td>
+<td align="right">0.6424431</td>
+<td align="right">1.0686773</td>
+<td align="right">-0.2255054</td>
+</tr>
+<tr class="odd">
+<td align="left">ENSG00000155542.11</td>
+<td align="right">-0.0889840</td>
+<td align="right">-1.2574625</td>
+<td align="right">0.1977987</td>
+<td align="right">0.7655961</td>
+<td align="right">-0.3490159</td>
+<td align="right">0.3045645</td>
+<td align="right">0.0986034</td>
+<td align="right">-0.1709641</td>
+<td align="right">0.4167206</td>
+<td align="right">-0.9748929</td>
+</tr>
+<tr class="even">
+<td align="left">ENSG00000100647.7</td>
+<td align="right">-0.4539508</td>
+<td align="right">0.3498845</td>
+<td align="right">-0.9735861</td>
+<td align="right">-0.1466514</td>
+<td align="right">-1.7197131</td>
+<td align="right">-0.3295457</td>
+<td align="right">2.1979109</td>
+<td align="right">0.5791002</td>
+<td align="right">0.1686249</td>
+<td align="right">-1.2657021</td>
+</tr>
+</tbody>
+</table>
+<p>这个转换函数是这样的，目前可以转mRNA和lncRNA，可以只转一种，也可以都转.</p>
+<pre><code>trans_exp(exp, mrna_only = FALSE, lncrna_only = FALSE, gtex = FALSE)</code></pre>
+<div id="如果全部转换那么代码如下" class="section level4">
+<h4>如果全部转换，那么代码如下：</h4>
+<pre class="r"><code>library(tinyarray)
+k=mrna&lt;-trans_exp(exp) #一句话即可</code></pre>
+<pre><code>## 100 of genes successfully mapping to mRNA,0 of genes successfully mapping to lncRNA</code></pre>
+</div>
+<div id="如果只转mrna那么代码如下" class="section level4">
+<h4>如果只转mRNA，那么代码如下：</h4>
+<pre class="r"><code>library(tinyarray)
+mrna&lt;-trans_exp(exp,mrna_only = T,gtex = T) #有GTEx数据的话，可以加一句gtex = T</code></pre>
+<pre><code>## 100 of genes successfully mapping to mRNA,0 of genes successfully mapping to lncRNA</code></pre>
+<table>
+<colgroup>
+<col width="5%" />
+<col width="9%" />
+<col width="9%" />
+<col width="9%" />
+<col width="9%" />
+<col width="9%" />
+<col width="9%" />
+<col width="8%" />
+<col width="9%" />
+<col width="9%" />
+<col width="9%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th align="left"></th>
+<th align="right">TCGA1</th>
+<th align="right">TCGA2</th>
+<th align="right">TCGA3</th>
+<th align="right">TCGA4</th>
+<th align="right">TCGA5</th>
+<th align="right">GTEX1</th>
+<th align="right">GTEX2</th>
+<th align="right">GTEX3</th>
+<th align="right">GTEX4</th>
+<th align="right">GTEX5</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">CNN3</td>
+<td align="right">-2.3668855</td>
+<td align="right">0.1262266</td>
+<td align="right">-0.9932833</td>
+<td align="right">-1.5790701</td>
+<td align="right">0.8062750</td>
+<td align="right">-1.1574091</td>
+<td align="right">0.6819423</td>
+<td align="right">0.1313676</td>
+<td align="right">-1.7710247</td>
+<td align="right">0.9222995</td>
+</tr>
+<tr class="even">
+<td align="left">GYG2</td>
+<td align="right">-1.2683769</td>
+<td align="right">0.6173742</td>
+<td align="right">-0.4102326</td>
+<td align="right">-0.4675051</td>
+<td align="right">-0.4013815</td>
+<td align="right">-0.4755779</td>
+<td align="right">0.3729509</td>
+<td align="right">0.0998766</td>
+<td align="right">4.0454228</td>
+<td align="right">-1.8475756</td>
+</tr>
+<tr class="odd">
+<td align="left">AICDA</td>
+<td align="right">-1.1942220</td>
+<td align="right">-1.6520688</td>
+<td align="right">0.5840357</td>
+<td align="right">2.0436953</td>
+<td align="right">-1.0568737</td>
+<td align="right">-0.0134119</td>
+<td align="right">1.2309836</td>
+<td align="right">1.2240721</td>
+<td align="right">1.7842533</td>
+<td align="right">-0.3847856</td>
+</tr>
+<tr class="even">
+<td align="left">CYS1</td>
+<td align="right">-0.5871370</td>
+<td align="right">-1.0147223</td>
+<td align="right">1.5645194</td>
+<td align="right">-1.0254634</td>
+<td align="right">0.0907559</td>
+<td align="right">1.6620515</td>
+<td align="right">1.1592646</td>
+<td align="right">0.6424431</td>
+<td align="right">1.0686773</td>
+<td align="right">-0.2255054</td>
+</tr>
+<tr class="odd">
+<td align="left">SETD9</td>
+<td align="right">-0.0889840</td>
+<td align="right">-1.2574625</td>
+<td align="right">0.1977987</td>
+<td align="right">0.7655961</td>
+<td align="right">-0.3490159</td>
+<td align="right">0.3045645</td>
+<td align="right">0.0986034</td>
+<td align="right">-0.1709641</td>
+<td align="right">0.4167206</td>
+<td align="right">-0.9748929</td>
+</tr>
+<tr class="even">
+<td align="left">SUSD6</td>
+<td align="right">-0.4539508</td>
+<td align="right">0.3498845</td>
+<td align="right">-0.9735861</td>
+<td align="right">-0.1466514</td>
+<td align="right">-1.7197131</td>
+<td align="right">-0.3295457</td>
+<td align="right">2.1979109</td>
+<td align="right">0.5791002</td>
+<td align="right">0.1686249</td>
+<td align="right">-1.2657021</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="如果只转lncrna那么代码如下" class="section level4">
+<h4>如果只转lncRNA，那么代码如下：</h4>
+<pre class="r"><code>lncrna&lt;-trans_exp(exp,lncrna_only = T)</code></pre>
+<pre><code>## 100 of genes successfully mapping to mRNA,0 of genes successfully mapping to lncRNA</code></pre>
+<p>由于这个随机的基因里没有lncRNA，所以啥也没有。。。</p>
+<hr />
+<p>用这个包，一步到位，很是方便</p>
+<ul>
+<li><p>优点：</p>
+<ul>
+<li><p><strong>ensembl</strong> 快速转成<strong>symbol</strong></p></li>
+<li><p>可以选择只转mRNA还是lncRNA</p></li>
+</ul></li>
+<li><p>缺点：</p>
+<ul>
+<li><p>没有miRNA</p></li>
+<li><p>基本不更新</p></li>
+</ul></li>
+</ul>
+</div>
+</div>

@@ -1,0 +1,59 @@
+---
+title: 使用R语言给照片换底色
+author: 欧阳松
+date: '2021-09-06'
+slug: change-photo-color
+categories:
+  - 教程
+  - R
+tags:
+  - magick
+---
+
+<script src="{{< blogdown/postref >}}index_files/header-attrs/header-attrs.js"></script>
+
+
+<p>这个教程来自Y叔的<a href="https://mp.weixin.qq.com/s/ZX4iHCHeGvtfCBl5-v5GVw">听说你用R把证件照给一键换底了</a></p>
+<p><br />
+首先准备一张证件照（打码照）,比如蓝底图 <a href="#fig:fig">1</a>，png或jpg格式的都可以，用<strong>magick</strong>这个包的<code>image_read()</code>函数把它读进来，用ggplotify转换成ggplot图片</p>
+<pre><code>library(magick)
+x&lt;-image_read(&#39;你的照片.jpg&#39;)
+ggplotify::as.ggplot(x)</code></pre>
+<div class="figure" style="text-align: center"><span style="display:block;" id="fig:fig"></span>
+<img src="{{< blogdown/postref >}}index_files/figure-html/fig-1.png" alt="蓝底图" width="672" />
+<p class="caption">
+Figure 1: 蓝底图
+</p>
+</div>
+<p>用image_fill()函数直接就可以处理图片，选一个自己想要换的颜色，比如白色，代码一输，<code>as.ggplot</code>一转，就成了白底图 <a href="#fig:fig2">2</a>。</p>
+<pre class="r"><code>y&lt;-image_fill(x,&#39;white&#39;,fuzz = 20)
+ggplotify::as.ggplot(y)</code></pre>
+<div class="figure" style="text-align: center"><span style="display:block;" id="fig:fig2"></span>
+<img src="{{< blogdown/postref >}}index_files/figure-html/fig2-1.png" alt="白底图" width="672" />
+<p class="caption">
+Figure 2: 白底图
+</p>
+</div>
+<p>再试试别的颜色，拼一下图，见图 <a href="#fig:combine">3</a>所示。</p>
+<pre class="r"><code>p1&lt;- ggplotify::as.ggplot(image_fill(x,&#39;red&#39;,fuzz = 20))
+p2&lt;- ggplotify::as.ggplot(image_fill(x,&#39;brown&#39;,fuzz = 20))
+p3&lt;- ggplotify::as.ggplot(image_fill(x,&#39;navyblue&#39;,fuzz = 20))
+p4&lt;- ggplotify::as.ggplot(image_fill(x,&#39;steelblue&#39;,fuzz = 20))
+p5&lt;- ggplotify::as.ggplot(image_fill(x,&#39;green&#39;,fuzz = 20))
+p6&lt;- ggplotify::as.ggplot(image_fill(x,&#39;white&#39;,fuzz = 20))
+p7&lt;- ggplotify::as.ggplot(x)
+p8&lt;- ggplotify::as.ggplot(image_fill(x,&#39;yellow&#39;,fuzz = 20))
+p9&lt;- ggplotify::as.ggplot(image_fill(x,&#39;black&#39;,fuzz = 20))
+cowplot::plot_grid(p1,p2,p3,p4,p5,p6,p7,p8,p9,ncol = 3,labels = &quot;AUTO&quot;)</code></pre>
+<div class="figure" style="text-align: center"><span style="display:block;" id="fig:combine"></span>
+<img src="{{< blogdown/postref >}}index_files/figure-html/combine-1.png" alt="组合图" width="672" />
+<p class="caption">
+Figure 3: 组合图
+</p>
+</div>
+<hr />
+<p>最后用ggsave保存一下，还可以自己设置照片的长度和宽度，以及dpi</p>
+<p>比如，保存为宽2.5cm，高3.5cm、分辨率为150的jpg照片</p>
+<pre><code>ggsave(&quot;pic.jpg&quot;,width=2.5,heigh=3.5,unit=c(&#39;cm&#39;),dpi=150)</code></pre>
+<hr />
+<p>想试一下吗？</p>

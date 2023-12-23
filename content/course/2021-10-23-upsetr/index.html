@@ -1,0 +1,183 @@
+---
+title: 使用UpsetR绘制Upset图
+author: 欧阳松
+date: '2021-10-23'
+slug: upsetR
+categories:
+  - upset
+tags:
+  - upset
+---
+
+<script src="{{< blogdown/postref >}}index_files/header-attrs/header-attrs.js"></script>
+<script src="{{< blogdown/postref >}}index_files/htmlwidgets/htmlwidgets.js"></script>
+<link href="{{< blogdown/postref >}}index_files/datatables-css/datatables-crosstalk.css" rel="stylesheet" />
+<script src="{{< blogdown/postref >}}index_files/datatables-binding/datatables.js"></script>
+<script src="{{< blogdown/postref >}}index_files/jquery/jquery-3.6.0.min.js"></script>
+<link href="{{< blogdown/postref >}}index_files/dt-core/css/jquery.dataTables.min.css" rel="stylesheet" />
+<link href="{{< blogdown/postref >}}index_files/dt-core/css/jquery.dataTables.extra.css" rel="stylesheet" />
+<script src="{{< blogdown/postref >}}index_files/dt-core/js/jquery.dataTables.min.js"></script>
+<link href="{{< blogdown/postref >}}index_files/crosstalk/css/crosstalk.css" rel="stylesheet" />
+<script src="{{< blogdown/postref >}}index_files/crosstalk/js/crosstalk.min.js"></script>
+
+
+<p>之前写过一个"<a href="/course/veen-upset/">统计多个基因列表交集并画韦恩图和Upset图"</a>的教程，然后由于个人理解有限，所以有些不完善的地方，现在重新补充一下个人的理解</p>
+<div id="支持的数据类型" class="section level3">
+<h3>支持的数据类型</h3>
+<p>UpsetR目前之前的数据类型有三种</p>
+<ul>
+<li><p>含0和1的表格（默认格式，0代表无，1代表有）</p></li>
+<li><p>含表达量的矩阵（<code>fromExpression(input)</code>）</p></li>
+<li><p>各个数据集的列表（<code>fromList(input)</code>）</p></li>
+</ul>
+<p>我们最常用的是有了各种基因的基因列表，所以最常见的其实是list格式，所以需要我们进行转换，这个用<code>fromList(input)</code>函数可以快速统计。</p>
+</div>
+<div id="list数据的定义与导出" class="section level3">
+<h3>list数据的定义与导出</h3>
+<p>之前的教程介绍了list数据的定义，直接使用<code>list()</code>函数定义一下即可</p>
+<pre><code>list&lt;-list(listA=listA,listB=listB,listC=listC,listD=listD,listE=listE,listF=listF)
+## 前面的listA代表列名，后面的listA代表基因的列表</code></pre>
+<p>list数据的导出表格数据可以用<strong>plyr</strong>包的<code>rbind.fill()</code>函数实现，但是后一列的列表的开始默认是在前一列的最后，所以会有很多的空值，我们需要进行手动删除（主要是我不会代码。。。）</p>
+<pre><code>library(plyr)
+list&lt;-rbind.fill(data.frame(list$listA),
+               data.frame(list$listB),
+               data.frame(list$listC),
+               data.frame(list$listD),
+               data.frame(list$listE),
+               data.frame(list$listF))
+write.csv(list,&#39;list.csv&#39;)</code></pre>
+<p>这样导出csv数据后(比如这个<a href="/course/upsetr/list.csv">list.csv</a>的测试数据)，把空白值手动处理一下，然后可以导入R进行绘图（或者用在线工具绘图）,表的格式如下：</p>
+<div id="htmlwidget-1" style="width:100%;height:auto;" class="datatables html-widget"></div>
+<script type="application/json" data-for="htmlwidget-1">{"x":{"filter":"none","vertical":false,"data":[["1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16","17","18","19","20","21","22","23","24","25","26","27","28","29","30","31","32","33","34","35","36","37","38","39","40","41","42","43","44","45","46","47","48","49","50","51","52","53","54","55","56","57","58","59","60","61","62","63","64","65","66","67","68","69","70","71","72","73","74","75","76","77","78","79","80","81","82","83","84","85","86","87","88","89","90","91","92","93","94","95","96","97","98","99","100","101","102","103","104","105","106","107","108","109","110","111","112","113","114","115","116","117","118","119","120","121","122","123","124","125","126","127","128","129","130","131","132","133","134","135","136","137","138","139","140","141","142","143","144","145","146","147","148","149","150","151","152","153","154","155","156","157","158","159","160","161","162","163","164","165","166","167","168","169","170","171","172","173","174","175","176","177","178","179","180","181","182","183","184","185","186","187","188","189","190","191","192","193","194","195","196","197","198","199","200","201","202","203","204","205","206","207","208","209","210","211","212","213","214","215","216","217","218","219","220","221","222","223","224","225","226","227","228","229","230","231","232","233","234","235","236","237","238","239","240","241","242","243","244","245","246","247","248","249","250","251","252","253","254","255","256","257","258","259","260","261","262","263","264","265","266","267","268","269","270","271","272","273","274","275","276","277","278","279","280","281","282","283","284","285","286","287","288","289","290","291","292","293","294","295","296","297","298","299","300","301","302","303","304","305","306","307","308","309","310","311","312","313","314","315","316","317","318","319","320","321","322","323","324","325","326","327","328","329","330","331","332","333","334","335","336","337","338","339","340","341","342","343","344","345","346","347","348","349","350","351","352","353","354","355","356","357","358","359","360","361","362","363","364","365","366","367","368","369","370","371","372","373","374","375","376","377","378","379","380","381","382","383","384","385","386","387","388","389","390","391","392","393","394","395","396","397","398","399","400","401","402","403","404","405","406","407","408","409","410","411","412","413","414","415","416","417","418","419","420","421","422","423","424","425","426","427","428","429","430","431","432","433","434","435","436","437","438","439","440","441","442","443","444","445","446","447","448","449","450","451","452","453","454","455","456","457","458","459","460","461","462","463","464","465"],["NSG1","ATOH8","ANXA10","VWA5A","SLITRK6","HOXB3","ALDH1L1","ADHFE1","ST3GAL5","TMPRSS4","DGLUCY","PYROXD2","CRTAC1","SYTL1","BRINP1","CYP3A5","AQP3","SLC14A1","BTBD16","SPOCD1","DUOX1","ANKRD20A11P","PPFIBP2","FAM174B","HOXB5","SYT8","CDC42EP5","SOX15","PIGZ","DUOXA1","GSDME","HOXB8","ABCC4","ABCC3","HOXD1","VIPR1","TESC","ST6GALC2","BCAS1","ERN2","VSIG2","MST1R","CAPNS2","SRPX2","HOXA5","FAM3D","SEMA6A","MROH7","FABP4","PROM2","BMP7","RAPGEFL1","HSD17B2","COL4A5","TNNI2","TSHZ2","WNT10A","GATA2","SNORD33","RHEX","IGFBP2","CLCA4","CYP4F12","DAPL1","KRT13","IRX3","FABP6","CLIC6","DHRS2","CYP4B1","HMGCS2","LY6D","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","",""],["FAM117B","IYD","EPS8L3","TMEM178A","USP53","PAX8","LUC7L","CDH8","MYRF","SLC22A5","UBE2I","SMIM31","ATG16L1","CHST9","PLCH2","ERN2","LINC00930","ANKRD20A11P","ZNF440","GTF2IP20","SSTR5-AS1","ZG16B","HOXB5","CCDC146","BCAS1","APOBR","ADAM28","CTRC","LPCAT4","ABCC3","AZGP1","BAIAP2L1","PRKAB1","CTRL","FBXW4P1","PHYKPL","CELA3B","PLEKHA7","LINC00893","MUC17","CAC1D","ANXA10","SYCN","REG3A","DEFA6","INS","SLC26A3","CRP","MAB21L2","REG3G","PNLIPRP1","PNLIPRP2","CPA1","PNLIP","SRSF5","PGC","CELA3A","CYP3A5","PLA2G1B","GP2","CLPS","CELA2B","SLC3A1","HSD17B2","ZSCAN4","KLK1","CPA2","DEFA5","C6orf58","ATG16L2","CLCN3","LOC100506990","RAPGEF3","RAPH1","AFF1","SLC14A1","DACH2","CHKB","PTPRN2","SYTL2","FAM219B","MIR10A","ZNF334","ZBTB48","SPATA20","PIGZ","TBC1D8","SULT1A2","SMAD6","FAM3D","ANKRA2","ME3","PSMA3-AS1","TRNP1","CHPT1","KIAA0895L","CTRB2","TRIM52","SYT17","C4orf19","PCED1B","HMGCS2","AFG3L1P","DQX1","CAPN8","SULT1A1","DUSP2","CRACR2B","STK36","SH2D4A","CBR4","PLEKHH1","CUZD1","SI","ARHGAP6","NSUN6","CAPN3","REG4","ZNF513","LCOR","UNC5CL","CYP2C8","SMIM22","CXorf38","CDC42-IT1","RCOR3","ACADVL","LRRC49","LINC01122","SMG1P5","IQCH-AS1","LRRFIP1","VWA5A","CPB1","MAP3K5","ARHGEF28","BICDL2","KCNQ1","CLDN18","RNF207","DUOXA2","CCDC9B","PYROXD2","VIPR1","ZFP62","NSUN5P1","AGAP11","MAPK10","VSIG2","NFAT5","LOC105375172","REG1B","ABHD17C","PPP1R13B","RHBDF1","IFT140","IKBKB","MTRF1","TCN1","RNF44","EPHB6","SELENOO","ARL14","SIPA1L1","VPS37B","BAZ2B","TRIM41","BMP7","FTX","ELMO3","ANKHD1","HINT1","SH3BGRL2","DUOX2","RAPGEFL1","RPAIN","TRIM2","SLC26A6","UCA1","HOTAIRM1","ZSWIM6","ALOX5","RASSF6","TXNIP","TM2D1","BTBD16","SORL1","MST1R","IQCK","MUC5AC","CCNL2","SGSM2","TMEM51","WIF1","KDM6B","SLC4A11","ENGASE","YPEL3","SPINK1","HMGXB3","FAM221A","CYP4F12","ADAM1A","DDX17","WDR90","MLPH","SIGLEC15","ECHDC2","LAMA5","ZNF486","TRIM8","OR7E14P","REG1A","REPS1","CDH17","DGKA","TMTC2","PSD3","SH3RF1","CHD3","EPOR","ARHGAP32","TRAK1","ZNF26","AADAT","WHAMM","NFATC2IP","STK38","PARP4","SLC24A1","HIP1R","MGST2","ELF3","SELENBP1","CDC42","PABPN1","EIF3C","WEE1","SPOCD1","TUBG2","FOXP1","RAPGEF2","SRI","AP1G2","FAM185A","ARAP3","CCDC90B","TMEM139","FAM174B","ATF3","SST","RBM4","MMEL1","OGT","ST3GAL5","NR3C2","MFSD8","STAP2","ARHGEF10L","NR2C1","LINC01000","SLC35D1","FASTKD2","PTPRH","PPFIBP2","AGR2","REN","CROT","BRAF","SIDT1","FAM193B","ACVR2A","TMEM30B","CELP","STOX2","TGIF1","TMPRSS4","FBRSL1","CTSO","PRKCD","GAREM1","KRTCAP3","PTPRR","HDAC7","GNL3","ALG13","BATF","ANKRD65","NGEF","ARFGEF3","CNKSR1","ZKSCAN1","EML4","TMC4","FAM111A-DT","GGT6","CST1","SPRED2","MMAA","MTCL1","FBP1","HEIH","ZNF385A","LOC105379426","SSH3","YTHDC2","MECOM","SNX14","CAPNS2","INTU","PAN2","AHSA2P","EHD3","SYTL1","SUPT20H","COBLL1","ST3GAL4","FA2H","P4HTM","C9orf152","BCL6","NME3","HNF1B","AIG1","C16orf74","MYO6","COLCA2","PIK3C2B","TSPAN8","HPGD","ARRDC4","MTURN","FOXC1","FAM214A","DHRS3","TSPAN12","GPRC5C","TMEM45B","TRIM38","OAS1","CYP4F11","SLC20A1","BHLHE41","C1orf116","WDR6","ETS2","FAT1","STYK1","MYO5C","DMRTA2","CSNK1A1","MAP7","CCDC18-AS1","TOX3","SULT1C2","GABPB1-AS1","CEL","TRPM4","ARID2","GRAMD1C","TRIM31","CDC42EP5","ID1","EFHC1","SLC16A9","FAM110C","HAGLR","PSMD6-AS2","ID4","NPTXR","METTL7A","CYTH2","MIDN","IVA","ATP2C2","ZNF211","LNX1","SH3GLB2","SLC37A1","NUMB","SEMA4B","ACSL5","PXN","ZNF432","S100A3","ZNF185","PRR15","AQP3","TMEM267","ACSBG1","FBXO9","DTX4","ZNF195","LY75","PTK2","MPPED2","GPX2","AKAP7","FOXA1","NBEAL1","ZNF662","CYP4B1","MSANTD2","DUOXA1","CST4","SCAF11","CD46","CYB5A","CAPN1","C10orf99","PARP8","DIDO1","MFSD10","FOS","LOC102724851","KIT","TNFSF15","LOC100190986","CCND1","GPR160","ANKDD1A","THAP10","ABLIM1","CAPS","ARHGEF7","VNN1","OBSL1","CAMK2N1","GSAP","ST6GALC2","PPP1R9A","ATP10B","OSBPL3","RBM6","ZNF436-AS1","FAM3B","LOC145474","ATP1B1","PTPN13","KLHL13","ZNF397","FAM169A","AMT","PSMB10","PHACTR3","TACC1","PLA2G2F","INPP1","SLC15A1","AATBC","TRIB2","CMIP","CYP4F3","SMAD1","CNTN3","CTSE","DAPK1","TMEM154","ZDHHC21","EVPL","DENND2D","PLAT","ID3","LAMB3","AOC1"],["GSDME","CRTAC1","BRINP1","NSG1","HOXB5","HECTD2-AS1","ANXA10","SPATA18","HOXB8","SLC2A9","COL17A1","UST","ST3GAL5","HOXD1","PLCH2","PLCD3","AQP3","ALDH1L1","SMAD6","HOXB2","ANKRD50","DUOX1","SMAD3","ATOH8","ALOX5","SPOCD1","RHEX","ABCC4","TMPRSS4","HSD17B2","NT5E","SOX15","CFH","SYT8","ENTPD3","SLC14A1","MST1R","GMFG","LDOC1","CAPNS2","ITGA2","CDC42EP5","TSHZ2","FAM3D","TRNP1","CYP3A5","SERPINB5","KRT13","CA12","SRPX2","S100A2","BCAS1","BTBD16","TCN1","CCDC9B","CAPN8","C10orf99","TNNI2","TP63","LINC00930","FABP4","VSIG2","TESC","CLCA4","CLIC6","MALL","PPP2R2B","LY6D","MMP10","SPINK1","GSTM1","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","",""],["ST3GAL5","UNC5B","ATOH8","BCAS1","CRTAC1","SYTL1","FAM174B","SMAD6","TESC","MECOM","SLITRK6","ID3","SORL1","CDC42EP5","TMPRSS4","BHLHE41","NSG1","SPOCD1","BTBD16","C10orf99","VSIG2","GATA2","PPFIBP2","DENND2D","ANXA10","HSD17B2","PHGR1","SLC14A1","CCDC9B","HOXD1","PROM2","ANKRD20A11P","RAPGEFL1","FABP6","ALDH1L1","AQP3","ABCC3","CYP2J2","GGT6","HOXB5","TRNP1","RHEX","KRT13","CAPN9","TP63","SNCG","SNORD33","FBP1","CAPNS2","SYT8","KRT7","GPX2","FAM3D","HOXB8","CYP3A5","HMGCS2","I","DHRS2","CYP4B1","FABP4","SNX31","FABP5","LY6D","PSCA","PADI3","CLCA4","SPINK1","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","",""],["EPS8L3","ATF3","BCAS1","ZSCAN4","ZNF440","SLC14A1","YTHDC2","FAM219B","TMEM51","BTBD16","HSD17B2","AGAP11","ST3GAL5","ST3GAL4","HAPLN1","LCOR","CYP4B1","TRIM31","DUSP2","CYP3A5","PYROXD2","ZNF211","YPEL3","ZNF432","CCDC146","SLC20A1","LOC105375172","SLC22A5","BMP7","PLEKHA7","CYP4F12","KCNQ1","TMEM139","MUC2","VSIG2","MECOM","ANKRD20A11P","TNFSF15","ACADVL","AZGP1","DUOX2","ELF3","SPATA20","SLC4A11","FBP1","LINC00967","TRIM38","ABCC3","FOSB","GGT6","ANXA10","CYP2J2","VPS37B","MAPK10","FAM3D","PLLP","FAM174B","SULT1A1","SMAD6","OR7E14P","PPFIBP2","RALGAPA2","PLEKHH1","STAP2","CLCN3","TRAK1","ADAM1A","MMRN2","DGKA","TOX3","CDH26","RPAIN","CAPS","TBC1D8","SLC37A1","PAN2","GPX2","FAM214A","DENND2D","IFT140","VEGFA","LONRF1","TOB1","SYT17","UCA1","PIK3C2B","FAM221A","HMGCS2","RAPGEFL1","TRIM2","BAIAP2L1","LUC7L","GAREM1","TMEM178A","AFG3L1P","TMC4","SPOCD1","SORL1","ACSL5","ECHDC2","HIP1R","BICDL2","MAL","ME3","CAMK2N1","ANGPT2","SLC44A3","SCNN1A","SRSF11","ID1","DHRS2","EPHA2","ANKHD1","ACSF2","BRAF","ZNF615","FOS","LPCAT4","SIDT1","ARHGAP32","TM2D1","UPK1A","ADAM28","NFAT5","MAP3K5","RHBDF1","REN","LRRC69","NSUN6","BCAT2","EMP2","FOXC1","SLC15A1","GNL3","CNKSR1","ZMIZ1","ATF7IP2","BCAR4","ESM1","RHBDL2","SIGLEC15","PTK2","THEM6","EPB41L1","PIM1","AATBC","ABHD17C","SSH3","CYB5A","FBRSL1","FOXA1","SNX31","FA2H","PHLDB3","VIPR1","IGFBP3","DAPK1","BHLHE41","ENGASE","TRHDE-AS1","PSCA","TRIB1","MAOA","GRAMD1C","CMIP","LYPD6B","ARL14","EPN3","FAM110C","TST","TMEM45B","CROT","SLC45A3","PNCK","MGST2","RNF128","ATP2C2","PRR15","SPRED2","CTSH","CAPN3","TCIM","ASCC2","APCDD1","EVPL","TFF2","BCL6","SCMH1","DUSP5","ADIRF","TBX3","MYLIP","CDC42EP5","PADI3","S100A4","DUOXA1","LAMA5","SLC38A1","FBXO22","HOTAIRM1","CYP4F3","TSPAN6","HPGD","AGR2","ACBD5","TMEM154","PWWP2B","ZNF320","PRKCD","FBXO9","FAM3B","TSPAN12","RAB15","CAPNS2","SH3GLB2","TMPRSS4","ZFHX3","C16orf74","SH2D4A","ZNF823","C1orf116","TNFRSF21","TGFBR3","DHRS3","CLCA4","KCNN4","CBR4","CXCL17","CCNL2","DJA4","CNGA1","ELMO3","SH3BGRL2","IVA","ARAP3","KIAA1522","ALDH1L1","EIF3C","ABCD3","RFX7","EPHB6","TMEM163","GPD1L","ARHGAP23","MMP28","DAPK1-IT1","MPPED2","SLC16A5","SIN3B","NDUFA4L2","NQO1","MYO6","FAM83H","DTX4","GPBP1L1","PLAT","AQP3","ID3","ARFGEF3","PLPP2","GRHL3","ARHGEF7","CYTH2","C4orf19","PPARG","OAS1","CYP24A1","TFF1","RNF207","GPR160","B3GNT3","SCIN","GPRC5C","FAM185A","GLTP","SBK1","TMEM184A","CTSO","SCAF11","ZNF662","C10orf99","RGS5","S100P","ARID2","TRNP1","PSMD6-AS2","KLF5","RASSF6","UPK2","MYCL","KRTCAP3","ACP6","MAN1C1","SPINK1","CEL","LINC01004","TXNIP","MYO5C","PTK6","MUC20","STYK1","SYTL1","RAB11FIP1","LRP5","SLC1A6","SMAD1","CYP4X1","GATA3-AS1","RIPK4","TBX2","FOXQ1","AHR","SUPT20H","SEMA4B","CSNK1A1","SLC2A6","PTPRR","PPP1R9A","PPP1R10","ANKDD1A","ALDH5A1","SYT8","AXDND1","ARHGAP6","CYP4F11","COMT","ABLIM1","CNTN3","CXCL14","SPAG1","AMT","LCN2","NECTIN4","LINC01000","EPS8L2","PTPN13","CLDN7","MLPH","CHMP4C","PTPRM","TRIB2","PDE10A","DUOXA2","KRT8","TAC3","MDN1","DUSP4","ABCA6","SLC27A2","EHD3","PPM1L","AMIGO2","CA12","ALDH4A1","ISY1","ARRDC4","GATA3","FXYD3","LNX1","PPP1R13L","PVALB","FMO9P","TP53TG1","PSD3","AP1M2","METTL7A","RHOU","ZG16B","LY75","TACC1","CYP4F8","KRT18","PROM2","SLC6A8","CCND1","TMEM30B","PGAP1","MTCL1","CRH","SCNN1B","SCUBE2","BHMT","TSPAN1","LGALS4","MARVELD2","BEX4","PTH2R","GSAP","LOC100190986","AKR1C2","CLIC6","GPRC5A","TNNI2","NTN4","TCN1","MIR570HG","REEP6","FGFR3","TRIM29","KIFC2","SDC1","RAB25","SLC2A10","PKIA","CEACAM5","MST1R","I","PDGFD","AGR3","MX2","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","",""],["ST3GAL5","TMEM154","ID3","CYP3A5","CRTAC1","ATOH8","BCAS1","GGT6","PLCH2","FAM174B","ID1","SMAD6","PPFIBP2","SLC14A1","BTG2","C10orf99","CAPN8","VSIG2","PROM2","ALOX5","TMPRSS4","FAM3D","GPX2","HSD17B2","NSG1","BTBD16","LINC00930","MLPH","HPGD","ANXA10","CCDC9B","CYP4B1","HMGCS2","SYT8","CAPN5","PSCA","CLCA4","PHGR1","CYP4F12","FGD5","CAPNS2","ABCC3","CYP2J2","SPOCD1","HOXB5","ARL14","BNIPL","SRPX2","GATA2","SPINK1","S100P","ALDH1L1","SNCG","CDC42EP5","S100A4","OSR1","UCA1","ADIRF","TRNP1","COL17A1","TP63","PPP1R3C","GSTM1","SCUBE2","CYP4F22","DHRS2","PPP2R2B","CA12","AGR2","UPK2","LGALS4","CYP24A1","HOXB8","FABP4","UPK1A","PADI3","TESC","KRT13","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","",""]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th> <\/th>\n      <th>listA<\/th>\n      <th>listB<\/th>\n      <th>listC<\/th>\n      <th>listD<\/th>\n      <th>listE<\/th>\n      <th>listF<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"order":[],"autoWidth":false,"orderClasses":false,"columnDefs":[{"orderable":false,"targets":0}]}},"evals":[],"jsHooks":[]}</script>
+</div>
+<div id="绘图详解" class="section level3">
+<h3>绘图详解</h3>
+<div id="基本绘图" class="section level4">
+<h4>基本绘图</h4>
+<p>最基本的绘图就是upset(data)，我们看看默认的结果，见Figure <a href="#fig:upset1">1</a>所示。</p>
+<pre class="r"><code>library(UpSetR)
+upset(fromList(list))</code></pre>
+<div class="figure" style="text-align: center"><span style="display:block;" id="fig:upset1"></span>
+<img src="{{< blogdown/postref >}}index_files/figure-html/upset1-1.png" alt="默认Upset图" width="672" />
+<p class="caption">
+Figure 1: 默认Upset图
+</p>
+</div>
+</div>
+<div id="按频率排序" class="section level4">
+<h4>按频率排序</h4>
+<p>基本绘图比较没有规律，我们可以按数字的频率排序，也可以按degree排序，这里我们选择频率，默认是降序，见Figure <a href="#fig:upset2">2</a>所示。</p>
+<pre class="r"><code>upset(fromList(list),order.by = &#39;freq&#39;, # 如果想按度排序，可以改为&#39;degree&#39;
+      decreasing = T) # 升序的话，改为F</code></pre>
+<div class="figure" style="text-align: center"><span style="display:block;" id="fig:upset2"></span>
+<img src="{{< blogdown/postref >}}index_files/figure-html/upset2-1.png" alt="按频率排序的Upset图" width="672" />
+<p class="caption">
+Figure 2: 按频率排序的Upset图
+</p>
+</div>
+</div>
+<div id="显示所有数据集" class="section level4">
+<h4>显示所有数据集</h4>
+<p>这里，我们可以发现默认显示的5个数据集，但是实际上我们是6个数据集，我之前的方法是手动输入6，但其实不需要，我们只需要输入<code>dim(fromList(list))[2]</code>即可统计数据集的个数，比如Figure <a href="#fig:upset3">3</a>所示。。</p>
+<pre class="r"><code>upset(fromList(list),
+      nsets = dim(fromList(list))[2],
+      order.by = &#39;freq&#39;)</code></pre>
+<div class="figure" style="text-align: center"><span style="display:block;" id="fig:upset3"></span>
+<img src="{{< blogdown/postref >}}index_files/figure-html/upset3-1.png" alt="显示所有数据集的Upset图" width="672" />
+<p class="caption">
+Figure 3: 显示所有数据集的Upset图
+</p>
+</div>
+</div>
+<div id="统计所有数据集合的数目" class="section level4">
+<h4>统计所有数据集合的数目</h4>
+<p>我们还可以显示所有集合的列表数目，用颜色标记好，相当于维恩图最中心的数字，这里需要用<code>queries</code>函数，之前我是手动录入各个列表，其实只需要<code>colnames(fromList(list))</code>即可统计，见Figure <a href="#fig:upset4">4</a>所示。</p>
+<pre class="r"><code>upset(fromList(list),
+      nsets = dim(fromList(list))[2],
+      order.by = &#39;freq&#39;,
+      queries = list(list(query = intersects, 
+                          params = list(colnames(fromList(list))), 
+                          active = T)))</code></pre>
+<div class="figure" style="text-align: center"><span style="display:block;" id="fig:upset4"></span>
+<img src="{{< blogdown/postref >}}index_files/figure-html/upset4-1.png" alt="显示所有数据集数目的Upset图" width="672" />
+<p class="caption">
+Figure 4: 显示所有数据集数目的Upset图
+</p>
+</div>
+</div>
+<div id="显示交集为0的结果" class="section level4">
+<h4>显示交集为0的结果</h4>
+<p>默认的Upset图没有0的结果，我们只要设置empty.intersections = ’on’即可，但这样图片会被拉长，我们可以不用设置，这个看个人需要，见Figure <a href="#fig:upset5">5</a>所示。</p>
+<pre class="r"><code>upset(fromList(list),
+      nsets = dim(fromList(list))[2],
+      order.by = &#39;freq&#39;,
+      empty.intersections = &#39;on&#39;,
+      queries = list(list(query = intersects, 
+                          params = list(colnames(fromList(list))), 
+                          active = T)))</code></pre>
+<div class="figure" style="text-align: center"><span style="display:block;" id="fig:upset5"></span>
+<img src="{{< blogdown/postref >}}index_files/figure-html/upset5-1.png" alt="显示交集为0的Upset图" width="672" />
+<p class="caption">
+Figure 5: 显示交集为0的Upset图
+</p>
+</div>
+</div>
+<div id="显示数据集的原始数目" class="section level4">
+<h4>显示数据集的原始数目</h4>
+<p>我们可以看到只有交集的数目，但是没有原始数据集的数目，这里需要设置<code>set_size.show = T</code>即可，（当然还意设置数字的字体大小和角度，这个见仁见智），见Figure <a href="#fig:upset6">6</a>所示。</p>
+<pre class="r"><code>upset(fromList(list),
+      nsets = dim(fromList(list))[2],
+      order.by = &#39;freq&#39;,
+      empty.intersections = &#39;on&#39;,
+      set_size.show = T,
+      queries = list(list(query = intersects, 
+                          params = list(colnames(fromList(list))), 
+                          active = T)))</code></pre>
+<div class="figure" style="text-align: center"><span style="display:block;" id="fig:upset6"></span>
+<img src="{{< blogdown/postref >}}index_files/figure-html/upset6-1.png" alt="显示数据集原始数字的Upset图" width="672" />
+<p class="caption">
+Figure 6: 显示数据集原始数字的Upset图
+</p>
+</div>
+</div>
+<div id="设置各个bar的颜色" class="section level4">
+<h4>设置各个Bar的颜色</h4>
+<p>我们可以看到所有的颜色都是黑灰色，其实我们也可以设置颜色，比如main.bar.color 和sets.bar.color，这里我们可以使用<strong>ggpubr</strong>中的配色包（如npg，lancet，aaas等）进行上色，见Figure <a href="#fig:upset7">7</a>所示。</p>
+<pre class="r"><code>upset(fromList(list),
+      nsets = dim(fromList(list))[2],
+      order.by = &#39;freq&#39;,
+      empty.intersections = &#39;on&#39;,
+      set_size.show = T,
+            main.bar.color = &quot;brown&quot;, # 设置交集数柱子的颜色
+      sets.bar.color = ggpubr::get_palette(&#39;npg&#39;,dim(fromList(list))[2]), ## 设置数据集颜色，选择ggpubr的配色
+      queries = list(list(query = intersects, 
+                          params = list(colnames(fromList(list))), 
+                          active = T)))</code></pre>
+<div class="figure" style="text-align: center"><span style="display:block;" id="fig:upset7"></span>
+<img src="{{< blogdown/postref >}}index_files/figure-html/upset7-1.png" alt="显示Bar颜色的Upset图" width="672" />
+<p class="caption">
+Figure 7: 显示Bar颜色的Upset图
+</p>
+</div>
+</div>
+</div>
+<div id="其他参数" class="section level3">
+<h3>其他参数</h3>
+<p>完整代码如下，可以自己研究哦，设置标签名称、字体大小，log数字什么的。</p>
+<pre><code>upset(data, nsets = 5, nintersects = 40, sets = NULL,
+  keep.order = F, set.metadata = NULL, intersections = NULL,
+  matrix.color = &quot;gray23&quot;, main.bar.color = &quot;gray23&quot;,
+  mainbar.y.label = &quot;Intersection Size&quot;, mainbar.y.max = NULL,
+  sets.bar.color = &quot;gray23&quot;, sets.x.label = &quot;Set Size&quot;,
+  point.size = 2.2, line.size = 0.7, mb.ratio = c(0.7, 0.3),
+  expression = NULL, att.pos = NULL, att.color = main.bar.color,
+  order.by = c(&quot;freq&quot;, &quot;degree&quot;), decreasing = c(T, F),
+  show.numbers = &quot;yes&quot;, number.angles = 0, group.by = &quot;degree&quot;,
+  cutoff = NULL, queries = NULL, query.legend = &quot;none&quot;,
+  shade.color = &quot;gray88&quot;, shade.alpha = 0.25, matrix.dot.alpha = 0.5,
+  empty.intersections = NULL, color.pal = 1, boxplot.summary = NULL,
+  attribute.plots = NULL, scale.intersections = &quot;identity&quot;,
+  scale.sets = &quot;identity&quot;, text.scale = 1, set_size.angles = 0,
+  set_size.show = FALSE, set_size.numbers_size = NULL,
+  set_size.scale_max = NULL)</code></pre>
+</div>

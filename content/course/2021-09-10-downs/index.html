@@ -1,0 +1,308 @@
+---
+title: 那么多的'down'都是什么？
+author: 欧阳松
+date: '2021-09-10'
+slug: downs
+categories:
+  - bookdown
+  - blodgown
+  - pkgdown
+tags:
+  - R Markdown
+---
+
+<script src="{{< blogdown/postref >}}index_files/header-attrs/header-attrs.js"></script>
+
+
+<p>经常会看到许多以“down”结尾的单词，其中最重要的当属markdown，但作为R语言的学习者，开发了各种各样的down，我大致梭罗了一些，做一介绍，</p>
+<p><img src="images/markdown%20(1).svg" width="200" height="150" /></p>
+<div id="markdown" class="section level2">
+<h2><strong>markdown</strong></h2>
+<p>一款轻量级语句工具，基础中的基础，码字之王。</p>
+<p>这个基本就不用介绍了，Markdown 是一个 Web 上使用的文本到HTML的转换工具，可以通过简单、易读易写的文本格式生成结构化的HTML文档。目前 github、Stackoverflow 等网站均支持这种格式，格式是<u>.md</u>。</p>
+<p><a href="http://www.markdown.cn/" class="uri">http://www.markdown.cn/</a></p>
+<hr />
+<p><img src="images/rmarkdown.png" width="200" /></p>
+</div>
+<div id="r-markdown" class="section level2">
+<h2><strong>R Markdown</strong></h2>
+<p>Rstudio中高度集成的工具，可以使用markdown语句，几乎是后续所有down都离不开它，源自谢益辉，其中集成的Knit可以渲染各种效果。</p>
+<p>The rmarkdown package (Allaire, Xie, McPherson, et al. 2021) was first created in early 2014. During the past four years, it has steadily evolved into a relatively complete ecosystem for authoring documents, so it is a good time for us to provide a definitive guide to this ecosystem now. At this point, there are a large number of tasks that you could do with R Markdown:</p>
+<p>Compile a single R Markdown document to a report in different formats, such as PDF, HTML, or Word.</p>
+<p>Create notebooks in which you can directly run code chunks interactively.</p>
+<p>Make slides for presentations (HTML5, LaTeX Beamer, or PowerPoint).</p>
+<p>Produce dashboards with flexible, interactive, and attractive layouts.</p>
+<p>Build interactive applications based on Shiny.</p>
+<p>Write journal articles.</p>
+<p>Author books of multiple chapters.</p>
+<p>Generate websites and blogs.</p>
+<p><a href="https://bookdown.org/yihui/rmarkdown/" class="uri">https://bookdown.org/yihui/rmarkdown/</a></p>
+<hr />
+<p><img src="images/bookdown.png" /></p>
+</div>
+<div id="bookdown" class="section level2">
+<h2><strong>bookdown</strong></h2>
+<p>同样是谢大神的杰作，基于Rmarkdown的电子书生成工具，可以生成gitbook、pdf、word和epub格式的电子书，也是后续各种down的基础</p>
+<p>The bookdown package is an open-source R package that facilitates writing books and long-form articles/reports with R Markdown. Features include:</p>
+<p>Generate printer-ready books and ebooks from R Markdown documents.</p>
+<p>A markup language easier to learn than LaTeX, and to write elements such as section headers, lists, quotes, figures, tables, and citations.</p>
+<p>Multiple choices of output formats: PDF, LaTeX, HTML, EPUB, and Word.</p>
+<p>Possibility of including dynamic graphics and interactive applications (HTML widgets and Shiny apps).</p>
+<p>Support a wide range of languages: R, C/C++, Python, Fortran, Julia, Shell scripts, and SQL, etc.</p>
+<p>LaTeX equations, theorems, and proofs work for all output formats.</p>
+<p>Can be published to GitHub, bookdown.org, and any web servers.</p>
+<p>Integrated with the RStudio IDE.</p>
+<p>One-click publishing to <a href="https://bookdown.org" class="uri">https://bookdown.org</a>.</p>
+<hr />
+<p><img src="images/blogdown.png" /></p>
+</div>
+<div id="blogdown" class="section level2">
+<h2><strong>blogdown</strong></h2>
+<p>还是谢大神的巨作，使用Rmarkdown创建网站，使用的是hugo主题，包括我这个站也是基于此。</p>
+<p>The goal of the blogdown package is to provide a powerful and customizable website output format for R Markdown. Use dynamic R Markdown documents to build webpages featuring:</p>
+<p>R code (or other programming languages that knitr supports),</p>
+<p>automatically rendered output such as graphics, tables, analysis results, and HTML widgets, and</p>
+<p>technical writing elements such as citations, footnotes, and LaTeX math, enabled by the bookdown package.</p>
+<p>By default, blogdown uses Hugo, a popular open-source static website generator, which provides a fast and flexible way to build your site content to be shared online. Other website generators like Jekyll and Hexo are also supported.</p>
+<p>A useful feature of blogdown sites, compared to other R Markdown-based websites, is that you may organize your website content (including R Markdown files) within subdirectories. This makes blogdown a good solution not just for blogging or sites about R — it can also be used to create general-purpose websites to communicate about data science, statistics, data visualization, programming, or education.</p>
+<p><a href="https://bookdown.org/yihui/blogdown/" class="uri">https://bookdown.org/yihui/blogdown/</a></p>
+<hr />
+<p><img src="images/pagedown.png" /></p>
+</div>
+<div id="pagedown" class="section level2">
+<h2><strong>pagedown</strong></h2>
+<p>使用R标记和CSS创建漂亮的PDF，再安装<strong>rticles</strong>这个包以后可以集成多种模版，包括个人简历、期刊杂志、论文等等，也是后续期刊杂志的基础。</p>
+<p>The traditional way to beautiful PDFs is often through LaTeX or Word, but have you ever thought of printing a web page to PDF? Web technologies (HTML/CSS/JavaScript) are becoming more and more amazing. It is entirely possible to create high-quality PDFs through Google Chrome or Chromium now. Web pages are usually single-page documents, but they can be paginated thanks to the JavaScript library Paged.js, so that you can have elements like headers, footers, and page margins for the printing purpose. In this talk, we introduce a new R package, pagedown (<a href="https://github.com/rstudio/pagedown" class="uri">https://github.com/rstudio/pagedown</a>), to create PDF documents based on R Markdown and Paged.js. Applications of pagedown includes, but not limited to, books, articles, posters, resumes, letters, and business cards. With the power of CSS and JavaScript, you can typeset your documents with amazing elegance (e.g., a single line of CSS, “tr:nth-child(even) { background: #eee; }”, will give you a striped table, and “border-radius: 50%;” gives you a circular element) and power (e.g., HTML Widgets).</p>
+<p><a href="https://github.com/rstudio/pagedown" class="uri">https://github.com/rstudio/pagedown</a></p>
+<hr />
+<p><img src="images/pkgdown.png" width="200" /></p>
+</div>
+<div id="pkgdown" class="section level2">
+<h2><strong>pkgdown</strong></h2>
+<p>一看为R包快速轻松地构建网站的包，建立网站介绍你的包</p>
+<p>pkgdown is designed to make it quick and easy to build a website for your package. You can see pkgdown in action at <a href="https://pkgdown.r-lib.org" class="uri">&lt;https://pkgdown.r-lib.org&gt;</a>: this is the output of pkgdown applied to the latest version of pkgdown. Learn more in vignette(“pkgdown”) or ?build_site.</p>
+<p><a href="https://pkgdown.r-lib.org/" class="uri">https://pkgdown.r-lib.org/</a></p>
+<hr />
+<p><img src="images/officedown.png" /></p>
+</div>
+<div id="officedown" class="section level2">
+<h2><strong>officedown</strong></h2>
+<p>可以集成生成word和ppt的R包，基于的是R Markdown 。</p>
+<p>Word</p>
+<p>The package facilitates the formatting of Microsoft Word documents produced by R Markdown documents by providing a range of features:</p>
+<p>PowerPoint</p>
+<p>The package also enhances PowerPoint productions with R Markdown by providing a mechanism for placing results according to the slide template contained in the PowerPoint document used as “reference_doc”. It becomes easy to add several contents in the same slide.</p>
+<p><a href="https://github.com/davidgohel/officedown" class="uri">https://github.com/davidgohel/officedown</a></p>
+<p><a href="https://ardata-fr.github.io/officeverse/officedown-for-word.html" class="uri">https://ardata-fr.github.io/officeverse/officedown-for-word.html</a></p>
+<hr />
+</div>
+<div id="elegantbookdown" class="section level2">
+<h2><strong>ElegantBookdown</strong></h2>
+<p>黄湘云制作的一款将<a href="https://github.com/ElegantLaTeX/ElegantBook">ElegantBook</a>制作成bookdown格式的模板，可以生成很好看的word</p>
+<p><strong>在线预览</strong></p>
+<ul>
+<li><p><a href="https://bookdown.org/xiangyun/elegantbookdown/" class="uri">https://bookdown.org/xiangyun/elegantbookdown/</a> (stable)</p></li>
+<li><p><a href="https://xiangyunhuang.github.io/ElegantBookdown/" class="uri">https://xiangyunhuang.github.io/ElegantBookdown/</a> (latest)</p></li>
+</ul>
+<p>源码地址：<a href="https://github.com/XiangyunHuang/ElegantBookdown" class="uri">https://github.com/XiangyunHuang/ElegantBookdown</a></p>
+<hr />
+<p><img src="images/thesisdown.png" width="200" /></p>
+</div>
+<div id="thesisdown" class="section level2">
+<h2><strong>thesisdown</strong></h2>
+<p>使用bookdown软件包更新的R Markdown论文模板的包，是今后写毕业论文的方向，目前衍生了若干高效的’down’，下面有各种例子，有兴趣的话，你也可以自己制作一个。</p>
+<p>This project was inspired by the bookdown package and is an updated version of my Senior Thesis template in the reedtemplates package here. It was originally designed to only work with the Reed College LaTeX template, but has since been adapted to work with many different institutions by many different individuals. Check out the Customizing thesisdown to your institution section below for examples.</p>
+<p>Currently, the PDF and gitbook versions are fully-functional. The word and epub versions are developmental, have no templates behind them, and are essentially calls to the appropriate functions in bookdown.</p>
+<p><a href="https://github.com/ismayc/thesisdown" class="uri">&lt;https://github.com/ismayc/thesisdown&gt;</a></p>
+<table>
+<colgroup>
+<col width="27%" />
+<col width="42%" />
+<col width="29%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th><strong>College/University</strong></th>
+<th><strong>Repository</strong></th>
+<th><strong>Based on</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>American University</td>
+<td><a href="https://github.com/SimonHeuberger/eagledown">SimonHeuberger/eagledown</a></td>
+<td><a href="https://github.com/benmarwick/huskydown">benmarwick/huskydown</a></td>
+</tr>
+<tr class="even">
+<td>Brock University</td>
+<td><a href="https://github.com/brentthorne/brockdown">brentthorne/brockdown</a></td>
+<td><a href="https://github.com/zkamvar/beaverdown">zkamvar/beaverdown</a></td>
+</tr>
+<tr class="odd">
+<td>École Doctorale de Mathématiques Hadamard</td>
+<td><a href="https://github.com/abichat/hadamardown">abichat/hadamardown</a></td>
+<td><a href="https://github.com/ismayc/thesisdown">ismayc/thesisdown</a></td>
+</tr>
+<tr class="even">
+<td>Drexel University</td>
+<td><a href="https://github.com/tbradley1013/dragondown">tbradley1013/dragondown</a></td>
+<td><a href="https://github.com/ismayc/thesisdown">ismayc/thesisdown</a></td>
+</tr>
+<tr class="odd">
+<td>Duke University</td>
+<td><a href="https://github.com/mine-cetinkaya-rundel/thesisdowndss">mine-cetinkaya-rundel/thesisdowndss</a></td>
+<td><a href="https://github.com/ismayc/thesisdown">ismayc/thesisdown</a></td>
+</tr>
+<tr class="even">
+<td>Graduate Institute of International and Development Studies</td>
+<td><a href="https://github.com/jhollway/iheiddown">jhollway/iheiddown</a></td>
+<td><a href="https://github.com/ulyngs/oxforddown">ulyngs/oxforddown</a></td>
+</tr>
+<tr class="odd">
+<td>Heidelberg University, Faculty of Biosciences</td>
+<td><a href="https://github.com/nkurzaw/heididown">nkurzaw/heididown</a></td>
+<td><a href="https://github.com/phister/huwiwidown">phister/huwiwidown</a></td>
+</tr>
+<tr class="even">
+<td>Humboldt University of Berlin</td>
+<td><a href="https://github.com/phister/huwiwidown">phister/huwiwidown</a></td>
+<td><a href="https://github.com/ismayc/thesisdown">ismayc/thesisdown</a></td>
+</tr>
+<tr class="odd">
+<td>Kansas State University</td>
+<td><a href="https://github.com/emraher/wildcatdown">emraher/wildcatdown</a></td>
+<td><a href="https://github.com/benmarwick/huskydown">benmarwick/huskydown</a></td>
+</tr>
+<tr class="even">
+<td>Massachusetts Institute of Technology</td>
+<td><a href="https://github.com/ratatstats/manusdown">ratatstats/manusdown</a></td>
+<td><a href="https://github.com/ismayc/thesisdown">ismayc/thesisdown</a></td>
+</tr>
+<tr class="odd">
+<td>Oregon State University</td>
+<td><a href="https://github.com/zkamvar/beaverdown">zkamvar/beaverdown</a></td>
+<td><a href="https://github.com/ismayc/thesisdown">ismayc/thesisdown</a></td>
+</tr>
+<tr class="even">
+<td>Oxford University</td>
+<td><a href="https://github.com/davidplans/oxdown">davidplans/oxdown</a></td>
+<td><a href="https://github.com/ismayc/thesisdown">ismayc/thesisdown</a></td>
+</tr>
+<tr class="odd">
+<td>Queen’s University</td>
+<td><a href="https://github.com/eugenesit/gaelsdown">eugenesit/gaelsdown</a></td>
+<td><a href="https://github.com/ismayc/thesisdown">ismayc/thesisdown</a></td>
+</tr>
+<tr class="even">
+<td>Smith College</td>
+<td><a href="https://github.com/SmithCollege-SDS/pioneerdown">SmithCollege-SDS/pioneerdown</a></td>
+<td><a href="https://github.com/ismayc/thesisdown">ismayc/thesisdown</a></td>
+</tr>
+<tr class="odd">
+<td>Southampton University</td>
+<td><a href="https://github.com/dr-harper/sotonthesis">dr-harper/sotonthesis</a></td>
+<td><a href="https://github.com/ismayc/thesisdown">ismayc/thesisdown</a></td>
+</tr>
+<tr class="even">
+<td>Stanford University</td>
+<td><a href="https://github.com/mhtess/treedown">mhtess/treedown</a></td>
+<td><a href="https://github.com/ismayc/thesisdown">ismayc/thesisdown</a></td>
+</tr>
+<tr class="odd">
+<td>Universidade Federal do Rio de Janeiro</td>
+<td><a href="https://github.com/COPPE-UFRJ/coppedown">COPPE-UFRJ/coppedown</a></td>
+<td><a href="https://github.com/ismayc/thesisdown">ismayc/thesisdown</a></td>
+</tr>
+<tr class="even">
+<td>Université Paris-Saclay</td>
+<td><a href="https://github.com/abichat/hadamardown">abichat/hadamardown</a></td>
+<td><a href="https://github.com/ismayc/thesisdown">ismayc/thesisdown</a></td>
+</tr>
+<tr class="odd">
+<td>University College London</td>
+<td><a href="https://github.com/benyohaiphysics/thesisdownUCL">benyohaiphysics/thesisdownUCL</a></td>
+<td><a href="https://github.com/ismayc/thesisdown">ismayc/thesisdown</a></td>
+</tr>
+<tr class="even">
+<td>University of Arizona</td>
+<td><a href="https://github.com/kelseygonzalez/beardown">kelseygonzalez/beardown</a></td>
+<td><a href="https://github.com/ismayc/thesisdown">ismayc/thesisdown</a></td>
+</tr>
+<tr class="odd">
+<td>University of California, Davis</td>
+<td><a href="https://github.com/ryanpeek/aggiedown">ryanpeek/aggiedown</a></td>
+<td><a href="https://github.com/DanOvando/gauchodown">DanOvando/gauchodown</a></td>
+</tr>
+<tr class="even">
+<td>University of California, Santa Barbara</td>
+<td><a href="https://github.com/DanOvando/gauchodown">DanOvando/gauchodown</a></td>
+<td><a href="https://github.com/benmarwick/huskydown">benmarwick/huskydown</a></td>
+</tr>
+<tr class="odd">
+<td>University of Florida</td>
+<td><a href="https://github.com/ksauby/thesisdownufl">ksauby/thesisdownufl</a></td>
+<td><a href="https://github.com/ismayc/thesisdown">ismayc/thesisdown</a></td>
+</tr>
+<tr class="even">
+<td>University of Freiburg</td>
+<td><a href="https://github.com/vivekbhr/doctorRbite">vivekbhr/doctorRbite</a></td>
+<td><a href="https://github.com/ismayc/thesisdown">ismayc/thesisdown</a></td>
+</tr>
+<tr class="odd">
+<td>University of Kansas</td>
+<td><a href="https://github.com/wjakethompson/jayhawkdown">wjakethompson/jayhawkdown</a></td>
+<td><a href="https://github.com/ismayc/thesisdown">ismayc/thesisdown</a></td>
+</tr>
+<tr class="even">
+<td>University of Manchester</td>
+<td><a href="https://github.com/JulioV/uomthesisdown">juliov/uomthesisdown</a></td>
+<td><a href="https://github.com/ismayc/thesisdown">ismayc/thesisdown</a></td>
+</tr>
+<tr class="odd">
+<td>University of Minnesota</td>
+<td><a href="https://github.com/zief0002/qmedown">zief0002/qmedown</a></td>
+<td><a href="https://github.com/ismayc/thesisdown">ismayc/thesisdown</a></td>
+</tr>
+<tr class="even">
+<td>University of New South Wales</td>
+<td><a href="https://github.com/rensa/unswthesisdown">rensa/unswthesisdown</a></td>
+<td><a href="https://github.com/ismayc/thesisdown">ismayc/thesisdown</a></td>
+</tr>
+<tr class="odd">
+<td>University of Salzburg</td>
+<td><a href="https://github.com/irmingard/salzburgthesisdown">irmingard/salzburgthesisdown</a></td>
+<td><a href="https://github.com/ismayc/thesisdown">ismayc/thesisdown</a></td>
+</tr>
+<tr class="even">
+<td>University of Toronto</td>
+<td><a href="https://github.com/mattwarkentin/torontodown">mattwarkentin/torontodown</a></td>
+<td><a href="https://github.com/zkamvar/beaverdown">zkamvar/beaverdown</a></td>
+</tr>
+<tr class="odd">
+<td>University of Washington</td>
+<td><a href="https://github.com/benmarwick/huskydown">benmarwick/huskydown</a></td>
+<td><a href="https://github.com/ismayc/thesisdown">ismayc/thesisdown</a></td>
+</tr>
+<tr class="even">
+<td>TU Wien</td>
+<td><a href="https://github.com/ben-schwen/robotdown">ben-schwen/robotdown</a></td>
+<td><a href="https://github.com/ismayc/thesisdown">ismayc/thesisdown</a></td>
+</tr>
+<tr class="odd">
+<td>University of Bristol</td>
+<td><a href="https://github.com/mattlee821/bristolthesis">mattlee821/bristolthesis</a></td>
+<td><a href="https://github.com/ismayc/thesisdown">ismayc/thesisdown</a></td>
+</tr>
+<tr class="even">
+<td>Universidade Federal de Santa Catarina</td>
+<td><a href="https://github.com/lfpdroubi/ufscdown">lfpdroubi/ufscdown</a></td>
+<td><a href="https://github.com/ismayc/thesisdown">ismayc/thesisdown</a></td>
+</tr>
+<tr class="odd">
+<td>Universiteit van Amsterdam</td>
+<td><a href="https://github.com/lcreteig/amsterdown">lcreteig/amsterdown</a></td>
+<td><a href="https://github.com/benmarwick/huskydown">benmarwick/huskydown</a></td>
+</tr>
+</tbody>
+</table>
+</div>

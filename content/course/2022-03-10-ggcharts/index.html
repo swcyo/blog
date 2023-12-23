@@ -1,0 +1,141 @@
+---
+title: ggcharts画漂亮的图（折线图、棒棒糖图、哑铃图、金字塔图）
+author: 欧阳松
+date: '2022-03-10'
+slug: ggcharts
+categories:
+  - 教程
+tags:
+  - ggcharts
+---
+
+<script src="{{< blogdown/postref >}}index_files/header-attrs/header-attrs.js"></script>
+
+
+<p>如果你会ggplot2，其实折线图、棒棒糖图、哑铃图、金字塔图你都可以画，但是代码很长，ggcharts是一个简洁的包，一行代码画好，其实也是很香的啊</p>
+<p>教程来自<a href="https://mp.weixin.qq.com/s/a28xCthALA0LOIJ-0jlV8Q">ggcharts 快速绘制优美图形 (qq.com)</a></p>
+<p>这个包包的功能其实很多，我当一下搬运工演示一下</p>
+<p>安装包很简单，如果没有安装，只需要一行命令安装</p>
+<pre><code>install.packages(&quot;ggcharts&quot;)</code></pre>
+<pre class="r"><code>## 加载这个包包
+library(ggcharts)</code></pre>
+<pre><code>## 载入需要的程辑包：ggplot2</code></pre>
+<div id="分面条形图" class="section level2">
+<h2>分面条形图</h2>
+<p>首先看ggolot2画这种图有多么的麻烦，代码那么长</p>
+<pre class="r"><code>library(dplyr)
+    library(ggplot2)
+    library(ggcharts)
+    data(&quot;biomedicalrevenue&quot;)
+
+    biomedicalrevenue%&gt;%
+    filter(year%in%c(2012,2015,2018))%&gt;%
+    group_by(year)%&gt;%
+    top_n(10,revenue)%&gt;%
+    ungroup()%&gt;%
+    mutate(company=tidytext::reorder_within(company,revenue,year))%&gt;%
+    ggplot(aes(company,revenue))+
+    geom_col()+
+    coord_flip()+ ##转置
+    tidytext::scale_x_reordered()+ ## 设置x排序，需要安装tidytext
+    facet_wrap(vars(year),scales=&quot;free_y&quot;) ##分面，按y分面</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-2-1.png" width="672" /></p>
+<p>如果用ggcharts，代码是那么短，而且蓝蓝的配色，很舒服</p>
+<pre class="r"><code>biomedicalrevenue %&gt;%
+  filter(year %in% c(2012, 2015, 2018)) %&gt;%
+  bar_chart(x = company, y = revenue, facet = year, top_n = 10)</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-3-1.png" width="672" /></p>
+</div>
+<div id="折线图" class="section level2">
+<h2>折线图</h2>
+<pre class="r"><code>data(&quot;revenue_wide&quot;)
+line_chart(data = revenue_wide, x = year, y = Roche:Bayer) +
+  labs(x = &quot;Year&quot;, y = &quot;Revenue (Billion USD)&quot;)</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-4-1.png" width="672" /></p>
+<pre class="r"><code>## 这里要注意，只要github的包才能用line_chart函数，CRAN那个包不行</code></pre>
+</div>
+<div id="棒棒糖图" class="section level2">
+<h2>棒棒糖图</h2>
+<pre class="r"><code>biomedicalrevenue %&gt;%
+  filter(year == 2018) %&gt;%
+  lollipop_chart(x = company, y = revenue, threshold = 30) +
+  labs(
+    x = NULL,
+    y = &quot;Revenue&quot;,
+    title = &quot;Biomedical Companies with Revenue &gt; $30Bn.&quot;
+  ) +
+  scale_y_continuous(
+    labels = function(x) paste0(&quot;$&quot;, x, &quot;Bn.&quot;),
+    expand = expansion(mult = c(0, .05))
+  )</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-5-1.png" width="672" /></p>
+</div>
+<div id="哑铃图" class="section level2">
+<h2>哑铃图</h2>
+<pre class="r"><code>data(&quot;popeurope&quot;)
+dumbbell_chart(
+  data = popeurope,
+  x = country,
+  y1 = pop1952,
+  y2 = pop2007,
+  top_n = 10,
+  point_colors = c(&quot;lightgray&quot;, &quot;#494F5C&quot;)
+) +
+  labs(
+    x = NULL,
+    y = &quot;Population&quot;,
+    title = &quot;Europe&#39;s Largest Countries by Population in 2007&quot;
+  ) +
+  scale_y_continuous(
+    limits = c(0, NA),
+    labels = function(x) paste(x, &quot;Mn.&quot;)
+  )</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-6-1.png" width="672" /></p>
+</div>
+<div id="双面柱状图" class="section level2">
+<h2>双面柱状图</h2>
+<pre class="r"><code>data(mtcars)
+mtcars_z &lt;- dplyr::transmute(
+  .data = mtcars,
+  model = row.names(mtcars),
+  hpz = scale(hp)
+)
+
+diverging_bar_chart(data = mtcars_z, x = model, y = hpz)</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-7-1.png" width="672" /></p>
+<p>双面棒棒糖图</p>
+<pre class="r"><code>diverging_lollipop_chart(
+  data = mtcars_z,
+  x = model,
+  y = hpz,
+  lollipop_colors = c(&quot;#006400&quot;, &quot;#b32134&quot;),
+  text_color = c(&quot;#006400&quot;, &quot;#b32134&quot;)
+)</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-8-1.png" width="672" /></p>
+</div>
+<div id="金字塔图" class="section level2">
+<h2>金字塔图</h2>
+<pre class="r"><code>data(&quot;popch&quot;)
+pyramid_chart(data = popch, x = age, y = pop, group = sex)</code></pre>
+<pre><code>## Warning: `expand_scale()` is deprecated; use `expansion()` instead.
+
+## Warning: `expand_scale()` is deprecated; use `expansion()` instead.
+
+## Warning: `expand_scale()` is deprecated; use `expansion()` instead.
+
+## Warning: `expand_scale()` is deprecated; use `expansion()` instead.</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-9-1.png" width="672" /></p>
+</div>
+<div id="不同主题" class="section level2">
+<h2>不同主题</h2>
+<pre class="r"><code>ggcharts_set_theme(&quot;theme_hermit&quot;)
+bar_chart(data = diamonds, x = cut)</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-10-1.png" width="672" /></p>
+<pre class="r"><code>ggcharts_set_theme(&quot;theme_ng&quot;)
+bar_chart(data = diamonds, x = cut)</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-11-1.png" width="672" /></p>
+<pre class="r"><code>ggcharts_set_theme(&quot;theme_nightblue&quot;)
+bar_chart(data = diamonds, x = cut)</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-12-1.png" width="672" /></p>
+<p>更多定制，等你来发现</p>
+</div>

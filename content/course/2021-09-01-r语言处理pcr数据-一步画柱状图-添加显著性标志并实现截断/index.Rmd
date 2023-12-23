@@ -1,0 +1,148 @@
+---
+title: R语言处理PCR数据，一步画柱状图、添加显著性标志并实现截断
+author: R package build
+date: '2021-09-01'
+slug: r语言处理pcr数据-一步画柱状图-添加显著性标志并实现截断
+categories:
+  - 教程
+  - R
+tags:
+  - 教程
+  - R
+  - PCR
+---
+
+临床上经常需要处理PCR数据，但是一般下机给的都是Ct值（或者Cq值），这时候我们需要用一个相对恒定的内参基因（一般是GAPDH或actin）去校正，一般而言，Ct值越大，其实代表他的相对表达量最少。
+
+现在最普遍使用的方法是**-2^∆∆Ct^**法，当然还有针对PCR array的专门算法，这里不说。
+
+PCR数据要有三列，一列是组名，一列是内参基因的Ct值，一列是目的基因的Ct值，计算方法是-2^∆∆Ct^ 法，实现一步出图用的是`ggpubr`，实现截断则是Y叔出手的`ggbreak`
+
+\- 比如有下面这个表，保存并定义为`PCR.csv`，放桌面上：
+
+| group   | GAPDH | XXX   |
+|---------|-------|-------|
+| control | 12.17 | 23.76 |
+| control | 11.88 | 23.79 |
+| control | 11.92 | 23.57 |
+| treat   | 11.81 | 19.06 |
+| treat   | 11.66 | 19.14 |
+| treat   | 11.59 | 18.81 |
+
+### 读取表格，并计算相对mRNA定量
+
+```{r}
+PCR <- read.csv("~/Desktop/PCR.csv") #读表
+PCR$dct=PCR$XXX-PCR$GAPDH  ##目的基因Ct-内存基因Ct，即∆Ct
+PCR$ddct=PCR$dct-mean(PCR$dct[1:3])  ##∆Ct-对照组Ct均值，即∆∆Ct
+PCR$mrna=2^-PCR$ddct  ##取-∆∆Ct的2次放，即-2^∆∆Ct
+```
+
+很快的，我们就计算好了，表格现在是这样的。
+
+```{r,echo=FALSE}
+knitr::kable(PCR)
+```
+
+### 一步基础作图
+
+我们需要的数值都有了，一步出图可以用ggpubr，当然也可以用ggplot2，这个可以看我之前关于柱状图的教程，我们先画个基础图
+
+```{r}
+suppressMessages(library(ggpubr)) # 加个suppressMessages，可以不显示加载包的提示
+p<-ggbarplot(PCR,
+        'group',
+        'mrna',
+        fill = 'group',# 按组填充颜色，当然如果喜欢单色，就用‘black’
+        color = 'group', # 按组填充颜色
+        palette = "jco",  ## "npg", "aaas", "lancet"等主题任意选
+        add = "mean_sd", #计算均数和标准差
+        xlab = F,ylab = 'Relative mRNA expression',legend='none',
+        ggtheme = theme_bw()) #选一个自己喜欢的主题
+p
+```
+
+可以看到差别很大，可以截断一下
+
+PS：不知道为什么我这一版（0.04版）的截断结果变样了，哪天去Y叔那投诉一下
+
+```{r}
+suppressMessages(library(ggbreak))
+p+scale_y_break(c(1.5, 15))
+```
+
+### 科学的统计方法
+
+我们知道简单的t检验或者非参数检验都是偷懒的办法，两独立样本我们需要先做正态检验，，然后是方差齐性检验，最后才是选择哪种检验方法。
+
+我们首先可以看一下数据的分布情况，用**psych**包里的`describeBy()`函数，可以分别统计各组数据
+
+```{r}
+suppressMessages(library(psych))  
+describeBy(PCR[c(1,6)],PCR$group) # 我们只看分组和最终的mrna结果
+```
+
+可以很快的看到control和treat组的均数、标准差、最大值、最小值、组距、标准误等结果。
+
+#### 正态性检验
+
+一般两组的比较推荐`shapiro检验`，这里我们要主要不是做整体数据的正态性检验，e而应该是把每一个变量按照分组分别进行正态检验，如果两组里面哪怕有一组正态分布和一组不正态分布，那么它也是不正态分布，这种情况也要选择非参数检验。
+
+下面的函数是分别统计，可以用`tapply()`，也可以用`by()`，结果可以发现两组的p值都\>0.5，也就是说都符合正态分布，这时候我们还要看两组数据有没有方差齐性。
+
+```{r}
+with(PCR,tapply(PCR$mrna, group, shapiro.test))
+```
+
+#### 方差齐性检验
+
+我们可以选择`var.test()`做方差齐性检验，也就是F检验。
+
+-   如果方差具有齐性，我们直接选择t检验，
+
+-   如果方差不具有齐性，则要选择校正过的近似t检验
+
+```{r}
+var.test(mrna ~ group, data = PCR)$p.value #如果想看完整的结果，可以把$p.value去掉
+```
+
+我们可以看到这里的p值\<0.05，说明了这个数据的方差不具有齐性，那么我们就要用校正的t检验
+
+#### 校正t检验
+
+由于F检验的P值小于0.05，我们选择校正的t检验，在R语言里，默认的其实就是校正的t检验，所以对于方差具有齐性的数据，一定要注意，这里不要偷懒，一定要用完整的代码，不用总是默认；
+
+```{r}
+t.test(mrna ~ group,
+       data = PCR,
+       var.equal = FALSE, #默认的就是FALSE，但是我们要记住如果方差齐就要改TURE
+       alternative = "two.sided") #双尾事件，如果是单尾，可以用greater或less
+```
+
+结果可知用的是Welch Two Sample t-test，也就是**近似t检验**，这个p值小于0.05，差异有显著性意义，这个时候，我们在回过来给之前的图加显著性标识，一定要知道选择的统计方法是什么。
+
+------------------------------------------------------------------------
+
+由于默认的t检验，就是校正的t检验，这里我们继续用ggpubr自带的统计学方法，当然也可以事先检验验证一下，代码是:
+
+```{r}
+compare_means(mrna~group, data=PCR, method = 't.test')
+```
+
+如果是不需要校正的t检验，也就是正规的t检验，方法其实是anova。
+
+> compare_means(mrna\~group, data=PCR, method = 'anova')
+
+最后加个显著性标识作图，顺便再添加个数据点
+
+```{r}
+p+stat_compare_means(aes(label = ..p.signif..),  
+                     comparisons = list(c('control','treat')),  
+                     method = 't.test')+#正规的t检验好像是anova
+  geom_jitter(color='black',size=2) 
+
+```
+
+------------------------------------------------------------------------
+
+t检验的统计学方法学会了吗？

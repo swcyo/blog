@@ -1,0 +1,135 @@
+---
+title: R语言数据合并一行代码搞定
+author: 欧阳松
+date: '2022-02-26'
+slug: cbind
+categories:
+  - 教程
+tags:
+  - 数据合并
+---
+
+​ R语言中数据合并的函数有很多，如`merge()`,`cbind()`,`bind_rows()`还有[我的博客](https://swcyo.rbind.io/)域名里的`rbind()`等。
+
+## 准备数据
+
+我们先构建一组数据，以便后续演示
+
+```{r}
+data1<-data.frame(namea=c("海波","立波","秀波"),
+                  value=c("一波","接","一波")
+                  )
+```
+
+```{r message=FALSE, warning=FALSE,echo=FALSE}
+DT::datatable(data1,rownames = 1)
+```
+
+```{r}
+data2<-data.frame(nameb=c("柯震东","刘强东","何盛东"),
+                  value=c("东去","又","东来")
+                  )
+```
+
+```{r message=FALSE, warning=FALSE,echo=FALSE}
+DT::datatable(data2,rownames = 1)
+```
+
+### 按列合并
+
+``` {.r}
+cbind(data1,data2)
+```
+
+```{r message=FALSE, warning=FALSE,echo=FALSE}
+DT::datatable(cbind(data1,data2),rownames = 1)
+```
+
+### 按行合并
+
+​ 按列合并是`cbind()`，那么按行合并自然是`rbind()`
+
+    rbind(data1,data2)
+    Error in match.names(clabs, names(xi)) : 名字同原来已有的名字不相对
+
+我们发现这时候会出现错误，那是因为data1和data2的name列名不一样，这时候需要更改列名
+
+```{r}
+colnames(data1)[1]<-'name'
+colnames(data2)[1]<-'name'
+```
+
+    rbind(data1,data2)
+
+```{r message=FALSE, warning=FALSE,echo=FALSE}
+colnames(data1)[1]<-'name'
+colnames(data2)[1]<-'name'
+DT::datatable(rbind(data1,data2),rownames = 1)
+```
+
+对数据修改后，没有出现错误。
+
+-   那么，如果不想修改修改数据又该怎么做呢？
+
+​ 为了解决这个问题，使用**dplyr**包中的`bind_rows()`函数，不要求合并字段的名称必须相同，这个函数会自己做判断。
+
+    library(dplyr) 
+    dplyr::bind_rows(data1,data2)
+
+```{r message=FALSE, warning=FALSE,echo=FALSE}
+data1<-data.frame(namea=c("海波","立波","秀波"),
+                  value=c("一波","接","一波")
+                  )
+data2<-data.frame(nameb=c("柯震东","刘强东","何盛东"),
+                  value=c("东去","又","东来")
+                  )
+DT::datatable(dplyr::bind_rows(data1,data2),rownames = 1)
+```
+
+最后，再介绍一下`merge()`函数
+
+    merge(x, y, by = intersect(names(x), names(y)),
+          by.x = by, by.y = by, all = FALSE, all.x = all, all.y = all,
+          sort = TRUE, suffixes = c(".x",".y"), no.dups = TRUE,
+          incomparables = NULL, ...)
+
+merge函数参数的说明:
+
+> x,y:用于合并的两个数据框
+>
+> by,by.x,by.y:指定依据哪些行合并数据框,默认值为相同列名的列.
+>
+> all,all.x,all.y:指定x和y的行是否应该全在输出文件.
+>
+> sort:by指定的列是否要排序.
+>
+> suffixes:指定除by外相同列名的后缀.
+>
+> incomparables:指定by中哪些单元不进行合并.
+
+演示merge()
+
+```{r message=FALSE, warning=FALSE}
+data3<-data.frame(
+  name = c("波","东","波","波"),
+  type = c("秀","震","秀","秀"),
+  class = c(10,5,4,11),
+  num = c(85,50,90,90)
+  )
+data3
+data4<-data.frame(
+  name = c("波","东"),
+  type = c("海","震"),
+  class = c(5,5),
+  num = c(88,81)
+  )
+data4
+```
+
+```{r}
+# 合并data3和data4
+merge(data3,data4,all = T)
+
+# 安装name，type，class合并data3，data4
+merge(data3,data4,by=c('name','type','class'),all=T)
+```

@@ -1,0 +1,423 @@
+---
+title: 批量生存分析并导出pdf
+author: 欧阳松
+date: '2022-02-24'
+slug: multi-km2
+categories:
+  - R
+tags:
+  - 生存分析
+---
+
+<script src="{{< blogdown/postref >}}index_files/header-attrs/header-attrs.js"></script>
+
+
+<p>之前写了个<a href="/course/multi-km-facet/">多个基因的生存分析曲线一步绘制法</a>的教程，然而还是有不少问题，比如P值都是一样的，之前我不会批量的函数，不过最近看了些批量计算的函数，又学到了一些，分享一下代码</p>
+<p>之前的教程是用<code>cbind()</code>函数计算高低组然后再合并，然而用循环函数可以一步计算好，我们依然使用示例数据<a href="/course/multi-km-facet/data.tsv">data.tsv</a>，数据经过预处理后见Table <a href="#tab:data">1</a>所示。</p>
+<pre><code>data&lt;-read.csv(&quot;/data.tsv&quot;,sep=&quot;\t&quot;,row.names = 1,header = T)
+### 修改行名
+colnames(data)[c(2:3,6:14)]&lt;-c(&#39;status&#39;,&#39;time&#39;,
+                               &#39;RFC1&#39;,&#39;RFC2&#39;,&#39;RCF3&#39;,&#39;RFC4&#39;,&#39;RFC5&#39;,
+                               &#39;BEST1&#39;,&#39;BEST2&#39;,&#39;BEST3&#39;,&#39;BEST4&#39;)
+### 去掉NA值，否则计算均值后会是NA值
+data&lt;-na.omit(data)
+### 查看一下数据
+data[1:10,c(2:3,6:14)]</code></pre>
+<table>
+<caption><span id="tab:data">Table 1: </span>显示多基因前10数据</caption>
+<thead>
+<tr class="header">
+<th align="left"></th>
+<th align="right">status</th>
+<th align="right">time</th>
+<th align="right">RFC1</th>
+<th align="right">RFC2</th>
+<th align="right">RCF3</th>
+<th align="right">RFC4</th>
+<th align="right">RFC5</th>
+<th align="right">BEST1</th>
+<th align="right">BEST2</th>
+<th align="right">BEST3</th>
+<th align="right">BEST4</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">TCGA-2F-A9KR-01</td>
+<td align="right">1</td>
+<td align="right">3183</td>
+<td align="right">4.750</td>
+<td align="right">4.990</td>
+<td align="right">3.268</td>
+<td align="right">4.973</td>
+<td align="right">3.803</td>
+<td align="right">-1.4310</td>
+<td align="right">-5.574</td>
+<td align="right">-3.1710</td>
+<td align="right">-0.1993</td>
+</tr>
+<tr class="even">
+<td align="left">TCGA-XF-A8HF-01</td>
+<td align="right">1</td>
+<td align="right">2954</td>
+<td align="right">2.554</td>
+<td align="right">4.852</td>
+<td align="right">3.018</td>
+<td align="right">4.241</td>
+<td align="right">3.353</td>
+<td align="right">-0.8599</td>
+<td align="right">-9.966</td>
+<td align="right">-9.9660</td>
+<td align="right">0.1776</td>
+</tr>
+<tr class="odd">
+<td align="left">TCGA-XF-AAME-01</td>
+<td align="right">1</td>
+<td align="right">2828</td>
+<td align="right">4.083</td>
+<td align="right">4.691</td>
+<td align="right">2.895</td>
+<td align="right">4.838</td>
+<td align="right">3.368</td>
+<td align="right">1.6790</td>
+<td align="right">-5.012</td>
+<td align="right">-9.9660</td>
+<td align="right">-1.2480</td>
+</tr>
+<tr class="even">
+<td align="left">TCGA-UY-A78N-01</td>
+<td align="right">1</td>
+<td align="right">2641</td>
+<td align="right">4.889</td>
+<td align="right">6.278</td>
+<td align="right">1.696</td>
+<td align="right">5.480</td>
+<td align="right">4.733</td>
+<td align="right">-0.0725</td>
+<td align="right">-9.966</td>
+<td align="right">-9.9660</td>
+<td align="right">-4.0350</td>
+</tr>
+<tr class="odd">
+<td align="left">TCGA-XF-A9SL-01</td>
+<td align="right">1</td>
+<td align="right">2020</td>
+<td align="right">3.964</td>
+<td align="right">5.241</td>
+<td align="right">2.452</td>
+<td align="right">4.418</td>
+<td align="right">3.025</td>
+<td align="right">0.9268</td>
+<td align="right">-9.966</td>
+<td align="right">-9.9660</td>
+<td align="right">-2.2450</td>
+</tr>
+<tr class="even">
+<td align="left">TCGA-XF-A9SH-01</td>
+<td align="right">1</td>
+<td align="right">1971</td>
+<td align="right">3.483</td>
+<td align="right">3.470</td>
+<td align="right">0.679</td>
+<td align="right">2.710</td>
+<td align="right">4.248</td>
+<td align="right">-1.0260</td>
+<td align="right">-3.626</td>
+<td align="right">-9.9660</td>
+<td align="right">-1.1810</td>
+</tr>
+<tr class="odd">
+<td align="left">TCGA-XF-AAN2-01</td>
+<td align="right">1</td>
+<td align="right">1869</td>
+<td align="right">4.843</td>
+<td align="right">5.537</td>
+<td align="right">4.593</td>
+<td align="right">4.959</td>
+<td align="right">4.342</td>
+<td align="right">-0.3566</td>
+<td align="right">-9.966</td>
+<td align="right">-0.8863</td>
+<td align="right">-1.8840</td>
+</tr>
+<tr class="even">
+<td align="left">TCGA-G2-A2EO-01</td>
+<td align="right">1</td>
+<td align="right">1804</td>
+<td align="right">3.725</td>
+<td align="right">5.303</td>
+<td align="right">2.768</td>
+<td align="right">5.265</td>
+<td align="right">4.104</td>
+<td align="right">0.6969</td>
+<td align="right">-9.966</td>
+<td align="right">-6.5060</td>
+<td align="right">-2.4660</td>
+</tr>
+<tr class="odd">
+<td align="left">TCGA-XF-AAN0-01</td>
+<td align="right">1</td>
+<td align="right">1718</td>
+<td align="right">4.174</td>
+<td align="right">5.440</td>
+<td align="right">3.139</td>
+<td align="right">4.936</td>
+<td align="right">3.277</td>
+<td align="right">-0.1345</td>
+<td align="right">-4.608</td>
+<td align="right">-9.9660</td>
+<td align="right">-2.7270</td>
+</tr>
+<tr class="even">
+<td align="left">TCGA-XF-AAMJ-01</td>
+<td align="right">1</td>
+<td align="right">1670</td>
+<td align="right">3.847</td>
+<td align="right">4.388</td>
+<td align="right">2.108</td>
+<td align="right">3.972</td>
+<td align="right">4.648</td>
+<td align="right">0.6425</td>
+<td align="right">-9.966</td>
+<td align="right">-9.9660</td>
+<td align="right">0.5763</td>
+</tr>
+</tbody>
+</table>
+<div id="批量一一步计算出基因表达的高低组并导出图片" class="section level2">
+<h2>批量一：一步计算出基因表达的高低组并导出图片</h2>
+<p>直接按照基因表达量的中位数分为高低组的批量函数，见Table <span class="citation">@ref</span>(tab:data2)所示，是不是比之前的函数更快更简单？</p>
+<pre class="r"><code>### 计算6列到16列的基因表达量均值并分组
+a&lt;-apply(data[,6:14], 2, median)
+a=data.frame(a)
+
+for (i in 6:14) {
+  n=colnames(data)[i]
+  data[,n]=ifelse(data[,n]&gt;=a[n,],&#39;High&#39;,&#39;Low&#39;)
+  data[,n]&lt;-factor(data[,n],levels = c(&#39;Low&#39;,&quot;High&quot;))
+}
+
+### 再次查看一下数据
+data[1:10,c(2:3,6:14)]</code></pre>
+<pre><code>##                 status time RFC1 RFC2 RCF3 RFC4 RFC5 BEST1 BEST2 BEST3 BEST4
+## TCGA-2F-A9KR-01      1 3183 High  Low High High  Low   Low  High  High  High
+## TCGA-XF-A8HF-01      1 2954  Low  Low High  Low  Low   Low   Low   Low  High
+## TCGA-XF-AAME-01      1 2828  Low  Low  Low  Low  Low  High  High   Low  High
+## TCGA-UY-A78N-01      1 2641 High High  Low High High   Low   Low   Low   Low
+## TCGA-XF-A9SL-01      1 2020  Low High  Low  Low  Low  High   Low   Low   Low
+## TCGA-XF-A9SH-01      1 1971  Low  Low  Low  Low High   Low  High   Low  High
+## TCGA-XF-AAN2-01      1 1869 High High High High High   Low   Low  High   Low
+## TCGA-G2-A2EO-01      1 1804  Low High  Low High High  High   Low  High   Low
+## TCGA-XF-AAN0-01      1 1718 High High High High  Low   Low  High   Low   Low
+## TCGA-XF-AAMJ-01      1 1670  Low  Low  Low  Low High  High   Low   Low  High</code></pre>
+<table>
+<caption><span id="tab:data2">Table 2: </span>多基因批量处理后的前10数据</caption>
+<thead>
+<tr class="header">
+<th align="left"></th>
+<th align="right">status</th>
+<th align="right">time</th>
+<th align="left">RFC1</th>
+<th align="left">RFC2</th>
+<th align="left">RCF3</th>
+<th align="left">RFC4</th>
+<th align="left">RFC5</th>
+<th align="left">BEST1</th>
+<th align="left">BEST2</th>
+<th align="left">BEST3</th>
+<th align="left">BEST4</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">TCGA-2F-A9KR-01</td>
+<td align="right">1</td>
+<td align="right">3183</td>
+<td align="left">High</td>
+<td align="left">Low</td>
+<td align="left">High</td>
+<td align="left">High</td>
+<td align="left">Low</td>
+<td align="left">Low</td>
+<td align="left">High</td>
+<td align="left">High</td>
+<td align="left">High</td>
+</tr>
+<tr class="even">
+<td align="left">TCGA-XF-A8HF-01</td>
+<td align="right">1</td>
+<td align="right">2954</td>
+<td align="left">Low</td>
+<td align="left">Low</td>
+<td align="left">High</td>
+<td align="left">Low</td>
+<td align="left">Low</td>
+<td align="left">Low</td>
+<td align="left">Low</td>
+<td align="left">Low</td>
+<td align="left">High</td>
+</tr>
+<tr class="odd">
+<td align="left">TCGA-XF-AAME-01</td>
+<td align="right">1</td>
+<td align="right">2828</td>
+<td align="left">Low</td>
+<td align="left">Low</td>
+<td align="left">Low</td>
+<td align="left">Low</td>
+<td align="left">Low</td>
+<td align="left">High</td>
+<td align="left">High</td>
+<td align="left">Low</td>
+<td align="left">High</td>
+</tr>
+<tr class="even">
+<td align="left">TCGA-UY-A78N-01</td>
+<td align="right">1</td>
+<td align="right">2641</td>
+<td align="left">High</td>
+<td align="left">High</td>
+<td align="left">Low</td>
+<td align="left">High</td>
+<td align="left">High</td>
+<td align="left">Low</td>
+<td align="left">Low</td>
+<td align="left">Low</td>
+<td align="left">Low</td>
+</tr>
+<tr class="odd">
+<td align="left">TCGA-XF-A9SL-01</td>
+<td align="right">1</td>
+<td align="right">2020</td>
+<td align="left">Low</td>
+<td align="left">High</td>
+<td align="left">Low</td>
+<td align="left">Low</td>
+<td align="left">Low</td>
+<td align="left">High</td>
+<td align="left">Low</td>
+<td align="left">Low</td>
+<td align="left">Low</td>
+</tr>
+<tr class="even">
+<td align="left">TCGA-XF-A9SH-01</td>
+<td align="right">1</td>
+<td align="right">1971</td>
+<td align="left">Low</td>
+<td align="left">Low</td>
+<td align="left">Low</td>
+<td align="left">Low</td>
+<td align="left">High</td>
+<td align="left">Low</td>
+<td align="left">High</td>
+<td align="left">Low</td>
+<td align="left">High</td>
+</tr>
+<tr class="odd">
+<td align="left">TCGA-XF-AAN2-01</td>
+<td align="right">1</td>
+<td align="right">1869</td>
+<td align="left">High</td>
+<td align="left">High</td>
+<td align="left">High</td>
+<td align="left">High</td>
+<td align="left">High</td>
+<td align="left">Low</td>
+<td align="left">Low</td>
+<td align="left">High</td>
+<td align="left">Low</td>
+</tr>
+<tr class="even">
+<td align="left">TCGA-G2-A2EO-01</td>
+<td align="right">1</td>
+<td align="right">1804</td>
+<td align="left">Low</td>
+<td align="left">High</td>
+<td align="left">Low</td>
+<td align="left">High</td>
+<td align="left">High</td>
+<td align="left">High</td>
+<td align="left">Low</td>
+<td align="left">High</td>
+<td align="left">Low</td>
+</tr>
+<tr class="odd">
+<td align="left">TCGA-XF-AAN0-01</td>
+<td align="right">1</td>
+<td align="right">1718</td>
+<td align="left">High</td>
+<td align="left">High</td>
+<td align="left">High</td>
+<td align="left">High</td>
+<td align="left">Low</td>
+<td align="left">Low</td>
+<td align="left">High</td>
+<td align="left">Low</td>
+<td align="left">Low</td>
+</tr>
+<tr class="even">
+<td align="left">TCGA-XF-AAMJ-01</td>
+<td align="right">1</td>
+<td align="right">1670</td>
+<td align="left">Low</td>
+<td align="left">Low</td>
+<td align="left">Low</td>
+<td align="left">Low</td>
+<td align="left">High</td>
+<td align="left">High</td>
+<td align="left">Low</td>
+<td align="left">Low</td>
+<td align="left">High</td>
+</tr>
+</tbody>
+</table>
+<p>批量函数</p>
+<pre class="R"><code>library(survminer)
+library(survival)
+
+vars= colnames(data[,6:14])
+for (i in vars) {
+    splots&lt;-list()
+    km_fit&lt;-surv_fit(Surv(time,status)~data[,i],data = data)
+    splots[[1]]&lt;-ggsurvplot(km_fit,
+                            xlab=&quot;Time_days&quot;,
+                            pval = T,pval.method = T,
+                            legend=c(0.8,0.8),
+                            title=i,
+                            legend.title=i,legend.labs=levels(data[[i]]),
+                            conf.int = T,conf.int.style=&#39;step&#39;,
+                            surv.median.line = &#39;hv&#39;,
+                            palette = &#39;lancet&#39;,
+                            risk.table = T,
+                            risk.table.pos=c(&#39;in&#39;),
+                            ggtheme = theme_bw(base_size = 12))
+    
+    res&lt;-arrange_ggsurvplots(splots,print = F,ncol = 1,nrow = 1)
+    ggsave(paste(i,&#39;all.pdf&#39;,sep = &quot;_&quot;), res,width=6,height = 6)
+}</code></pre>
+<p>这时候你会发现目标文件夹会多出很多图，直接计算好了</p>
+</div>
+<div id="批量二直接批量函数" class="section level2">
+<h2>批量二：直接批量函数</h2>
+<pre><code>for (gene in colnames(data[6:14])) {
+group&lt;-ifelse(data[[gene]]&gt;median(data[[gene]]),
+              &#39;High&#39;,&#39;Low&#39;)
+group&lt;-factor(group,levels = c(&#39;Low&#39;,&quot;High&quot;))
+splots &lt;- list()
+fit&lt;-survfit(Surv(time,status)~group,data = data)
+splots[[1]]&lt;-ggsurvplot(fit,
+                    data = data,
+                    legend.title= gene,
+                    title= gene,
+                    legend=c(0.85,0.85),
+                    legend.labs=c(&#39;Low&#39;,&#39;High&#39;),
+                    pval = T,
+                    conf.int = T,conf.int.style=&#39;step&#39;,
+                    xlab=&quot;Time_days&quot;,
+                    surv.median.line = &#39;hv&#39;,
+                    palette = &quot;lancet&quot;,
+                    ggtheme = theme_bw(base_size = 12))
+res&lt;-arrange_ggsurvplots(splots,print = F,ncol = 1,nrow = 1)
+ggsave(paste(gene,&#39;os.pdf&#39;,sep = &#39;_&#39;),res,width = 6,height = 4.5)
+}</code></pre>
+</div>

@@ -1,0 +1,108 @@
+---
+title: 批量生存分析并导出pdf
+author: 欧阳松
+date: '2022-02-24'
+slug: multi-km2
+categories:
+  - R
+tags:
+  - 生存分析
+---
+
+之前写了个[多个基因的生存分析曲线一步绘制法](/course/multi-km-facet/)的教程，然而还是有不少问题，比如P值都是一样的，之前我不会批量的函数，不过最近看了些批量计算的函数，又学到了一些，分享一下代码
+
+之前的教程是用`cbind()`函数计算高低组然后再合并，然而用循环函数可以一步计算好，我们依然使用示例数据[data.tsv](/course/multi-km-facet/data.tsv)，数据经过预处理后见Table \@ref(tab:data)所示。
+
+    data<-read.csv("/data.tsv",sep="\t",row.names = 1,header = T)
+    ### 修改行名
+    colnames(data)[c(2:3,6:14)]<-c('status','time',
+                                   'RFC1','RFC2','RCF3','RFC4','RFC5',
+                                   'BEST1','BEST2','BEST3','BEST4')
+    ### 去掉NA值，否则计算均值后会是NA值
+    data<-na.omit(data)
+    ### 查看一下数据
+    data[1:10,c(2:3,6:14)]
+
+```{r data,echo=FALSE}
+data<-read.csv("/Users/mac/Documents/GitHub/Rblog/content/zh/course/2021-09-12-multi-km-facet/data.tsv",sep="\t",row.names = 1,header = T)
+colnames(data)[c(2:3,6:14)]<-c('status','time','RFC1','RFC2','RCF3','RFC4','RFC5','BEST1','BEST2','BEST3','BEST4')
+data<-na.omit(data)
+knitr::kable(data[1:10,c(2:3,6:14)],caption = "显示多基因前10数据")
+```
+
+## 批量一：一步计算出基因表达的高低组并导出图片
+
+直接按照基因表达量的中位数分为高低组的批量函数，见Table @ref(tab:data2)所示，是不是比之前的函数更快更简单？
+
+```{r}
+### 计算6列到16列的基因表达量均值并分组
+a<-apply(data[,6:14], 2, median)
+a=data.frame(a)
+
+for (i in 6:14) {
+  n=colnames(data)[i]
+  data[,n]=ifelse(data[,n]>=a[n,],'High','Low')
+  data[,n]<-factor(data[,n],levels = c('Low',"High"))
+}
+
+### 再次查看一下数据
+data[1:10,c(2:3,6:14)]
+```
+
+```{r data2,echo=FALSE}
+knitr::kable(data[1:10,c(2:3,6:14)],caption = "多基因批量处理后的前10数据")
+```
+
+批量函数
+
+``` {.R}
+library(survminer)
+library(survival)
+
+vars= colnames(data[,6:14])
+for (i in vars) {
+    splots<-list()
+    km_fit<-surv_fit(Surv(time,status)~data[,i],data = data)
+    splots[[1]]<-ggsurvplot(km_fit,
+                            xlab="Time_days",
+                            pval = T,pval.method = T,
+                            legend=c(0.8,0.8),
+                            title=i,
+                            legend.title=i,legend.labs=levels(data[[i]]),
+                            conf.int = T,conf.int.style='step',
+                            surv.median.line = 'hv',
+                            palette = 'lancet',
+                            risk.table = T,
+                            risk.table.pos=c('in'),
+                            ggtheme = theme_bw(base_size = 12))
+    
+    res<-arrange_ggsurvplots(splots,print = F,ncol = 1,nrow = 1)
+    ggsave(paste(i,'all.pdf',sep = "_"), res,width=6,height = 6)
+}
+```
+
+这时候你会发现目标文件夹会多出很多图，直接计算好了
+
+## 批量二：直接批量函数
+
+    for (gene in colnames(data[6:14])) {
+    group<-ifelse(data[[gene]]>median(data[[gene]]),
+                  'High','Low')
+    group<-factor(group,levels = c('Low',"High"))
+    splots <- list()
+    fit<-survfit(Surv(time,status)~group,data = data)
+    splots[[1]]<-ggsurvplot(fit,
+                        data = data,
+                        legend.title= gene,
+                        title= gene,
+                        legend=c(0.85,0.85),
+                        legend.labs=c('Low','High'),
+                        pval = T,
+                        conf.int = T,conf.int.style='step',
+                        xlab="Time_days",
+                        surv.median.line = 'hv',
+                        palette = "lancet",
+                        ggtheme = theme_bw(base_size = 12))
+    res<-arrange_ggsurvplots(splots,print = F,ncol = 1,nrow = 1)
+    ggsave(paste(gene,'os.pdf',sep = '_'),res,width = 6,height = 4.5)
+    }

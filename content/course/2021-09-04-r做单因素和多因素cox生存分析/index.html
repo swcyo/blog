@@ -1,0 +1,416 @@
+---
+title: R做单因素和多因素Cox生存分析
+author: 欧阳松
+date: '2021-09-04'
+slug: Cox-survival-analysis
+categories:
+  - 教程
+  - R
+tags:
+  - 教程
+  - Cox
+---
+
+<script src="{{< blogdown/postref >}}index_files/header-attrs/header-attrs.js"></script>
+
+
+<p>比如你筛选了某个基因，或者某个因素，突然审稿人跟你说要你做单因素和多因素的Cox分析，让你评估是否是某个危险因素的独立影响因素，这个可以在survival包里实现。</p>
+<p>关于单因素Cox回归分析，很好理解，只要挖掘处<em>p</em>&lt;0.05的因素就行，但是对于多因素Cox分析，有的文献说是要挑选<em>p</em>&lt;0.05的因素，有的文献说要挑选<em>p</em>&lt;0.2的因素，这个其实都是可以设置的。。。</p>
+<p>我们以survival包自带的lung数据进行演示</p>
+<pre class="r"><code>data&lt;-survival::lung #加载示例数据</code></pre>
+<p>我们查看一下这个数据的前几个示例</p>
+<table>
+<thead>
+<tr class="header">
+<th align="right">inst</th>
+<th align="right">time</th>
+<th align="right">status</th>
+<th align="right">age</th>
+<th align="right">sex</th>
+<th align="right">ph.ecog</th>
+<th align="right">ph.karno</th>
+<th align="right">pat.karno</th>
+<th align="right">meal.cal</th>
+<th align="right">wt.loss</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="right">3</td>
+<td align="right">306</td>
+<td align="right">2</td>
+<td align="right">74</td>
+<td align="right">1</td>
+<td align="right">1</td>
+<td align="right">90</td>
+<td align="right">100</td>
+<td align="right">1175</td>
+<td align="right">NA</td>
+</tr>
+<tr class="even">
+<td align="right">3</td>
+<td align="right">455</td>
+<td align="right">2</td>
+<td align="right">68</td>
+<td align="right">1</td>
+<td align="right">0</td>
+<td align="right">90</td>
+<td align="right">90</td>
+<td align="right">1225</td>
+<td align="right">15</td>
+</tr>
+<tr class="odd">
+<td align="right">3</td>
+<td align="right">1010</td>
+<td align="right">1</td>
+<td align="right">56</td>
+<td align="right">1</td>
+<td align="right">0</td>
+<td align="right">90</td>
+<td align="right">90</td>
+<td align="right">NA</td>
+<td align="right">15</td>
+</tr>
+<tr class="even">
+<td align="right">5</td>
+<td align="right">210</td>
+<td align="right">2</td>
+<td align="right">57</td>
+<td align="right">1</td>
+<td align="right">1</td>
+<td align="right">90</td>
+<td align="right">60</td>
+<td align="right">1150</td>
+<td align="right">11</td>
+</tr>
+<tr class="odd">
+<td align="right">1</td>
+<td align="right">883</td>
+<td align="right">2</td>
+<td align="right">60</td>
+<td align="right">1</td>
+<td align="right">0</td>
+<td align="right">100</td>
+<td align="right">90</td>
+<td align="right">NA</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="right">12</td>
+<td align="right">1022</td>
+<td align="right">1</td>
+<td align="right">74</td>
+<td align="right">1</td>
+<td align="right">1</td>
+<td align="right">50</td>
+<td align="right">80</td>
+<td align="right">513</td>
+<td align="right">0</td>
+</tr>
+</tbody>
+</table>
+<p>在运行之前，我们需要加载这几个包</p>
+<pre><code>library(dplyr)
+library(survival)
+library(plyr)</code></pre>
+<div id="单因素cox回归" class="section level2">
+<h2><strong>单因素Cox回归</strong></h2>
+<p>我们可以先单独看某一个因素的结果，比如说sex是否对生存有影响，可以这样</p>
+<pre class="r"><code>surv&lt;-Surv(time = data$time,event = data$status)
+data$surv&lt;-with(data,surv) #添加一列
+sexCox&lt;-coxph(surv~sex,data = data) #计算sex的Cox
+sexSum&lt;-summary(sexCox) #总结一下
+sexSum$coefficients #检索出HR和P值</code></pre>
+<pre><code>##           coef exp(coef)  se(coef)         z    Pr(&gt;|z|)
+## sex -0.5310235 0.5880028 0.1671786 -3.176385 0.001491229</code></pre>
+<pre class="r"><code>sexSum$conf.int #检索出HR饿95%CI</code></pre>
+<pre><code>##     exp(coef) exp(-coef) lower .95 upper .95
+## sex 0.5880028   1.700672 0.4237178 0.8159848</code></pre>
+<pre class="r"><code>round(sexSum$conf.int[,3:4],2) #设置小数点两位数</code></pre>
+<pre><code>## lower .95 upper .95 
+##      0.42      0.82</code></pre>
+<pre class="r"><code>CI&lt;-paste0(round(sexSum$conf.int[,3:4],2),collapse = &quot;-&quot;) #将95%CI合并
+Pvalue&lt;-round(sexSum$coefficients[,5],3) #提取小数点三位数的p值
+HR&lt;-round(sexSum$coefficients[,2],2)#提取小数点两位数的HR值
+
+### 查看一下结果
+Unicox&lt;-data.frame(&quot;Characteristics&quot;=&quot;sex&quot;,&quot;Hazard Ratio&quot;=HR,
+                   &quot;CI95&quot;=CI,
+                   &quot;P value&quot;=Pvalue)</code></pre>
+<p>我们看一下sex的单因素结果，见表 <a href="#tab:sexunicox">1</a></p>
+<table>
+<caption><span id="tab:sexunicox">Table 1: </span>sex的单因素Cox结果</caption>
+<thead>
+<tr class="header">
+<th align="left">Characteristics</th>
+<th align="right">Hazard.Ratio</th>
+<th align="left">CI95</th>
+<th align="right">P.value</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">sex</td>
+<td align="right">0.59</td>
+<td align="left">0.42-0.82</td>
+<td align="right">0.001</td>
+</tr>
+</tbody>
+</table>
+<p>然而，对于多个因素，我们就可以设置一个函数，可以把所有的因素都算进去</p>
+<pre class="r"><code>#添加多个参数,定义函数
+UniCox&lt;-function(x){
+    FML&lt;-as.formula(paste0(&quot;surv~&quot;,x))
+    Cox&lt;-coxph(FML,data = data) 
+    Sum&lt;-summary(Cox)
+    CI&lt;-paste0(round(Sum$conf.int[,3:4],2),collapse = &quot;-&quot;) 
+    Pvalue&lt;-round(Sum$coefficients[,5],3)
+    HR&lt;-round(Sum$coefficients[,2],2)
+    Unicox&lt;-data.frame(&quot;Characteristics&quot;=x,
+                       &quot;Hazard Ratio&quot;=HR,
+                       &quot;CI95&quot;=CI,
+                       &quot;P value&quot;=Pvalue)
+    return(Unicox)
+}
+
+#如查看sex
+UniCox(&quot;sex&quot;)</code></pre>
+<pre><code>##   Characteristics Hazard.Ratio      CI95 P.value
+## 1             sex         0.59 0.42-0.82   0.001</code></pre>
+<pre class="r"><code>varNames&lt;-colnames(data) [c(4:10)] #[]里代表需要的列数
+UniVar&lt;-lapply(varNames, UniCox)
+UniVar&lt;-ldply(UniVar,data.frame)</code></pre>
+<p>我们看一下所有统计的结果，见表 <a href="#tab:unicox">2</a></p>
+<table>
+<caption><span id="tab:unicox">Table 2: </span>单因素Cox结果</caption>
+<thead>
+<tr class="header">
+<th align="left">Characteristics</th>
+<th align="right">Hazard.Ratio</th>
+<th align="left">CI95</th>
+<th align="right">P.value</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">age</td>
+<td align="right">1.02</td>
+<td align="left">1-1.04</td>
+<td align="right">0.042</td>
+</tr>
+<tr class="even">
+<td align="left">sex</td>
+<td align="right">0.59</td>
+<td align="left">0.42-0.82</td>
+<td align="right">0.001</td>
+</tr>
+<tr class="odd">
+<td align="left">ph.ecog</td>
+<td align="right">1.61</td>
+<td align="left">1.29-2.01</td>
+<td align="right">0.000</td>
+</tr>
+<tr class="even">
+<td align="left">ph.karno</td>
+<td align="right">0.98</td>
+<td align="left">0.97-1</td>
+<td align="right">0.005</td>
+</tr>
+<tr class="odd">
+<td align="left">pat.karno</td>
+<td align="right">0.98</td>
+<td align="left">0.97-0.99</td>
+<td align="right">0.000</td>
+</tr>
+<tr class="even">
+<td align="left">meal.cal</td>
+<td align="right">1.00</td>
+<td align="left">1-1</td>
+<td align="right">0.593</td>
+</tr>
+<tr class="odd">
+<td align="left">wt.loss</td>
+<td align="right">1.00</td>
+<td align="left">0.99-1.01</td>
+<td align="right">0.828</td>
+</tr>
+</tbody>
+</table>
+<p>我们还可以筛选一下所有p值小于0.05的因素</p>
+<pre class="r"><code>#筛选p&lt;0.05
+UniVar$Characteristics[UniVar$P.value&lt;0.05]</code></pre>
+<pre><code>## [1] &quot;age&quot;       &quot;sex&quot;       &quot;ph.ecog&quot;   &quot;ph.karno&quot;  &quot;pat.karno&quot;</code></pre>
+<hr />
+</div>
+<div id="多因素cox分析" class="section level2">
+<h2><strong>多因素Cox分析</strong></h2>
+<p>提取出p&lt;0.05的元素以后，我们可以对所有p&lt;0.05的因素再次进行多因素的Cox回归分析，如果说普通的多因素Cox，我们用+号选择需要的因素进行计算，比如下面这样：</p>
+<pre><code>MultiCox&lt;-coxph(surv~age+sex+ph.ecog+ph.karno,data =data) #查某几个因素就使用+</code></pre>
+<p>但是，我们我们需要所有单因素Cox结果里面p&lt;0.05的因素，我们就可以用函数批量计算<br />
+我们先定义函数，然后整合到一个表里</p>
+<pre class="r"><code>#定义p&lt;0.05的函数
+fml&lt;-as.formula(paste0(&quot;surv~&quot;,paste0( UniVar$Characteristics[UniVar$P.value&lt;0.05],collapse = &quot;+&quot;)))
+
+multicox&lt;-coxph(fml,data = data) #定义所有p&lt;0.05的参数
+multisum&lt;-summary(multicox) #提取结果
+
+multiname&lt;-as.character(UniVar$Characteristics[UniVar$P.value&lt;0.05])
+mCIL&lt;-round(multisum$conf.int[,3],2)
+mCIU&lt;-round(multisum$conf.int[,4],2)
+mCI&lt;-paste0(mCIL, &quot;-&quot;,mCIU) 
+#或者这样 mCI&lt;-paste0(round(multisum$conf.int[,3:4],2),collapse = &quot;-&quot;) 
+mPvalue&lt;-round(multisum$coefficients[,5],3)
+mHR&lt;-round(multisum$coefficients[,2],2)
+# 把所有结果导入到一个mulcox的表格里
+mulcox&lt;-data.frame(&quot;Characteristics&quot;=multiname,&quot;Hazard Ratio&quot;=mHR,
+                   &quot;CI95&quot;=mCI,
+                   &quot;P value&quot;=mPvalue)</code></pre>
+<p>这样，我们生存一个叫mulcox的多因素Cox回归结果的表格，见表 <a href="#tab:mulcox">3</a></p>
+<table>
+<caption><span id="tab:mulcox">Table 3: </span>多因素Cox结果</caption>
+<thead>
+<tr class="header">
+<th align="left"></th>
+<th align="left">Characteristics</th>
+<th align="right">Hazard.Ratio</th>
+<th align="left">CI95</th>
+<th align="right">P.value</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">age</td>
+<td align="left">age</td>
+<td align="right">1.01</td>
+<td align="left">0.99-1.03</td>
+<td align="right">0.231</td>
+</tr>
+<tr class="even">
+<td align="left">sex</td>
+<td align="left">sex</td>
+<td align="right">0.57</td>
+<td align="left">0.41-0.8</td>
+<td align="right">0.001</td>
+</tr>
+<tr class="odd">
+<td align="left">ph.ecog</td>
+<td align="left">ph.ecog</td>
+<td align="right">1.76</td>
+<td align="left">1.22-2.54</td>
+<td align="right">0.002</td>
+</tr>
+<tr class="even">
+<td align="left">ph.karno</td>
+<td align="left">ph.karno</td>
+<td align="right">1.02</td>
+<td align="left">1-1.04</td>
+<td align="right">0.108</td>
+</tr>
+<tr class="odd">
+<td align="left">pat.karno</td>
+<td align="left">pat.karno</td>
+<td align="right">0.99</td>
+<td align="left">0.98-1</td>
+<td align="right">0.142</td>
+</tr>
+</tbody>
+</table>
+<hr />
+</div>
+<div id="单因素和多因素的整合" class="section level2">
+<h2><strong>单因素和多因素的整合</strong></h2>
+<p>我们分别获得了单因素和多因素Cox回归的结果，最后我们需要把两个结果合并到一个表格里面，这里我们就可以用到<code>merge()</code>函数，见表 <a href="#tab:Final">4</a></p>
+<pre class="r"><code>Final&lt;-merge.data.frame(UniVar,mulcox,by=&quot;Characteristics&quot;,all = T,sort = T)</code></pre>
+<table style="width:100%;">
+<caption><span id="tab:Final">Table 4: </span>单因素和多因素Cox整合结果</caption>
+<colgroup>
+<col width="18%" />
+<col width="17%" />
+<col width="11%" />
+<col width="11%" />
+<col width="17%" />
+<col width="11%" />
+<col width="11%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th align="left">Characteristics</th>
+<th align="right">Hazard.Ratio.x</th>
+<th align="left">CI95.x</th>
+<th align="right">P.value.x</th>
+<th align="right">Hazard.Ratio.y</th>
+<th align="left">CI95.y</th>
+<th align="right">P.value.y</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">age</td>
+<td align="right">1.02</td>
+<td align="left">1-1.04</td>
+<td align="right">0.042</td>
+<td align="right">1.01</td>
+<td align="left">0.99-1.03</td>
+<td align="right">0.231</td>
+</tr>
+<tr class="even">
+<td align="left">meal.cal</td>
+<td align="right">1.00</td>
+<td align="left">1-1</td>
+<td align="right">0.593</td>
+<td align="right">NA</td>
+<td align="left">NA</td>
+<td align="right">NA</td>
+</tr>
+<tr class="odd">
+<td align="left">pat.karno</td>
+<td align="right">0.98</td>
+<td align="left">0.97-0.99</td>
+<td align="right">0.000</td>
+<td align="right">0.99</td>
+<td align="left">0.98-1</td>
+<td align="right">0.142</td>
+</tr>
+<tr class="even">
+<td align="left">ph.ecog</td>
+<td align="right">1.61</td>
+<td align="left">1.29-2.01</td>
+<td align="right">0.000</td>
+<td align="right">1.76</td>
+<td align="left">1.22-2.54</td>
+<td align="right">0.002</td>
+</tr>
+<tr class="odd">
+<td align="left">ph.karno</td>
+<td align="right">0.98</td>
+<td align="left">0.97-1</td>
+<td align="right">0.005</td>
+<td align="right">1.02</td>
+<td align="left">1-1.04</td>
+<td align="right">0.108</td>
+</tr>
+<tr class="even">
+<td align="left">sex</td>
+<td align="right">0.59</td>
+<td align="left">0.42-0.82</td>
+<td align="right">0.001</td>
+<td align="right">0.57</td>
+<td align="left">0.41-0.8</td>
+<td align="right">0.001</td>
+</tr>
+<tr class="odd">
+<td align="left">wt.loss</td>
+<td align="right">1.00</td>
+<td align="left">0.99-1.01</td>
+<td align="right">0.828</td>
+<td align="right">NA</td>
+<td align="left">NA</td>
+<td align="right">NA</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p>这样一个代表所有单因素和多因素Cox回归生存分析的表格就自动合成了，学会了吗？如果想导出成excel格式就可以输入下面的代码：</p>
+<pre><code>write.csv(Final,&quot;coxreg.csv&quot;, row.names = FALSE)
+write.csv(Final,&quot;coxreg.csv&quot;,row.names = F,showNA=F ) #不显示NA值</code></pre>
+</div>

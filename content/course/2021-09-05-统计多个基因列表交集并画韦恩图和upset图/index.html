@@ -1,0 +1,345 @@
+---
+title: 统计多个基因列表交集并画韦恩图和Upset图
+author: 欧阳松
+date: '2021-09-05'
+slug: veen-upset
+output:
+  html_document:
+    toc: true
+categories:
+  - 教程
+  - R
+tags:
+  - GEO
+  - 韦恩图
+  - upset
+---
+
+<script src="{{< blogdown/postref >}}index_files/header-attrs/header-attrs.js"></script>
+<script src="{{< blogdown/postref >}}index_files/htmlwidgets/htmlwidgets.js"></script>
+<link href="{{< blogdown/postref >}}index_files/datatables-css/datatables-crosstalk.css" rel="stylesheet" />
+<script src="{{< blogdown/postref >}}index_files/datatables-binding/datatables.js"></script>
+<script src="{{< blogdown/postref >}}index_files/jquery/jquery-3.6.0.min.js"></script>
+<link href="{{< blogdown/postref >}}index_files/dt-core/css/jquery.dataTables.min.css" rel="stylesheet" />
+<link href="{{< blogdown/postref >}}index_files/dt-core/css/jquery.dataTables.extra.css" rel="stylesheet" />
+<script src="{{< blogdown/postref >}}index_files/dt-core/js/jquery.dataTables.min.js"></script>
+<link href="{{< blogdown/postref >}}index_files/crosstalk/css/crosstalk.css" rel="stylesheet" />
+<script src="{{< blogdown/postref >}}index_files/crosstalk/js/crosstalk.min.js"></script>
+
+
+<p>有时候，我们从GEO数据库挖掘了好几组数据集的差异表达基因，我们需要统计这些基因列表的交集，一般可以用韦恩图和Upset图。而韦恩图一般适合小样本的交集，而多个样本的话可以用Upset图来表示。</p>
+<p>比如，我们通过GEO2R工具，获得了差异基因列表的结果，假设有6个基因列表，我们可以把显著性差异表达基因提取处理，用excel制作一个genelist，表头是数据集，每列是基因，保存为<code>list.csv</code>,导入进来以后，头几列示例见表 <a href="#tab:list">1</a>所示</p>
+<pre class="r"><code>list&lt;-read.csv(&quot;/list.csv&quot;)
+head(list)</code></pre>
+<table>
+<caption><span id="tab:list">Table 1: </span>六组基因列表</caption>
+<thead>
+<tr class="header">
+<th align="left">ListA</th>
+<th align="left">ListB</th>
+<th align="left">ListC</th>
+<th align="left">ListD</th>
+<th align="left">ListE</th>
+<th align="left">ListF</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">SLC2A3</td>
+<td align="left">TMC4</td>
+<td align="left">CDC25B</td>
+<td align="left">C15orf48</td>
+<td align="left">SYTL1</td>
+<td align="left">KIF2C</td>
+</tr>
+<tr class="even">
+<td align="left">UNC5B</td>
+<td align="left">CTHRC1</td>
+<td align="left">C1orf132</td>
+<td align="left">E2F1</td>
+<td align="left">CDCA5</td>
+<td align="left">AURKA</td>
+</tr>
+<tr class="odd">
+<td align="left">MT2A</td>
+<td align="left">MMD</td>
+<td align="left">ST3GAL5</td>
+<td align="left">C1orf132</td>
+<td align="left">BIRC5</td>
+<td align="left">AURKA</td>
+</tr>
+<tr class="even">
+<td align="left">ST3GAL5</td>
+<td align="left">VSIG2</td>
+<td align="left">TMEM154</td>
+<td align="left">MTHFD2</td>
+<td align="left">MCM10</td>
+<td align="left">CDC20</td>
+</tr>
+<tr class="odd">
+<td align="left">TUBB6</td>
+<td align="left">CTHRC1</td>
+<td align="left">ST3GAL5</td>
+<td align="left">KDELR3</td>
+<td align="left">MTHFD2</td>
+<td align="left">C17orf53</td>
+</tr>
+<tr class="even">
+<td align="left">CTHRC1</td>
+<td align="left">MMP11</td>
+<td align="left">TMEM154</td>
+<td align="left">NSG1</td>
+<td align="left">MELK</td>
+<td align="left">CDCA5</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p>但是这个表其实是有问题的，那就是这些列表里<strong>有些基因是重复的</strong>，而且还有<strong>NA</strong>值，我们需要把各自的重复值和NA值删除。记住，一定是删除各列的重复值，而不是全部的表格。</p>
+<p>处理重复值和NA值，我不会一步操作，但我们可以把列表单独提取处理，然后分别去除重复值和NA值，然后指定成list的形式（当然表格形式也是可以的，不过不同行数的list怎么合并成一个表格我不会，除非导出来用excel）。</p>
+<pre class="r"><code>## 单独提出各个list
+listA&lt;-list$A
+listB&lt;-list$B
+listC&lt;-list$C
+listD&lt;-list$D
+listE&lt;-list$E
+listF&lt;-list$F
+## 去除各自列表的重复值
+listA&lt;-listA[!duplicated(listA)]
+listB&lt;-listB[!duplicated(listB)]
+listC&lt;-listC[!duplicated(listC)]
+listD&lt;-listD[!duplicated(listD)]
+listE&lt;-listE[!duplicated(listE)]
+listF&lt;-listF[!duplicated(listF)]
+## 去除各自列表的NA值
+listA&lt;-na.omit(listA)
+listB&lt;-na.omit(listB)
+listC&lt;-na.omit(listC)
+listD&lt;-na.omit(listD)
+listE&lt;-na.omit(listE)
+listF&lt;-na.omit(listF)
+## 合并list
+list&lt;-list(A=listA,B=listB,C=listC,D=listD,E=listE,F=listF)</code></pre>
+<hr />
+<div id="绘制韦恩图" class="section level2">
+<h2>绘制韦恩图</h2>
+<p>一般而言，主流画韦恩图的包是<strong>VennDiagram</strong>，教程非常多，比如<a href="https://www.jianshu.com/p/285b4ac66768"><strong>使用VennDiagram包绘制韦恩图</strong></a></p>
+<p>但是这里我想推荐一下<strong>ggVennDiagram</strong>这个包，有一天在Y数的公众号瞎溜达，看到一篇的<a href="https://mp.weixin.qq.com/s/peNWKC5m7EWEv6w3m4rsIA">ggVennDiagram 诞生记</a>文章，知道这个包可以用<strong>ggplot2</strong>的语句，而且不限基因列表限制。</p>
+<p>我以前喜欢用<a href="https://www.omicstudio.cn/tool/6">联川生物的在线工具</a>画韦恩图，我承认他家可以画很漂亮的韦恩图，并且还是在线交互式绘图，我看过很多在线工具，但是他家的确实是最好看的。而这个工具利用的就是VennDiagram这个包，但是缺点是最多只能画5个，所以还是推荐<strong>ggVennDiagram</strong>这个包，可能颜值差了点，但是效果还是不错的。</p>
+<p>先看最基本的函数，见图 <a href="#fig:venn">1</a>所示。</p>
+<pre class="r"><code>library(ggVennDiagram)
+ggVennDiagram(list)</code></pre>
+<div class="figure" style="text-align: center"><span style="display:block;" id="fig:venn"></span>
+<img src="{{< blogdown/postref >}}index_files/figure-html/venn-1.png" alt="6个基因列表的韦恩图" width="672" />
+<p class="caption">
+Figure 1: 6个基因列表的韦恩图
+</p>
+</div>
+<p>可以看到默认显示的是交集数字和比例，然后按照集合的数字填充颜色，对于很多个交集的话，这样的图确实很难看，可是这个包符合ggolot2语句，所以是可以高度DIY的。我们看一下help的函数</p>
+<pre><code>ggVennDiagram(
+  x,
+  category.names = names(x), #自定义数据集的名称
+  show_intersect = FALSE, #是否交互式演示
+  set_color = &quot;black&quot;, # 数据集的颜色，默认即可
+  set_size = NA, #数据集标签的大小，默认即可
+  label = c(&quot;both&quot;, &quot;count&quot;, &quot;percent&quot;, &quot;none&quot;), # 显示数值、比例还是不显示
+  label_alpha = 0.5, #各个标签集合的外框透明度，0为全透明，默认0.5
+  label_geom = c(&quot;label&quot;, &quot;text&quot;), #显示数字和标签框
+  label_color = &quot;black&quot;,#标签颜色
+  label_size = NA, #标签字体大小
+  label_percent_digit = 0, #标签的百分位数
+  label_txtWidth = 40, #标签文本的宽度
+  edge_lty = &quot;solid&quot;, #标签边缘类型，默认实心
+  edge_size = 1, #标签边缘大小
+  ...
+)</code></pre>
+<p>可以看到可支持的函数很多，作者也写了一些<a href="https://mirrors.bfsu.edu.cn/CRAN/web/packages/ggVennDiagram/vignettes/using-ggVennDiagram.html">引导说明</a>，大家可以自己尝试跑一些。</p>
+<p>比如我们只显示数字，设置为虚线显示，见图 <a href="#fig:veen2">2</a>所示。</p>
+<pre class="r"><code>ggVennDiagram(
+  list,
+  label = &quot;count&quot;,
+  edge_lty = &quot;dashed&quot;,
+  edge_size = 0.5
+)</code></pre>
+<div class="figure" style="text-align: center"><span style="display:block;" id="fig:veen2"></span>
+<img src="{{< blogdown/postref >}}index_files/figure-html/veen2-1.png" alt="韦恩图" width="672" />
+<p class="caption">
+Figure 2: 韦恩图
+</p>
+</div>
+<p>然而，ggVennDiagram是支持ggplot2语句的，也就是说我们可以继续叠加修改，比如换个颜色，加个主题，加个标题什么的，还有把那个count的标签去掉什么的，最终效果见图 <a href="#fig:veen3">3</a>所示，也可以换个配色，见图 <a href="#fig:veen4">4</a>所示。</p>
+<pre class="r"><code>library(ggplot2)
+ggVennDiagram(
+  list,
+  label = &quot;count&quot;,
+  edge_lty = &quot;dashed&quot;,
+  edge_size = 0.5)+
+  scale_fill_gradient(low=&quot;steelblue&quot;,high = &quot;brown&quot;)+
+  theme_bw()+
+  ggtitle(&quot;Veen plot for six sets&quot;)+
+  theme(legend.position = &#39;none&#39;)</code></pre>
+<div class="figure" style="text-align: center"><span style="display:block;" id="fig:veen3"></span>
+<img src="{{< blogdown/postref >}}index_files/figure-html/veen3-1.png" alt="韦恩图" width="672" />
+<p class="caption">
+Figure 3: 韦恩图
+</p>
+</div>
+<pre class="r"><code>ggVennDiagram(
+  list,
+  label = &quot;count&quot;,
+  edge_lty = &quot;dashed&quot;,
+  edge_size = 0.5)+
+  scale_fill_distiller(palette = &quot;RdBu&quot;)+
+  theme_void()+
+  ggtitle(&quot;Veen plot for six sets&quot;)+
+  theme(legend.position = &#39;none&#39;)</code></pre>
+<div class="figure" style="text-align: center"><span style="display:block;" id="fig:veen4"></span>
+<img src="{{< blogdown/postref >}}index_files/figure-html/veen4-1.png" alt="韦恩图" width="672" />
+<p class="caption">
+Figure 4: 韦恩图
+</p>
+</div>
+<hr />
+<p>可是这依然不够ggplot2，更多的可以看<a href="https://mp.weixin.qq.com/s/6kDXPrJRyXab6HpVjq6JBw">ggVennDiagram 的新生</a>这篇文章，我们可以把数据转换，比如给个华丽丽的标签，见图 <a href="#fig:veen5">5</a>所示。</p>
+<pre class="r"><code>venn = Venn(list)
+data = process_data(venn)</code></pre>
+<pre class="r"><code>ggplot() +
+  geom_sf(aes(fill = count), data = venn_region(data)) +
+  geom_sf(aes(color = id), data = venn_setedge(data), show.legend = FALSE) +
+  geom_sf_text(aes(label = name), data = venn_setlabel(data)) +
+  geom_sf_label(aes(label = count), data = venn_region(data)) +
+  theme_void()+
+    theme(legend.position = &#39;none&#39;)+
+   ggtitle(&quot;Veen plot for six sets&quot;)</code></pre>
+<div class="figure" style="text-align: center"><span style="display:block;" id="fig:veen5"></span>
+<img src="{{< blogdown/postref >}}index_files/figure-html/veen5-1.png" alt="韦恩图" width="672" />
+<p class="caption">
+Figure 5: 韦恩图
+</p>
+</div>
+<p>而我们喜欢按数据集填充颜色，把fill改成id即可，最后效果见图 <a href="#fig:veen6">6</a>所示</p>
+<pre class="r"><code>ggplot() +
+  geom_sf(aes(fill = id), data = venn_region(data)) +
+  geom_sf(aes(color = id), data = venn_setedge(data), show.legend = FALSE) +
+  geom_sf_text(aes(label = name), data = venn_setlabel(data)) +
+  geom_sf_label(aes(label = count), data = venn_region(data)) +
+  theme_void()+
+    theme(legend.position = &#39;none&#39;)+
+   ggtitle(&quot;Veen plot for six sets&quot;)</code></pre>
+<div class="figure" style="text-align: center"><span style="display:block;" id="fig:veen6"></span>
+<img src="{{< blogdown/postref >}}index_files/figure-html/veen6-1.png" alt="韦恩图" width="672" />
+<p class="caption">
+Figure 6: 韦恩图
+</p>
+</div>
+<hr />
+</div>
+<div id="绘制upset图" class="section level2">
+<h2>绘制Upset图</h2>
+<p>当数据集多于5组的适合，画韦恩图就吃力了，因为圈圈太多，所以很不好看。这个时候就可以用Upset这种图来表示了。而推荐用<strong>UpsetR</strong>这个包，目前在CRAN上也收录了，很方便的可以安装。</p>
+<pre class="r"><code>install.package(&#39;UpSetR)</code></pre>
+<p><strong>UpsetR</strong>这个包默认的画图其实不是list的形式，而是各个交集以0和1的expression形式，用来表示有还是无。这个时候就需要需要我们先把数据处理好，这个可以使用<strong>UpSetR</strong>自带的<code>fromList()</code>函数实现，很简单的一句话，最后的表格见表 2所示。</p>
+<pre class="r"><code>library(UpSetR)
+data2&lt;-fromList(list)</code></pre>
+<div id="htmlwidget-1" style="width:100%;height:auto;" class="datatables html-widget"></div>
+<script type="application/json" data-for="htmlwidget-1">{"x":{"filter":"none","vertical":false,"caption":"<caption>Table 2: 六组基因列表的集合<\/caption>","data":[["1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16","17","18","19","20","21","22","23","24","25","26","27","28","29","30","31","32","33","34","35","36","37","38","39","40","41","42","43","44","45","46","47","48","49","50","51","52","53","54","55","56","57","58","59","60","61","62","63","64","65","66","67","68","69","70","71","72","73","74","75","76","77","78","79","80","81","82","83","84","85","86","87","88","89","90","91","92","93","94","95","96","97","98","99","100","101","102","103","104","105","106","107","108","109","110","111","112","113","114","115","116","117","118","119","120","121","122","123","124","125","126","127","128","129","130","131","132","133","134","135","136","137","138","139","140","141","142","143","144","145","146","147","148","149","150","151","152","153","154","155","156","157","158","159","160","161","162","163","164","165","166","167","168","169","170","171","172","173","174","175","176","177","178","179","180","181","182","183","184","185","186","187","188","189","190","191","192","193","194","195","196","197","198","199","200","201","202","203","204","205","206","207","208","209","210","211","212","213","214","215","216","217","218","219","220","221","222","223","224","225","226","227","228","229","230","231","232","233","234","235","236","237","238","239","240","241","242","243","244","245","246","247","248","249","250","251","252","253","254","255","256","257","258","259","260","261","262","263","264","265","266","267","268","269","270","271","272","273","274","275","276","277","278","279","280","281","282","283","284","285","286","287","288","289","290","291","292","293","294","295","296","297","298","299","300","301","302","303","304","305","306","307","308","309","310","311","312","313","314","315","316","317","318","319","320","321","322","323","324","325","326","327","328","329","330","331","332","333","334","335","336","337","338","339","340","341","342","343","344","345","346","347","348","349","350","351","352","353","354","355","356","357","358","359","360","361","362","363","364","365","366","367","368","369","370","371","372","373","374","375","376","377","378","379","380","381","382","383","384","385","386","387","388","389","390","391","392","393","394","395","396","397","398","399","400","401","402","403","404","405","406","407","408","409","410","411","412","413","414","415","416","417","418","419","420","421","422","423","424","425","426","427","428","429","430","431","432","433","434","435","436","437","438","439","440","441","442","443","444","445","446","447","448","449","450","451","452","453","454","455","456","457","458","459","460","461","462","463","464","465","466","467","468","469","470","471","472","473","474","475","476","477","478","479","480","481","482","483","484","485","486","487","488","489","490","491","492","493","494","495","496"],[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[1,0,1,1,0,1,1,0,1,0,1,1,1,0,0,1,1,0,0,0,0,0,0,0,0,1,0,0,1,0,1,1,1,1,0,1,0,1,1,1,1,1,1,0,0,1,1,1,0,0,1,0,0,0,1,1,0,1,0,0,1,0,0,1,0,0,1,0,1,1,1,0,1,1,0,1,1,1,0,1,1,1,0,1,0,1,0,0,0,0,1,0,0,0,1,1,0,1,0,1,1,1,1,0,0,0,1,1,0,1,0,0,1,0,0,1,1,1,0,0,0,0,0,0,1,1,0,1,0,0,1,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1,1,0,0,1,1,1,1,0,1,0,0,0,1,0,1,1,0,0,1,1,0,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,1,1,0,1,1,0,0,0,0,1,1,0,0,0,0,0,1,1,0,0,0,0,0,1,0,0,1,0,0,1,0,0,1,1,0,1,0,0,0,0,0,0,0,1,0,1,0,1,0,0,0,0,1,0,0,0,0,0,1,1,1,0,0,0,1,0,1,0,0,0,1,1,1,1,0,1,0,1,1,1,0,1,0,1,0,0,0,0,0,0,0,0,0,0,1,0,1,1,1,1,0,0,0,1,0,1,0,0,0,0,0,0,0,1,1,0,1,0,1,0,0,0,1,1,0,1,1,0,1,0,0,1,0,0,0,1,0,0,0,0,0,1,1,0,0,0,0,0,1,0,1,0,0,0,1,1,1,1,0,1,0,0,1,0,0,1,0,0,0,1,1,0,1,1,1,0,1,1,0,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1,1,0,0,1,1,0,0,1,0,1,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,1,0,1,1,1,1,0,0,1,1,1,0,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[1,0,1,1,0,1,1,0,1,0,0,1,1,0,0,1,0,0,1,1,1,0,1,1,1,1,0,1,0,0,0,0,0,0,1,0,0,1,0,0,0,1,1,0,0,1,1,1,0,1,1,0,1,0,0,0,0,1,0,1,0,1,1,0,0,0,1,0,1,1,0,1,0,1,1,1,0,1,0,1,1,1,0,1,1,1,0,0,1,0,1,0,1,0,1,1,1,0,0,0,1,1,0,1,1,1,0,0,0,0,0,1,0,0,1,0,1,0,0,0,1,0,0,0,0,1,0,0,1,0,0,0,0,1,1,1,1,0,1,0,0,1,0,1,1,0,0,0,0,1,1,0,1,0,0,0,1,1,1,1,0,1,0,0,1,0,0,1,0,0,1,0,1,1,0,0,1,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,1,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,1,1,1,1,0,0,0,0,0,0,1,1,1,0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,1,0,0,0,0,1,0,0,0,0,0,1,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,1,1,0,1,1,0,1,0,0,1,1,0,1,0,0,0,0,0,0,0,0,0,1,1,0,0,1,0,1,0,0,0,0,0,0,1,0,0,0,1,1,1,0,0,0,1,0,0,1,0,0,0,1,0,0,1,0,0,0,1,1,1,0,0,1,0,1,0,0,1,1,1,1,1,0,0,0,1,1,1,0,1,1,1,0,0,1,0,1,0,0,0,1,0,1,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1,0,1,0,0,0,0,1,0,1,0,0,1,0,0,1,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,1,1,1,0,0,0,1,1,1,1,0,0,0,0,1,0,0,1,0,0,1,1,1,1,1,1,1,0,0,1,0,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,1,1,0,0,1,0,0,0,0,1,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,1,1,0,0,1,1,0,1,0,0,1,0,0,0,0,0,0,0,0,0,1,0,0,0,1,0,0,1,0,1,0,1,0,0,0,0,1,1,1,1,1,1,0,0,1,1,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,1,0,1,0,0,0,1,0,0,0,0,1,0,0,0,0,0,1,0,0,0,0,1,0,0,1,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,1,0,1,0,0,0,0,1,0,0,0,0,0,0,0,0,1,0,1,0,0,1,0,0,0,0,0,0,1,0,0,1,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,1,0,0,0,0,1,0,0,1,1,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,1,0,0,0,0,0,0,1,0,0,0,0,1,0,1,0,0,0,1,1,1,1,0,0,0,1,1,1,0,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1,0,1,0,1,0,0,0,0,1,0,0,1,0,1,0,0,1,0,0,1,0,0,0,0,0,0,1,1,0,0,0,0,0,1,0,1,0,0,0,0,0,0,1,0,0,0,0,1,0,0,0,0,0,1,0,1,1,0,0,1,0,0,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,1,0,0,1,1,0,1,1,1,1,1,1,1,1,1,0,0,1,1,1,1,1,1,1,1,1,0,1,1,0,1,0,0,1,1,0,0,1,1,0,0,1,1,0,0,0,0,1,0,0,1,1,0,0,0,0,0,1,0,0,0,1,1,1,0,1,1,1,1,1,1,1,1,1,0,0,1,1,1,1,0,0,1,0,1,1,0,1,1,0,1,0,1,1,0,0,1,1,1,0,0,1,1,1,0,1,1,0,0,0,0,1,0,0,0,0,1,1,0,0,0,1,0,0,0,0,1,1,1,1,0,0,0,1,1,0,1,1,1,0,1,1,0,0,1,0,1,0,0,0,1,0,0,1,0,0,0,1,1,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th> <\/th>\n      <th>ListA<\/th>\n      <th>ListB<\/th>\n      <th>ListC<\/th>\n      <th>ListD<\/th>\n      <th>ListE<\/th>\n      <th>ListF<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"columnDefs":[{"className":"dt-right","targets":[1,2,3,4,5,6]},{"orderable":false,"targets":0}],"order":[],"autoWidth":false,"orderClasses":false}},"evals":[],"jsHooks":[]}</script>
+<p>当然我们也可以不转换数据，只要加上一句fromList(list)也可以画图，现在我们用最基本的函数进行下Upset图的绘制，效果见图 <a href="#fig:upset">7</a>所示。</p>
+<pre class="r"><code>upset(data2) # 要先加载UpSetR</code></pre>
+<div class="figure" style="text-align: center"><span style="display:block;" id="fig:upset"></span>
+<img src="{{< blogdown/postref >}}index_files/figure-html/upset-1.png" alt="六组数据集的Upset图" width="672" />
+<p class="caption">
+Figure 7: 六组数据集的Upset图
+</p>
+</div>
+<pre class="r"><code>### 如果不想对list进行转换，也可以直接用下面这个代码
+# upset(fromList(list))</code></pre>
+<p>很明显的，这里有个很大的bug，那就是明明有6个数据集，那就是<strong>默认只显示了5个数据集（nset=5）</strong>，既然默认的参数统计不出来，我们就手动添加进来。</p>
+<p>另外这个函数的功能相当的多，可以各种排序（按频率排序，按频数排序，还可以按数据集分组），还可以给点填色等等。具体的可以在示例说明找到，一切都等你发现</p>
+<p>比如我们按freq排序，设置6个数据集，见图 <a href="#fig:upset2">8</a>所示。</p>
+<pre class="r"><code>upset(fromList(list),nsets = 6,order.by = &quot;freq&quot;)</code></pre>
+<div class="figure" style="text-align: center"><span style="display:block;" id="fig:upset2"></span>
+<img src="{{< blogdown/postref >}}index_files/figure-html/upset2-1.png" alt="六组个数据列表的Upset图" width="672" />
+<p class="caption">
+Figure 8: 六组个数据列表的Upset图
+</p>
+</div>
+<pre class="r"><code>## upset(fromList(list),sets = c(&quot;A&quot;,&quot;B&quot;,&quot;C&quot;,&quot;D&quot;,&quot;E&quot;,&quot;F&quot;)) #也可以按需设置</code></pre>
+<p>我们想知道6个数据集都交集的情况，还想标个颜色，可以这样，见图 <a href="#fig:upset3">9</a>所示。</p>
+<pre class="r"><code>upset(fromList(list),nsets = 6,order.by = &quot;freq&quot;,
+      queries = list(list(query = intersects, 
+                          params = list(&quot;ListA&quot;,&quot;ListB&quot;,&quot;ListC&quot;,&quot;ListD&quot;,&quot;ListE&quot;,&quot;ListF&quot;), 
+                          active = T)))</code></pre>
+<div class="figure" style="text-align: center"><span style="display:block;" id="fig:upset3"></span>
+<img src="{{< blogdown/postref >}}index_files/figure-html/upset3-1.png" alt="六组数据列表的Upset图，标记全部交集" width="672" />
+<p class="caption">
+Figure 9: 六组数据列表的Upset图，标记全部交集
+</p>
+</div>
+<p><strong>UpSetR</strong>是一个很强大的包，功能很多，但有一个问题就是不能使用ggplot语句，导出的图也不是ggplot，这个我们可以用Y叔的<strong>ggplotify</strong>转换。当然其实还有一个叫<strong>ggupset</strong>的包可以使用ggplot语句的，但是需要数据处理，语法很复杂，有兴趣自己百度学习。</p>
+<hr />
+</div>
+<div id="两组图的结合" class="section level2">
+<h2>两组图的结合</h2>
+<p>Upset图有个缺点就是，如果按频数画图，右上角会空出很大一块，我们能不能把韦恩图和Upset图组合到一起，这个问题Y叔已经考虑并解决过了，可以参考转<a href="https://mp.weixin.qq.com/s/g6rRGhtKQd_mdRMKxteNVw">UpSet图为ggplot?</a></p>
+<p>这里用到了Y叔叔的<strong>yyplot</strong>这个神包，然而这个包也是很难装上的，因为这是Y叔的私人包，需要补装很多包，而很多包都是只有Github上才能安装，比如<strong>gglayer</strong>这个包，你在CRAN和BiocManager上都上找不到的，只有Y叔的Github上的包才能安装，但是又经常访问困难。而且用yyplot画韦恩图，需要用<u>ggvenn</u>这个函数，但是这个函数又要配置<strong>Java</strong>环境，所以个中曲折自己摸索吧，实在不能使用就放弃把。</p>
+<pre class="r"><code>remotes::install_git(&#39;https://hub.fastgit.org/GuangchuangYu/gglayer/&#39;)
+remotes::install_git(&#39;https://hub.fastgit.org/GuangchuangYu/yyplot/&#39;)
+library(yyplot)</code></pre>
+<p>在安装yyplot过程中可能会出现很多问题，因为依赖许多包，还有一些只有Github才有，所以你可以直接把源码下载下来，本来有个install_local的函数可以直接安装zip文件的，但我还是建议解压以后用下面的代码安装，因为他可能提示你哪些包没有安装，比如我第一次安装就提示很多包没有安装</p>
+<pre class="r"><code>install.packages(&quot;/Users/mac/Downloads/yyplot-master&quot;,repos=NULL,type=&quot;source&quot;) 
+## ERROR: dependencies &#39;dlstats&#39;, &#39;meme&#39;, &#39;qrcode&#39;, &#39;RISmed&#39;, &#39;rsvg&#39;, &#39;rvcheck&#39;, &#39;scholar&#39; are not available for package &#39;yyplot&#39;</code></pre>
+<hr />
+<p><strong>题外话</strong>：最近rvcheck，这个包更新到0.2版了，但是如果安装最新版会提示错误:
+&gt; ’namespace:rvcheck’没有出口’get_aes_var’这个对象</p>
+<p>然而降低安装就能够安装yyplot，这个希望后面可以解决 降低安装的代码是</p>
+</div>
+<div id="r-remotesinstall_versionrvcheckversion-0.1.8" class="section level2">
+<h2>&gt; R remotes::install_version(“rvcheck”,version = “0.1.8”)</h2>
+<p>我们可以不用Y叔的yyplot画韦恩图（因为很难安装），用<strong>ggVennDiagram</strong>的图即可，两种图的组合原理是两个ggplot图形的叠加，这里要用到Y叔的<strong>ggimge</strong>这个包（Y叔是无处不在的），最后效果见图 <a href="#fig:combine">10</a>所示。</p>
+<pre class="r"><code>library(ggplotify) #把别的图转为ggplot2
+library(ggimage) # 组合图片
+p1&lt;-upset(fromList(list),nsets = 6,order.by = &quot;freq&quot;,
+          queries = list(list(query = intersects, 
+                              params = list(&quot;ListA&quot;,&quot;ListB&quot;,&quot;ListC&quot;,&quot;ListD&quot;,&quot;ListE&quot;,&quot;ListF&quot;), 
+                              active = T)))
+g1&lt;-as.ggplot(p1) # 转换为ggplot2图片
+g2&lt;-ggplot() +
+  geom_sf(aes(fill = id), data = venn_region(data)) +
+  geom_sf(aes(color = id), data = venn_setedge(data), show.legend = FALSE) +
+  geom_sf_text(aes(label = name), data = venn_setlabel(data)) +
+  geom_sf_label(aes(label = count), data = venn_region(data)) +
+  theme_void()+
+    theme(legend.position = &#39;none&#39;)
+g3&lt;-g1 + geom_subview(subview = g2 , x=.8, y=.7, w=.45, h=.45)
+g3</code></pre>
+<div class="figure" style="text-align: center"><span style="display:block;" id="fig:combine"></span>
+<img src="{{< blogdown/postref >}}index_files/figure-html/combine-1.png" alt="6个数据列表的Upset图，标记全部交集" width="672" />
+<p class="caption">
+Figure 10: 6个数据列表的Upset图，标记全部交集
+</p>
+</div>
+<p>但是这里有一个bug，就是<strong>左侧的bar不见了</strong>，不知道是不是我电脑系统的问题，还是版本不同的问题。。。</p>
+<p>如果要用yyplot画韦恩图的画，可以这样，最后效果见图 <a href="#fig:combine2">11</a></p>
+<pre class="r"><code>suppressMessages(library(yyplot))
+g4&lt;-ggvenn(fromList(list))</code></pre>
+<pre><code>## 载入需要的程辑包：venneuler</code></pre>
+<pre><code>## 载入需要的程辑包：rJava</code></pre>
+<pre class="r"><code>g5&lt;-g1 + geom_subview(subview = g4 + theme_void(), x=.7, y=.7, w=.45, h=.45)
+g5</code></pre>
+<div class="figure" style="text-align: center"><span style="display:block;" id="fig:combine2"></span>
+<img src="{{< blogdown/postref >}}index_files/figure-html/combine2-1.png" alt="6个数据列表的Upset图，标记全部交集" width="672" />
+<p class="caption">
+Figure 11: 6个数据列表的Upset图，标记全部交集
+</p>
+</div>
+<hr />
+</div>
+<div id="在线交互式作图" class="section level2">
+<h2>在线交互式作图</h2>
+<p>有很多网站可以在线交互式作图，有国产开发的，也有shiny，比如：</p>
+<p><a href="https://www.omicstudio.cn/tool/6" class="uri">https://www.omicstudio.cn/tool/6</a></p>
+<p><a href="https://www.hiplot.com.cn" class="uri">https://www.hiplot.com.cn</a></p>
+<p><a href="http://gehlenborglab.shinyapps.io/upsetr/" title="http://gehlenborglab.shinyapps.io/upsetr/">gehlenborglab.shinyapps.io/upsetr/</a></p>
+<p><a href="https://asntech.shinyapps.io/intervene/" class="uri">https://asntech.shinyapps.io/intervene/</a></p>
+<p>更多的在线功能等着大家发现。</p>
+</div>

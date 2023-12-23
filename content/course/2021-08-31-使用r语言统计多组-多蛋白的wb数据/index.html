@@ -1,0 +1,202 @@
+---
+title: 使用R语言统计多组、多蛋白的WB数据
+author: 欧阳松
+date: '2021-08-31'
+slug: 使用r语言统计多组-多蛋白的wb数据
+categories:
+  - 教程
+  - R
+tags:
+  - 教程
+  - R
+---
+
+<script src="{{< blogdown/postref >}}index_files/header-attrs/header-attrs.js"></script>
+
+
+<p>实验室经常使用<code>WB</code>验证蛋白表达水平,使用<code>ImageJ</code>算出个泳道的灰度值以后,需要做归一化和均一化处理,步骤如下:</p>
+<ol style="list-style-type: decimal">
+<li>首先计算目的蛋白/内参蛋白得到相对比,(有的人直接拿这个来统计,当然也可以,但是对照组就不是1)</li>
+<li>拿各个相对比再除以各组的对照组的相对比,这样对照组就都是1了</li>
+</ol>
+<p>这个功能可以很容易使用<code>Excel</code> or <code>WPS</code>实现,当然也可以直接进行T检验,但是发现如果所有值是1的话,是无法在<code>excel</code>上使用t检验函数的,当然最常见的统计软件是SPSS,最常用的作图工具是Graphpad Prism或Origin,不过定制性最高的我认为是<code>R</code></p>
+<p>比如有这样一个WB表格数据</p>
+<table>
+<thead>
+<tr class="header">
+<th align="left">sample</th>
+<th align="right">A</th>
+<th align="right">B</th>
+<th align="right">C</th>
+<th align="right">Actin</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">NC1</td>
+<td align="right">128061</td>
+<td align="right">362791</td>
+<td align="right">73876</td>
+<td align="right">595320</td>
+</tr>
+<tr class="even">
+<td align="left">OE1</td>
+<td align="right">444296</td>
+<td align="right">685776</td>
+<td align="right">205065</td>
+<td align="right">595894</td>
+</tr>
+<tr class="odd">
+<td align="left">DR1</td>
+<td align="right">760531</td>
+<td align="right">1008761</td>
+<td align="right">336254</td>
+<td align="right">596468</td>
+</tr>
+<tr class="even">
+<td align="left">NC2</td>
+<td align="right">206016</td>
+<td align="right">267960</td>
+<td align="right">126144</td>
+<td align="right">553840</td>
+</tr>
+<tr class="odd">
+<td align="left">OE2</td>
+<td align="right">454608</td>
+<td align="right">624546</td>
+<td align="right">251256</td>
+<td align="right">545392</td>
+</tr>
+<tr class="even">
+<td align="left">DR2</td>
+<td align="right">703200</td>
+<td align="right">981132</td>
+<td align="right">376368</td>
+<td align="right">536944</td>
+</tr>
+<tr class="odd">
+<td align="left">NC3</td>
+<td align="right">215730</td>
+<td align="right">236808</td>
+<td align="right">118008</td>
+<td align="right">560008</td>
+</tr>
+<tr class="even">
+<td align="left">OE3</td>
+<td align="right">441000</td>
+<td align="right">639600</td>
+<td align="right">255750</td>
+<td align="right">560505</td>
+</tr>
+<tr class="odd">
+<td align="left">DR3</td>
+<td align="right">666270</td>
+<td align="right">1042392</td>
+<td align="right">393492</td>
+<td align="right">561002</td>
+</tr>
+</tbody>
+</table>
+<p>重点是如何用R进行计算,其实直接用excel计算最简单,这里纯粹就是炫技</p>
+<ol style="list-style-type: decimal">
+<li>首先是用目的蛋白÷内参蛋白(actin),我定义为<code>x_r</code></li>
+</ol>
+<pre class="r"><code>wb$A_r&lt;-wb$A/wb$Actin
+wb$B_r&lt;-wb$B/wb$Actin
+wb$C_r&lt;-wb$C/wb$Actin</code></pre>
+<ol start="2" style="list-style-type: decimal">
+<li>用x_r除以NC组的相对比,我将他定义为’x_n’.由于没有<code>excel</code>的<code>$E$2</code>这种实现固定的办法,因此我想办法曲折了一下,我的思路是先新增一列<code>A_n</code>,然后前3行除以A_r的第一行,中间三行除以A_r的第四行,后三行除以A_r的第七行,然后居然成功了,后面同法计算B和C蛋白的归一化值.</li>
+</ol>
+<pre class="r"><code>wb$A_n[1:3]=wb$A_r[1:3]/wb$A_r[1]
+wb$A_n[4:6]=wb$A_r[4:6]/wb$A_r[4]
+wb$A_n[7:9]=wb$A_r[7:9]/wb$A_r[7]
+wb$B_n[1:3]=wb$B_r[1:3]/wb$B_r[1]
+wb$B_n[4:6]=wb$B_r[4:6]/wb$B_r[4]
+wb$B_n[7:9]=wb$B_r[7:9]/wb$B_r[7]
+wb$C_n[1:3]=wb$C_r[1:3]/wb$C_r[1]
+wb$C_n[4:6]=wb$C_r[4:6]/wb$C_r[4]
+wb$C_n[7:9]=wb$C_r[7:9]/wb$C_r[7]</code></pre>
+<p>首先需要把<code>短数据</code>转换为<code>长数据</code>,把样本留下,添加一列蛋白和一列灰度值,分别命名为<code>protein</code>和<code>value</code>.</p>
+<pre class="r"><code>library(reshape2) 
+wb_long&lt;-melt(wb,
+                id.vars = c(&#39;sample&#39;),##需要保留的列,非数字格式
+                measure.vars=c(&#39;A_n&#39;,&#39;B_n&#39;,&#39;C_n&#39;),##需要保留的值,数字格式
+                variable.name=&#39;Protein&#39;,##新定义个列并命名,非数字格式
+                value.name=&#39;Value&#39;)##新定义一个列并命名,数字格式</code></pre>
+<p>新增一个分组,如果是单纯按NC、OE、和DR排序的话,完全可以用下面的代码</p>
+<pre class="r"><code>wb_long$Group=rep(c(&#39;NC&#39;, &#39;OE&#39;,&#39;DR&#39;), each = 3)  ##分为3组，每组3个数据</code></pre>
+<p>但是这个数据是按NC1,OE1,DR1,NC2…这样排序,所以上面代码分组后是错的,最简单的办法是导出csv,然后Excel简单定义一下,其实也就是把数字去掉,加个Group的组就行,但是这部操作R我还没学会 有个shiny的<code>DataEditR</code>包可以交互式处理数据,但是又不能直接保存到Environment里,其实这种简单的处理,完全可以先excel处理好了以后再作图,毕竟<code>excel</code>号称除了不能生孩子… 当然如果你想用<code>shiny</code>,可以用<code>DataEditR</code>这个包,直接安装即可,但前提是要先安装好<code>shiny</code></p>
+<blockquote>
+<p>instal.packages(“shiny”)</p>
+<p>instal.packages(“DataEditR”)</p>
+<p>library(DataEditR)</p>
+<p>data_edit(wb_long)</p>
+</blockquote>
+<p>这样就可以像excel那样处理表格里,导出数据,然后再导入数据.</p>
+<p>需要固定一下分组的顺序,需要先设置为<code>因子</code></p>
+<pre class="r"><code>wb_long &lt;- within(wb_long, Group &lt;- factor(Group, levels = c(&quot;NC&quot;, &quot;OE&quot;,&quot;DR&quot;))) </code></pre>
+<p><code>画图</code>,这里联合<code>ggplot2</code>和<code>ggpubr</code>,其实ggpubr可以一步出图,但是底层限制死了,我们可以借助ggppubr进行统计,画图还是用ggplot2,统计的是两种,首先进行anova看整体差异,然后看各组与对照组的差异</p>
+<pre class="r"><code>library(ggplot2)
+library(ggpubr)
+ggplot(wb_long ,
+       aes(x=Group,y=Value,color=Group,fill=Group))+
+    geom_bar(stat=&quot;summary&quot;,fun=mean,position=&quot;dodge&quot;)+
+    stat_summary(fun.data = &#39;mean_sd&#39;, geom = &quot;errorbar&quot;, width = 0.5,position = position_dodge(0.9))+
+    facet_grid(~Protein,scales = &#39;free&#39;)+
+    theme_minimal(base_size = 12)+
+    labs(x=NULL,y=&#39;Relative protein expression&#39;)+
+    geom_dotplot(stackdir = &quot;center&quot;, binaxis = &quot;y&quot;, 
+                 fill = &quot;lightgray&quot;, 
+                 dotsize = 0.9,position = position_dodge(0.9))+
+    stat_compare_means(method = &quot;anova&quot;)+
+    stat_compare_means(method = &#39;t.test&#39;,label = &quot;p.signif&quot;,comparisons = list(c(&#39;NC&#39;,&#39;OE&#39;),c(&#39;NC&#39;,&#39;DR&#39;)))</code></pre>
+<pre><code>## Bin width defaults to 1/30 of the range of the data. Pick better value with `binwidth`.</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-8-1.png" width="672" /></p>
+<p>也可以提取某一个蛋白的数据,进行毕竟,比如只看<code>B蛋白</code>的数据,可以用下面的函数,然后作图</p>
+<pre class="r"><code>B&lt;-wb_long[wb_long$Protein == &#39;B_n&#39;,]
+ggplot(B ,
+       aes(x=Group,y=Value,color=Group,fill=Group))+
+    geom_bar(stat=&quot;summary&quot;,fun=mean,position=&quot;dodge&quot;)+
+    stat_summary(fun.data = &#39;mean_sd&#39;, geom = &quot;errorbar&quot;, width = 0.5,position = position_dodge(0.9))+
+    theme_minimal(base_size = 12)+
+    labs(x=NULL,y=&#39;Relative protein expression&#39;)+
+    geom_dotplot(stackdir = &quot;center&quot;, binaxis = &quot;y&quot;, 
+                 fill = &quot;lightgray&quot;, 
+                 dotsize = 0.9,position = position_dodge(0.9))+
+    stat_compare_means(method = &quot;anova&quot;)+
+    stat_compare_means(method = &#39;t.test&#39;,label = &quot;p.signif&quot;,comparisons = list(c(&#39;NC&#39;,&#39;OE&#39;),c(&#39;NC&#39;,&#39;DR&#39;)))</code></pre>
+<pre><code>## Bin width defaults to 1/30 of the range of the data. Pick better value with `binwidth`.</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-9-1.png" width="672" /></p>
+<p>当然也可以换个主题和配色,可以用<code>ggsci</code>,也可以用ggplot的自定义,这里用<code>ggsci</code>的<code>lancet</code>配色</p>
+<pre class="r"><code>library(ggsci)
+ggplot(B ,
+       aes(x=Group,y=Value,color=Group,fill=Group))+
+    geom_bar(stat=&quot;summary&quot;,fun=mean,position=&quot;dodge&quot;)+
+    stat_summary(fun.data = &#39;mean_sd&#39;, geom = &quot;errorbar&quot;, width = 0.5,position = position_dodge(0.9))+
+    theme_bw(base_size = 12)+
+    scale_color_lancet()+
+    scale_fill_lancet()+
+    labs(x=NULL,y=&#39;Relative protein expression&#39;)+
+    geom_dotplot(stackdir = &quot;center&quot;, binaxis = &quot;y&quot;, 
+                 fill = &quot;lightgray&quot;, 
+                 dotsize = 0.9,position = position_dodge(0.9))+
+    stat_compare_means(method = &quot;anova&quot;)+
+    stat_compare_means(method = &#39;t.test&#39;,label = &quot;p.signif&quot;,comparisons = list(c(&#39;NC&#39;,&#39;OE&#39;),c(&#39;NC&#39;,&#39;DR&#39;)))</code></pre>
+<pre><code>## Bin width defaults to 1/30 of the range of the data. Pick better value with `binwidth`.</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-10-1.png" width="672" /></p>
+<p>这里手动添加配色,然后把标签去掉,因为底下已经有标签了,加一句<code>theme(legend.position = 'none')</code></p>
+<pre class="r"><code>ggplot(B ,
+       aes(x=Group,y=Value,color=Group,fill=Group))+
+    geom_bar(stat=&quot;summary&quot;,fun=mean,position=&quot;dodge&quot;)+
+    stat_summary(fun.data = &#39;mean_sd&#39;, geom = &quot;errorbar&quot;, width = 0.5,position = position_dodge(0.9))+
+    theme_bw(base_size = 12)+
+    scale_color_manual(values = c(&#39;gray&#39;,&#39;steelblue&#39;,&#39;firebrick&#39;))+
+    scale_fill_manual(values = c(&#39;gray&#39;,&#39;steelblue&#39;,&#39;firebrick&#39;))+
+    labs(x=NULL,y=&#39;Relative protein expression&#39;)+
+    geom_dotplot(stackdir = &quot;center&quot;, binaxis = &quot;y&quot;, 
+                 fill = &quot;lightgray&quot;, 
+                 dotsize = 0.9,position = position_dodge(0.9))+
+    stat_compare_means(method = &quot;anova&quot;)+
+    stat_compare_means(method = &#39;t.test&#39;,label = &quot;p.signif&quot;,comparisons = list(c(&#39;NC&#39;,&#39;OE&#39;),c(&#39;NC&#39;,&#39;DR&#39;)))+theme(legend.position = &#39;none&#39;)</code></pre>
+<pre><code>## Bin width defaults to 1/30 of the range of the data. Pick better value with `binwidth`.</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-11-1.png" width="672" /></p>

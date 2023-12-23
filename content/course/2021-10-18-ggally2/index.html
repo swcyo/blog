@@ -1,0 +1,73 @@
+---
+title: GGally绘制的几个图形
+author: 欧阳松
+date: '2021-10-18'
+slug: GGally2
+categories:
+  - GGally
+---
+
+<script src="{{< blogdown/postref >}}index_files/header-attrs/header-attrs.js"></script>
+
+
+<p>GGally是一个功能强大的可视化包，是可以集相关关系图、箱线图、直方图等于一身的R绘图包，现在复现这篇<a href="https://zhuanlan.zhihu.com/p/375622311">GGally绘制的几个图形 - 知乎 (zhihu.com)</a>的图</p>
+<div id="ggally绘制简单平行坐标图" class="section level2">
+<h2><strong>GGally绘制简单平行坐标图</strong></h2>
+<p>使用iris数据进行绘制，函数是<code>ggparcoord()</code></p>
+<pre class="r"><code>library(GGally)</code></pre>
+<pre><code>## 载入需要的程辑包：ggplot2</code></pre>
+<pre><code>## Registered S3 method overwritten by &#39;GGally&#39;:
+##   method from   
+##   +.gg   ggplot2</code></pre>
+<pre class="r"><code>ggparcoord(data = iris,
+           columns = 1:4,
+           groupColumn = &quot;Species&quot;,
+           showPoints = TRUE) +  ##添加点
+  scale_color_brewer(palette = &quot;Set2&quot;)</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-1-1.png" width="672" /></p>
+<p>通过设置“splineFactor = TRUE”参数，绘制平滑的平行坐标轴；</p>
+<pre class="r"><code>ggparcoord(data = iris,
+           columns = 1:4,
+           groupColumn = &quot;Species&quot;,
+           splineFactor = TRUE) +
+  scale_color_brewer(palette = &quot;Set2&quot;)</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-2-1.png" width="672" /></p>
+<div id="添加箱线图" class="section level3">
+<h3>添加箱线图</h3>
+<pre class="r"><code>ggparcoord(data = iris,
+           columns = 1:4,
+           alphaLines = 0.2,
+           showPoints = TRUE,
+           boxplot = TRUE)</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-3-1.png" width="672" /></p>
+</div>
+<div id="更改x轴变量的排序" class="section level3">
+<h3>更改x轴变量的排序</h3>
+<pre class="r"><code>ggparcoord(data = iris,
+           columns = 1:4,
+           groupColumn = &quot;Species&quot;,
+           order = &quot;anyClass&quot;) + ##还可设置成allClass、skewness、Outlying
+  scale_color_brewer(palette = &quot;Set2&quot;)</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-4-1.png" width="672" /></p>
+</div>
+<div id="可以使用facet-wrap函数为每个组创建一个平行坐标图" class="section level3">
+<h3>可以使用facet wrap函数为每个组创建一个平行坐标图</h3>
+<pre class="r"><code>ggparcoord(data = iris,
+           columns = 1:4,
+           alphaLines = 0.2,
+           boxplot = TRUE,
+           groupColumn = &quot;Species&quot;,
+           order = &quot;anyClass&quot;) +
+  scale_color_brewer(palette = &quot;Set2&quot;) +
+  facet_wrap(~ Species)</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-5-1.png" width="672" /></p>
+</div>
+</div>
+<div id="ggally绘制矩阵散点图" class="section level2">
+<h2>GGally绘制矩阵散点图</h2>
+<p>使用<code>ggscatmat()</code>函数绘制散点图</p>
+<pre class="r"><code>ggscatmat(data = iris, columns = 1:4, color = &quot;Species&quot;, alpha = 0.8)+
+  theme_bw(base_size = 14)+
+  theme(plot.title = element_text(hjust = 0.5))</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-6-1.png" width="672" /></p>
+</div>

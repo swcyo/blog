@@ -1,0 +1,166 @@
+---
+title: R做单因素和多因素Cox生存分析
+author: 欧阳松
+date: '2021-09-04'
+slug: Cox-survival-analysis
+categories:
+  - 教程
+  - R
+tags:
+  - 教程
+  - Cox
+---
+
+比如你筛选了某个基因，或者某个因素，突然审稿人跟你说要你做单因素和多因素的Cox分析，让你评估是否是某个危险因素的独立影响因素，这个可以在survival包里实现。
+
+关于单因素Cox回归分析，很好理解，只要挖掘处*p*\<0.05的因素就行，但是对于多因素Cox分析，有的文献说是要挑选*p*\<0.05的因素，有的文献说要挑选*p*\<0.2的因素，这个其实都是可以设置的。。。
+
+我们以survival包自带的lung数据进行演示
+
+```{r}
+data<-survival::lung #加载示例数据
+```
+
+我们查看一下这个数据的前几个示例
+
+```{r,echo=FALSE}
+knitr::kable(head(data))
+```
+
+在运行之前，我们需要加载这几个包
+
+    library(dplyr)
+    library(survival)
+    library(plyr)
+
+```{r,echo=FALSE}
+suppressMessages(library(dplyr))
+suppressMessages(library(survival))
+suppressMessages(library(plyr))
+```
+
+## **单因素Cox回归**
+
+我们可以先单独看某一个因素的结果，比如说sex是否对生存有影响，可以这样
+
+```{r}
+surv<-Surv(time = data$time,event = data$status)
+data$surv<-with(data,surv) #添加一列
+sexCox<-coxph(surv~sex,data = data) #计算sex的Cox
+sexSum<-summary(sexCox) #总结一下
+sexSum$coefficients #检索出HR和P值
+sexSum$conf.int #检索出HR饿95%CI
+round(sexSum$conf.int[,3:4],2) #设置小数点两位数
+
+CI<-paste0(round(sexSum$conf.int[,3:4],2),collapse = "-") #将95%CI合并
+Pvalue<-round(sexSum$coefficients[,5],3) #提取小数点三位数的p值
+HR<-round(sexSum$coefficients[,2],2)#提取小数点两位数的HR值
+
+### 查看一下结果
+Unicox<-data.frame("Characteristics"="sex","Hazard Ratio"=HR,
+                   "CI95"=CI,
+                   "P value"=Pvalue)
+```
+
+我们看一下sex的单因素结果，见表 \@ref(tab:sexunicox)
+
+```{r sexunicox,echo=FALSE}
+knitr::kable(Unicox,caption = "sex的单因素Cox结果",booktabs = TRUE)
+```
+
+然而，对于多个因素，我们就可以设置一个函数，可以把所有的因素都算进去
+
+```{r}
+#添加多个参数,定义函数
+UniCox<-function(x){
+    FML<-as.formula(paste0("surv~",x))
+    Cox<-coxph(FML,data = data) 
+    Sum<-summary(Cox)
+    CI<-paste0(round(Sum$conf.int[,3:4],2),collapse = "-") 
+    Pvalue<-round(Sum$coefficients[,5],3)
+    HR<-round(Sum$coefficients[,2],2)
+    Unicox<-data.frame("Characteristics"=x,
+                       "Hazard Ratio"=HR,
+                       "CI95"=CI,
+                       "P value"=Pvalue)
+    return(Unicox)
+}
+
+#如查看sex
+UniCox("sex")
+
+varNames<-colnames(data) [c(4:10)] #[]里代表需要的列数
+UniVar<-lapply(varNames, UniCox)
+UniVar<-ldply(UniVar,data.frame)
+```
+
+我们看一下所有统计的结果，见表 \@ref(tab:unicox)
+
+```{r unicox,echo=FALSE}
+knitr::kable(UniVar,caption = "单因素Cox结果",booktabs = TRUE)
+```
+
+我们还可以筛选一下所有p值小于0.05的因素
+
+```{r}
+#筛选p<0.05
+UniVar$Characteristics[UniVar$P.value<0.05]
+```
+
+------------------------------------------------------------------------
+
+## **多因素Cox分析**
+
+提取出p\<0.05的元素以后，我们可以对所有p\<0.05的因素再次进行多因素的Cox回归分析，如果说普通的多因素Cox，我们用+号选择需要的因素进行计算，比如下面这样：
+
+    MultiCox<-coxph(surv~age+sex+ph.ecog+ph.karno,data =data) #查某几个因素就使用+
+
+但是，我们我们需要所有单因素Cox结果里面p\<0.05的因素，我们就可以用函数批量计算\
+我们先定义函数，然后整合到一个表里
+
+```{r}
+#定义p<0.05的函数
+fml<-as.formula(paste0("surv~",paste0( UniVar$Characteristics[UniVar$P.value<0.05],collapse = "+")))
+
+multicox<-coxph(fml,data = data) #定义所有p<0.05的参数
+multisum<-summary(multicox) #提取结果
+
+multiname<-as.character(UniVar$Characteristics[UniVar$P.value<0.05])
+mCIL<-round(multisum$conf.int[,3],2)
+mCIU<-round(multisum$conf.int[,4],2)
+mCI<-paste0(mCIL, "-",mCIU) 
+#或者这样 mCI<-paste0(round(multisum$conf.int[,3:4],2),collapse = "-") 
+mPvalue<-round(multisum$coefficients[,5],3)
+mHR<-round(multisum$coefficients[,2],2)
+# 把所有结果导入到一个mulcox的表格里
+mulcox<-data.frame("Characteristics"=multiname,"Hazard Ratio"=mHR,
+                   "CI95"=mCI,
+                   "P value"=mPvalue)
+```
+
+这样，我们生存一个叫mulcox的多因素Cox回归结果的表格，见表 \@ref(tab:mulcox)
+
+```{r mulcox,echo=FALSE}
+knitr::kable(mulcox,caption = "多因素Cox结果",booktabs = TRUE)
+```
+
+------------------------------------------------------------------------
+
+## **单因素和多因素的整合**
+
+我们分别获得了单因素和多因素Cox回归的结果，最后我们需要把两个结果合并到一个表格里面，这里我们就可以用到`merge()`函数，见表 \@ref(tab:Final)
+
+```{r }
+Final<-merge.data.frame(UniVar,mulcox,by="Characteristics",all = T,sort = T)
+```
+
+```{r Final,echo=FALSE}
+knitr::kable(Final,caption = "单因素和多因素Cox整合结果",booktabs = TRUE)
+```
+
+------------------------------------------------------------------------
+
+这样一个代表所有单因素和多因素Cox回归生存分析的表格就自动合成了，学会了吗？如果想导出成excel格式就可以输入下面的代码：
+
+    write.csv(Final,"coxreg.csv", row.names = FALSE)
+    write.csv(Final,"coxreg.csv",row.names = F,showNA=F ) #不显示NA值

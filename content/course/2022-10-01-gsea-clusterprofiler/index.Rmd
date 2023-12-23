@@ -1,0 +1,354 @@
+---
+title: "使用排序值的基因集进行GSEA之clusterProfiler"
+author: "欧阳松"
+date: "2022-10-01"
+slug: []
+categories:
+- GSEA
+- "Pre-ranked GSEA"
+- clusterProfiler
+tags:
+- GSEA
+- "Pre-ranked GSEA"
+- clusterProfiler
+description: null
+hideToc: yes
+enableToc: yes
+enableTocContent: no
+tocFolding: no
+tocPosition: inner
+tocLevels:
+- h2
+- h3
+- h4
+series:
+- ~
+image: null
+---
+
+今天，终于要将大头了,使用clusterProfiler来做富集分析，就我目前而言，我不喜欢ORA富集分析，是因为ORA要分上调和下调，虽然有一些办法可以同步进行，但是整体运行GSEA不香吗？按照NES直接分为上调和下调，不是更简单明了吗？
+
+其实**clusterProfiler**和**fgsea**的运行原理差不多，需要一个排序值和一个gmt，而且我看了一下代码，普通的结果激素fgsea，只不过clusterProfiler又添加了qvalue值和校正p值的方法，结果更加丰富吧，而且clusterProfiler可以在线爬gmt数据，这也省了不少工作，只是在运行GO的时候，时间特别长，所以一般我推荐用`gseKEGG`就可以了，当然如果你觉得KEGG太老套，也可以运行g`seWP`去爬Wikipathway的结果，如果还觉得不新鲜，还可以使用**ReactomePA**包去运行`gsepathway`，不过那个包有500M。。。
+
+我们学习如何**clusterProfiler**用来进行KEGG分析，同时可视化结果，关于可视化主要是运行**enrichplo**t包，这个我可以后面单独再学习。
+
+## 数据的准备
+
+跟fgsea一样，进行GSEA需要两组数据，一个`rank`文件，一个`gmt`文件。
+
+但是**clusterProfiler**可以直接爬KEGG的gmt，所以我们其实只需要准备带数值基因列表就可以了。
+
+> -   如果你准备好来自己的GMT文件，那么需要运行的函数是`GSEA()`，我之前在简书写过一个个教程：[R做GSEA富集分析 - 简书 (jianshu.com)](https://www.jianshu.com/p/bb7442bb8cad)，可以参考。
+
+关于有了差异分析结果，不知道怎么做GSEA，主要因为不知道怎么定义genelist，可以看Y叔的这个教程[听说你有RNAseq数据却不知道怎么跑GSEA (qq.com)](https://mp.weixin.qq.com/s/aht5fQ10nH_07CYttKFH7Q)
+
+我们继续用之前教程的数据，之前我们说把数据保存为制表符分隔的文本文件，然后该后缀为`.rnk`，实际上仍然只是一个`txt`，我们直接导入进入,这里我们一定要注意基因的名称是symbol还是ENTREZ，**clusterProfiler**推荐用ENTREZ，所以我们还要进行基因名的转换,可以直接用**clusterProfiler**的`bitr()`函数转换
+
+```{r message=FALSE, warning=FALSE}
+library(clusterProfiler)
+gsea.rnk<-read.table('/Users/mac/Desktop/gsea.rnk.txt',header = F)
+gene=bitr(gsea.rnk$V1,fromType="SYMBOL",toType="ENTREZID",OrgDb = org.Hs.eg.db::org.Hs.eg.db)  #开始ID转换
+gene <- dplyr::distinct(gene,SYMBOL,.keep_all=TRUE)## 去除重复基因
+gene_df <- data.frame(rank=gsea.rnk$V2, 
+                      SYMBOL = gsea.rnk$V1)
+gene_df <- merge(gene_df,gene,by="SYMBOL")
+#定义基因列表，对rank值进行从高到低排序
+geneList<-gene_df $rank
+names(geneList)=as.character(gene_df $ENTREZID)
+geneList=sort(geneList,decreasing = T)
+remove(gsea.rnk,gene,gene_df)
+```
+
+接下来，我们读取`.gmt`文件，由于可以在线爬KEGG，所以一般无需准备，但是有时候我们也会遇到断网的情况，这时候有两种办法：
+
+1.  使用下载好的gmt文件，**clusterProfiler**自带`read.gmt`函数，可以直接读取，当然现在Y叔开始研发gson格式了，还写了[KEGG的富集分析终于真的本地化了](https://mp.weixin.qq.com/s/c17CKZoYEBjHxH_YAcDHeA)这篇文章，这个可能未来会有变化吧。
+
+2.  使用离线版kegg.db，这个需要提取下载好，到时候设置`use_internal_data=F`即可，这个可以参考[多物种批量下载KEGG数据并做成KEGG.db包](https://mp.weixin.qq.com/s/PwrdQAkG3pTlwMB6Mj8wXQ)这个文章。我可以推荐用离线的办法。
+
+简单演示就是：
+
+    remotes::install_github("YuLab-SMU/createKEGGdb")
+    library(createKEGGdb)
+    create_kegg_db('hsa') # 创建人类数据库
+    install.packages("./KEGG.db_1.0.tar.gz", repos=NULL)
+    library(KEGG.db)
+
+    gmt<-read.gmt("/Users/mac/Desktop/c2.cp.kegg.v2022.1.Hs.entrez.gmt") 
+
+## GSEA分析
+
+有了genelist和离线的KEGG数据包，我们就可以快速的运算GSEA了
+
+    ## 离线结果
+    keggoffine<-gseKEGG(geneList = geneList,
+                  organism = "hsa",
+                  minGSSize = 10,
+                  maxGSSize = 500,
+                  eps = 0, #为了获得更精准的结果，可以设置为0
+                  pvalueCutoff = 0.05, #如果想获得更多结果，可设置p=1或0.9
+                  pAdjustMethod = "BH",#p值校正方法
+                  use_internal_data = T #用本地KEGG
+                  )
+    ## 在线结果              
+    keggonine<-gseKEGG(geneList = geneList,
+                  organism = "hsa",
+                  minGSSize = 20,
+                  maxGSSize = 1000,
+                  eps = 0, #为了获得更精准的结果，可以设置为0
+                  pvalueCutoff = 0.05,
+                  pAdjustMethod = "BH",
+                  use_internal_data = F #用网络KEGG
+                  )
+
+```{r message=FALSE, warning=FALSE,echo=F}
+keggoffine<-gseKEGG(geneList = geneList,
+              organism = "hsa",
+              minGSSize = 10,
+              maxGSSize = 500,
+              eps = 0, #为了获得更精准的结果，可以设置为0
+              pvalueCutoff = 0.05, #如果想获得更多结果，可设置p=1或0.9
+              pAdjustMethod = "BH",#p值校正方法
+              use_internal_data = T #用本地KEGG
+              )
+keggonine<-gseKEGG(geneList = geneList,
+              organism = "hsa",
+              minGSSize = 20,
+              maxGSSize = 1000,
+              eps = 0, #为了获得更精准的结果，可以设置为0
+              pvalueCutoff = 0.05,
+              pAdjustMethod = "BH",
+              use_internal_data = F #用网络KEGG
+              )
+```
+
+由于是使用ENTREZID进行了运算，计算的基因名都是ENTREZID代码，这时候建议转换为SYMBOl，而这个可以直接使用`setReadable()`函数实现，可以发现3M的结果变成了7M。
+
+另外clusterProfiler之所以叫clusterProfiler，使用cluster就是多簇的意思，我们可以将两个结果合并起来，这个直接用`merge_result()`函数实现。
+
+```{r}
+keggonine <- setReadable(keggonine, 'org.Hs.eg.db', 'ENTREZID')
+keggoffine <- setReadable(keggoffine, 'org.Hs.eg.db', 'ENTREZID')
+## 将两组数据合并
+kegg<-merge_result(list(KEGGoffline=keggoffine,KEGGonline=keggonine))
+```
+
+## 如何看结果
+
+可以直接使用keggoffine\@result或者data.frame(keggoffine)直接提取结果，如果需要导出来，可以使用以下函数直接保存到本地文件夹，我们可以看看前几列数据，离线数据见Table \@ref(tab:table1)所示，在线数据见Table \@ref(tab:table2)所示。
+
+    a=data.frame(keggoffine)
+    write.csv(a,'keggoffine.csv')
+
+```{r table1,echo=FALSE}
+knitr::kable(data.frame(keggoffine)[1:5,2:8],caption = "离线KEGG结果",digits=3)
+```
+
+```{r table2,echo=FALSE}
+knitr::kable(data.frame(keggoffine)[1:5,2:8],caption = "在线KEGG结果",digits=3)
+```
+
+可以看到两者几乎一致（除了在线的速度更慢。。。），接着就是最秀的可视化环节了。
+
+## 可视化数据
+
+**clusterProfiler**的结果有自带的dotplot、gseaplot、cnetplot和ridgeplot等可视化函数，但是最全面的其实是**enrichplot**包，关于**enrichplot**包的介绍可以看[enrichplot: 让你们对clusterProfiler系列包无法自拔](https://mp.weixin.qq.com/s/93XIeDF3mUFX0koX6mTRpA)这个教程，当然你也可以关注Y叔的公众号，会经常更新各种功能，欲罢不能。
+
+当然，为了符号我自己的一些需求，我还修改了部分参数，改成了**myenrichplot**包，等以后有时间再研究怎么开发新包吧，这里要最近以往的**clusterProfiler**的结果里q值是qvalues，目前改成了qvalue，所以对于以前的结果，**myenrichplot**包在`gsaplot2()`中还使用不了
+
+### Dotplot
+
+为了更好的显示效果，我们这时候可以关闭**clusterProfiler**的了，直接用我的**myenrichplot**包，后面有美化需求我还可以再修改。
+
+在Y叔GSEA结果里，隐藏了一个sign的结果，也就是按**NES**是否大于0为激活或抑制，有了这个分组，我们就可以很好的显示哪些是激活通路，哪些是抑制通路，而且逻辑是各组相同的数量，这里应用到的函数可以看我写的[使用排序值的基因集进行GSEA之fgsea](/course/fgsea/)教程里。这里我修改里原来的配色，而且对标签添加里一个外框，同时对于合并的两组结果也是可以使用的。**myenrichplot**包的Dotplot见Figure \@ref(fig:fig1)所示，而**enrichplot**包的Dotplot见Figure \@ref(fig:fig2)所示，当然我们也可以同时比较两组结果，见Figure \@ref(fig:fig3)所示。可以发现我的结果出的图是不是很素雅，而且在分面上，我把首字母改成了大写。
+
+```{r fig1,fig.align='center',fig.cap="myenrichplot的dotplot"}
+# remotes::install_git('https://gitee.com/swcyo/myenrichplot') #目前是1.21.2版
+suppressMessages(library(myenrichplot)) ## 我修改的包
+library(ggplot2) 
+p1<-dotplot(keggoffine,split=".sign", ## GSEA结果里隐藏的小技能
+        showCategory = 10, #选择各组要显示的数量
+        label_format = 40, #现在可以设置文本的长度里
+        title="GSEA-KEGG")+
+  facet_grid(~.sign)
+p1
+```
+
+```{r fig2, fig.align='center', fig.cap="enrichplot的dotplot"}
+### 看看enrichplot的图
+p2<-enrichplot::dotplot(keggoffine,split=".sign",
+                        showCategory = 10,
+                        label_format = 40,
+                        title="GSEA-KEGG")+
+                 facet_grid(~.sign)
+p2
+```
+
+```{r fig3, fig.align='center', fig.cap="两组的dotplot"}
+p3<-dotplot(kegg,split=".sign",showCategory = 6,label_format = 40,title="CLuster-GSEA-KEGG")+facet_grid(~.sign)
+p3
+```
+
+### GSEA-plot
+
+GSEA的核心是单个结果的rank和曲线，**enrichplot**里有`gseaplot()`，`gseaplot2()`、`gsearank()`等参数，其中`gseaplot2()`是可以显示p值的，还能画多条曲线，而为了修改一些配色，增加NES和q值等功能，我对原包进行了修改，打包成了**myenrichplot**。
+
+> -   提示：最新版的**clusterProfiler**的q值列名是`qvalue`，而不是之前的结果`qvalues`，如果你运行我的包提示定义了错误的列，只能说你要更新**clusterProfiler**了。
+
+#### 1、gseaplot()
+
+其实是由两部分组成的，上部分为Ranked list，下部分为运行ES值，可以单独提出来，默认显示全部，设置by="runningScore"显示运行ES，by="preranked"显示Ranked list，当然如果但看结果的画设置p[1]，或是p[2]也可以。这个图只能画一条曲线，默认的颜色是绿色，我改成来红色，并且加上了NES、P值和q值，结果见Figure \@ref(fig:fig4)所示。
+
+```{r fig4, fig.align='center', fig.cap="gseaplot", fig.width=4.5}
+p4<-gseaplot(keggoffine,
+             1, #选择第几条通路，也可以用"hsa04060"来表示
+             title = keggoffine$Description[1] #最简单的提取办法
+             )
+p4
+## p4[1]
+```
+
+#### 2、gsearank()
+
+同样一次只能画一条曲线，不过我修改了背景和文字位置，同时定义了是否要显示NES、p和q值，只需要设置`pvalue_table = T`，这个功能**enrichplot**还没有，见Figure \@ref(fig:fig5)所示。
+
+```{r fig5, fig.align='center', fig.cap="gsearank", fig.width=4.5}
+p5<-gsearank(keggoffine,17,title = keggoffine$Description[17],
+             pvalue_table = T, ##新增的功能
+         output = 'plot'#如果想看具体结果，则选'table'
+         )
+p5
+```
+
+#### 3、gseaplot2()
+
+可以画单条曲线，也可以画多条曲线，还可以显示p值等信息，我的修改版里添加了ES为0的基线，修改了显示p值的结果，修改了背景和字体，还修改底下图的配色。
+
+先看看单条曲线的结果，显示一下p值，见Figure \@ref(fig:fig6)所示。
+
+```{r fig6, fig.align='center', fig.cap="单条gseaplot2", fig.width=4.5}
+p6<-gseaplot2(keggoffine,1,
+              title = keggoffine$Description[1],
+              color = "#FA5860", #设置线条颜色
+              base_size = 12, #设置字体大小
+              rel_heights = c(1.5, 0.5, 1), # 设置三组图的比例
+              subplots = 1:3, #设置需要显示的图，如c(1,2)
+              pvalue_table = TRUE, #设置显示p值
+              ES_geom = "line" #还有一种'dot'的点图
+              )
+p6
+```
+
+接着我们可以看多条曲线的结果，我们可以按序列号看结果，也可以自定义需要的结果，还可以修改一些配色，见Figure \@ref(fig:fig7)所示。
+
+```{r fig7, fig.align='center', fig.cap="多条gseaplot2", fig.height=4.5, fig.width=4.7}
+p7<-gseaplot2(keggoffine,1:5,
+              title = 'KEGG-GSEA',
+              color = ggsci::pal_lancet()(5),## 提取ggsci中lancet的配色，数字要对应
+              base_size = 12, #设置字体大小
+              rel_heights = c(1.5, 0.5, 1), # 设置三组图的比例
+              subplots = 1:3, #设置需要显示的图，如c(1,2)
+              pvalue_table = TRUE, #设置显示p值
+              ES_geom = "line" #还有一种'dot'的点图
+              )
+p7
+```
+
+当然，如果你对正则表达式很熟悉，也可以筛选出显著上调和显著下调的结果，比如我们用最简单的`head`和`tail`函数分别提示ES最高和最低的结果，然后分别拼图，见Figure \@ref(fig:fig8)所示。
+
+```{r fig8, fig.cap="分别上下调", fig.align='center', fig.height=8, fig.width=4.6}
+## ES最高的5个通路名
+up<-rownames(keggoffine@result)[head(order(keggoffine@result$enrichmentScore))]
+## ES最低的5个通路名
+down<-rownames(keggoffine@result)[tail(order(keggoffine@result$enrichmentScore))]
+## 分别绘制上下调的通路
+phead<-gseaplot2(keggoffine,geneSetID = up,
+                 title = "GSEA-KEGG-Activated",
+                 pvalue_table = T)
+ptail<-gseaplot2(keggoffine,geneSetID = down,
+                 title = "GSEA-KEGG-Suppressed",
+                 pvalue_table = T)
+## 使用aplot进行拼图
+aplot::gglist(gglist = list(phead, ptail), ncol=1)
+```
+
+#### 标记基因
+
+以前的**enrichplot**是不能标记基因的，最近通过`geom_gsea_gene()`函数又把这个功能加进去了，可以看[你想在GSEA可视化图中标注几个基因？](https://mp.weixin.qq.com/s/-y7DShsFiR4IDTuGAFHR3A)这个教程，虽然有个**GseaVis**的包也有这个功能，不过原生地还是最香。具体的操作可以自己看教程，这里只复现以下。
+
+```{r fig.width=4.5}
+g = sample(keggoffine[[keggoffine$ID[1]]],5) ##先提取第一个通路的五个基因
+p6[[1]] = p6[[1]]  + geom_gsea_gene(g, geom=ggrepel::geom_text_repel)
+p6
+```
+
+### Barplot
+
+GSEA本身是没有barplot的，因为Y叔压根就没设置，不过我们可以自定义结果，比如按NES分成两组，然后按p值的颜色进行排序，结果见Figure \@ref(fig:fig9)所示。目前我开发了一个**GSEAbae**的包，已经发布到了Github上，参数类似**barplot()**，可以很方便的绘图，后期可以继续更新。
+
+```{r fig9,fig.align='center',fig.cap='gseabarplot'}
+# remotes::install_git('swcyo/GSEAbar') 安装GSEAbar包
+library(GSEAbar)
+gseabar(keggoffine,
+        color = "p.adjust", # 按p值显示颜色
+        n = 12, #各组显示的数量,当然如果有一组没有那么多，则显示所有结果
+        font.size = 14, #字体大小
+        title = "GSEA-barplot", # 标题
+        length = 45 #文本的长度
+        )
+```
+
+关于Barplot还有这样一种方法，先按NES分组，然后按log10P值的的图，这个需要定义log10P的方向，其中正相关为正值，负相关为负值。我的**GSEAbar**同样可以实现，见Figure \@ref(fig:fig10)所示。
+
+```{r fig10,fig.align='center',fig.cap='gseabarplot2'}
+gseabar2(keggoffine,
+         n = 10, #各组显示的数量,当然如果有一组没有那么多，则显示所有结果
+         font.size = 12,#字体大小
+         title = "GSEA-barplot", # 标题
+         length = 40,#文本的长度
+         color = c("#2874C5", "#f87669") #各组的颜色
+         )
+```
+
+### Ridgeplot
+
+这个是山峦图，x轴以NES为界，正数就是激活，负数就是抑制，结果见Figure \@ref(fig:fig11)所示。
+
+```{r fig11,fig.align='center',fig.cap="山峦图"}
+ridgeplot(keggoffine,label_format = 40)
+```
+
+### Emaplot
+
+用来通路与通路关系，需要先使用`pairwise_termsim`函数，否则不能作图，当然我们也可以cluster多图。
+
+```{r,fig.align='center',fig.cap="山峦图"}
+emapplot(pairwise_termsim(kegg))+scale_fill_manual(values = c("#2874C5", "#f87669"))
+```
+
+### Cnetplot
+
+用来显示通路与基因关系，同样可以cluster
+
+```{r,fig.align='center',fig.cap="CNET plot"}
+cnetplot(pairwise_termsim(kegg))+scale_fill_manual(values = c("#2874C5", "#f87669"))
+```
+
+### Treeplot
+
+这个是新上的图，非常不错，也可以clustcluster，但是结果太好，还是单个出图好看
+
+```{r,fig.align='center',fig.cap="TREE plot"}
+treeplot(pairwise_termsim(keggoffine))
+```
+
+### Upsetplot
+
+    upsetplot(keggoffine)
+
+### Heatplot
+
+    heatplot(keggonine)
+
+另外结合pathview可以重绘KEGG的图，还基因表达量标记颜色，这个以后再说。
+
+目前大概是这些功能，当然也会一直更新下去，有动手能力的可以继续努力画图。

@@ -1,0 +1,149 @@
+---
+title: tinyarray处理GEO差异分析超简单教程
+author: 欧阳松
+date: '2021-10-23'
+slug: tinyarray-geo
+categories:
+  - tinyarray
+tags:
+  - GEO
+hideToc: yes
+---
+
+<script src="{{< blogdown/postref >}}index_files/header-attrs/header-attrs.js"></script>
+<script src="{{< blogdown/postref >}}index_files/htmlwidgets/htmlwidgets.js"></script>
+<link href="{{< blogdown/postref >}}index_files/datatables-css/datatables-crosstalk.css" rel="stylesheet" />
+<script src="{{< blogdown/postref >}}index_files/datatables-binding/datatables.js"></script>
+<script src="{{< blogdown/postref >}}index_files/jquery/jquery-3.6.0.min.js"></script>
+<link href="{{< blogdown/postref >}}index_files/dt-core/css/jquery.dataTables.min.css" rel="stylesheet" />
+<link href="{{< blogdown/postref >}}index_files/dt-core/css/jquery.dataTables.extra.css" rel="stylesheet" />
+<script src="{{< blogdown/postref >}}index_files/dt-core/js/jquery.dataTables.min.js"></script>
+<link href="{{< blogdown/postref >}}index_files/crosstalk/css/crosstalk.css" rel="stylesheet" />
+<script src="{{< blogdown/postref >}}index_files/crosstalk/js/crosstalk.min.js"></script>
+
+
+<p>之前我介绍了“<a href="/course/tinyarray/"><strong>tinyarray：一个几乎能满足我所有生信需求的包</strong></a>”的教程，当时<strong>tinyarray</strong>还没被CRAN收录，目前已经收录，可喜可贺，现在介绍一下处理GEO数据有多简洁吧，不需要注释ID，也不需要另计算。</p>
+<p>以GSE120736为列进行说明，差异分析可以做两组的，也可以做多组的，具体的大家可以自己深入研究。</p>
+<div id="数据的下载" class="section level3">
+<h3>数据的下载</h3>
+<p><strong>tinyarray</strong>集成了<strong>GEOquery</strong>和<strong>AnnoProbe</strong>两个包的函数，所以如果下载GEO数据，需要先安装这两个包，否则不能下载，GEOquery在Bioc上，AnnoProbe在CRAN上，只需要<code>geo_download()</code>函数即可下载数据，并且整理成矩阵、临床表型和gpl注释平台，非常方便。</p>
+<pre class="r"><code>library(tinyarray)</code></pre>
+<pre><code>## </code></pre>
+<pre><code>## </code></pre>
+<pre><code>## </code></pre>
+<pre class="r"><code>geo120736 = geo_download(&quot;GSE120736&quot;,
+                         destdir=tempdir(),
+                         by_annopbrobe = T  ### 默认为F，设置为T调用AnnoProbe
+                         )</code></pre>
+<pre><code>## Setting options(&#39;download.file.method.GEOquery&#39;=&#39;auto&#39;)</code></pre>
+<pre><code>## Setting options(&#39;GEOquery.inmemory.gpl&#39;=FALSE)</code></pre>
+<pre><code>## file downloaded in /var/folders/tv/j0c91ttd0vsdm_z1_tg5d1m80000gn/T//RtmpWBQmsY
+## you can also use getGEO from GEOquery, by 
+## getGEO(&#39;GSE120736&#39;, destdir=&quot;.&quot;, AnnotGPL = F, getGPL = F)</code></pre>
+<pre><code>## 47323 probes, 145 samples from 6.24 to 15.73</code></pre>
+<pre class="r"><code>### AnnoProbe是国内的一个GEO镜像，不过有些数据没有收录，因此有些GSE提示不存在，这种情况下只能设置by_annopbrobe = F</code></pre>
+</div>
+<div id="检验基因表达矩阵的分布" class="section level3">
+<h3>检验基因表达矩阵的分布</h3>
+<p>一般情况下我们需要看基因表达矩阵是否在一条线上，首先用boxplot观察一下基因分布，如果不在一条线上话需要进行校正，我们可以用<strong>limma</strong>包的<code>normalizeBetweenArrays()</code>函数进行校正，这里暂时不演示。</p>
+<pre><code>boxplot(geo120736$exp) ## 可以看到数据分布很整齐，不需要校正
+geoxxxx$exp=limma::normalizeBetweenArrays(geoxxxx$exp)  ## 如果数据不齐的话，可以用这个函数校正</code></pre>
+</div>
+<div id="判断基因表达矩阵是否log2化" class="section level3">
+<h3>判断基因表达矩阵是否log2化</h3>
+<p>有两种办法可以判断</p>
+<ol style="list-style-type: decimal">
+<li><p>range()函数判断，一般在20以内的基本都是log2转化后的，可以看到结果比较符合20以内</p>
+<pre class="r"><code>range(geo120736$exp)</code></pre>
+<pre><code>## [1]  6.24 15.73</code></pre></li>
+<li><p>GEO2R官网函数自动处理，如果没有log2化会自动进行log2处理，如果处理过了提示不需要转换</p></li>
+</ol>
+<pre class="r"><code>ex &lt;- geo120736$exp
+qx &lt;- as.numeric(quantile(ex, c(0., 0.25, 0.5, 0.75, 0.99, 1.0), na.rm=T))
+LogC &lt;- (qx[5] &gt; 100) ||
+  (qx[6]-qx[1] &gt; 50 &amp;&amp; qx[2] &gt; 0) ||
+  (qx[2] &gt; 0 &amp;&amp; qx[2] &lt; 1 &amp;&amp; qx[4] &gt; 1 &amp;&amp; qx[4] &lt; 2)
+
+if (LogC) { ex[which(ex &lt;= 0)] &lt;- NaN
+ geo120736$exp&lt;- log2(ex)
+print(&quot;log2 transform finished&quot;)}else{print(&quot;log2 transform not needed&quot;)}</code></pre>
+<pre><code>## [1] &quot;log2 transform not needed&quot;</code></pre>
+<pre class="r"><code>remove(ex,qx,LogC)  # 删除多余的参数</code></pre>
+<p>可以看到两种方法都提示不需要进行log2转换，所以已经转换好了</p>
+</div>
+<div id="查看临床表型" class="section level3">
+<h3>查看临床表型</h3>
+<p>如果数据下载时就可以处理过了，所以查看临床表型非常简单，用一个<code>$</code>符合即可提取。</p>
+<pre class="r"><code>ph120736 &lt;-geo120736$pd
+DT::datatable(head(ph120736))</code></pre>
+<div id="htmlwidget-1" style="width:100%;height:auto;" class="datatables html-widget"></div>
+<script type="application/json" data-for="htmlwidget-1">{"x":{"filter":"none","vertical":false,"data":[["GSM3409497","GSM3409498","GSM3409499","GSM3409500","GSM3409501","GSM3409502"],["BC451: bl-187","BC454: bl-3/10","BC455: bl-63","BC457: bl-76","BC458: bl-78","BC459: bl-83"],["BC451","BC454","BC455","BC457","BC458","BC459"],["grade: small cell ca","grade: low grade","grade: low grade","grade: high grade","grade: high grade","grade: low grade"],["small cell ca","low grade","low grade","high grade","high grade","low grade"],["Stage: T3","Stage: Ta","Stage: Ta","Stage: Ta","Stage: T1","Stage: T1"],["T3","Ta","Ta","Ta","T1","T1"],["invasiveness: muscle invasive","invasiveness: non-muscle invasive","invasiveness: non-muscle invasive","invasiveness: non-muscle invasive","invasiveness: non-muscle invasive","invasiveness: non-muscle invasive"],["muscle invasive","non-muscle invasive","non-muscle invasive","non-muscle invasive","non-muscle invasive","non-muscle invasive"],["Primary bladder cancer","Primary bladder cancer","Recurrent bladder tumor","Recurrent bladder tumor","Primary bladder cancer","Primary bladder cancer"],["tissue: Primary bladder cancer","tissue: Primary bladder cancer","tissue: Recurrent bladder tumor","tissue: Recurrent bladder tumor","tissue: Primary bladder cancer","tissue: Primary bladder cancer"],["gender: M","gender: F","gender: M","gender: M","gender: M","gender: M"],["M","F","M","M","M","M"],["Primary bladder cancer","Primary bladder cancer","Recurrent bladder tumor","Recurrent bladder tumor","Primary bladder cancer","Primary bladder cancer"]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th> <\/th>\n      <th>title<\/th>\n      <th>description.1<\/th>\n      <th>characteristics_ch1.4<\/th>\n      <th>grade:ch1<\/th>\n      <th>characteristics_ch1.3<\/th>\n      <th>Stage:ch1<\/th>\n      <th>characteristics_ch1.2<\/th>\n      <th>invasiveness:ch1<\/th>\n      <th>source_name_ch1<\/th>\n      <th>characteristics_ch1<\/th>\n      <th>characteristics_ch1.1<\/th>\n      <th>gender:ch1<\/th>\n      <th>tissue:ch1<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"order":[],"autoWidth":false,"orderClasses":false,"columnDefs":[{"orderable":false,"targets":0}]}},"evals":[],"jsHooks":[]}</script>
+</div>
+<div id="获取id注释" class="section level3">
+<h3>获取ID注释</h3>
+<p>使用 <strong>AnnoProbe</strong>的<code>idmap()</code>函数自动注释，当然有些平台可能没有收录，那就需要手动注释</p>
+<pre class="r"><code>ids120736 &lt;- AnnoProbe::idmap(geo120736$gpl,## 提取注释平台信息
+                             destdir = tempdir())</code></pre>
+<pre><code>## file downloaded in /var/folders/tv/j0c91ttd0vsdm_z1_tg5d1m80000gn/T//RtmpWBQmsY</code></pre>
+</div>
+<div id="进行分组" class="section level3">
+<h3>进行分组</h3>
+<p>多个分组的话可以用<strong>stringr</strong>包s<code>tr_detect()</code>函数进行关键词的提取并定义，比如我们按invasiveness进行分组，可以看到数据中有<em>non-muscle invasive</em>、<em>muscle invasive</em>和<em>Not determined</em>三种分组，我们可以定义分组并设置成因子形式，这里要主要，参照组要放在前面，对照组放在后面。</p>
+<pre class="r"><code>group_list=ifelse(stringr::str_detect(ph120736$`invasiveness:ch1`,&quot;non-muscle invasive&quot;),&quot;NMIBC&quot;,
+                  ifelse(stringr::str_detect(ph120736$`invasiveness:ch1`,&quot;muscle invasive&quot;),&quot;MIBC&quot;,
+                           &quot;other&quot;))
+group_list=factor(group_list,levels = c(&#39;NMIBC&#39;,&#39;MIBC&#39;,&#39;other&#39;)) ##对照在前</code></pre>
+</div>
+<div id="多个分组的差异分析" class="section level3">
+<h3>多个分组的差异分析</h3>
+<p>由于GSE120736有多组信息，因此可以进行多组的差异分析，使用<code>multi_deg()</code>函数</p>
+<blockquote>
+<p>如果是两个分组的话，那么需要使用的是<code>get_deg()</code>函数或者<code>get_deg_all()</code>函数</p>
+</blockquote>
+<p><strong>tinyarray</strong>还提供了一个<code>multi_deg_all()</code>函数，可以一次性计算并整合成list，建议使用这个函数一步法分析</p>
+<pre class="r"><code>dcp120736=multi_deg_all(geo120736$exp,group_list,ids120736)</code></pre>
+<pre><code>## &#39;select()&#39; returned 1:many mapping between keys and columns</code></pre>
+<pre><code>## Warning in bitr(unique(deg[[i]]$symbol), fromType = &quot;SYMBOL&quot;, toType =
+## c(&quot;ENTREZID&quot;), : 2.62% of input gene IDs are fail to map...</code></pre>
+<pre><code>## &#39;select()&#39; returned 1:many mapping between keys and columns</code></pre>
+<pre><code>## Warning in bitr(unique(deg[[i]]$symbol), fromType = &quot;SYMBOL&quot;, toType =
+## c(&quot;ENTREZID&quot;), : 2.62% of input gene IDs are fail to map...</code></pre>
+<pre><code>## &#39;select()&#39; returned 1:many mapping between keys and columns</code></pre>
+<pre><code>## Warning in bitr(unique(deg[[i]]$symbol), fromType = &quot;SYMBOL&quot;, toType =
+## c(&quot;ENTREZID&quot;), : 2.62% of input gene IDs are fail to map...</code></pre>
+<pre><code>## 881 DEGs in all,26 DEGs in common.</code></pre>
+<p>其实<code>multi_deg_all()</code>函数可设置的参数也很多，包括了转换为entriz基因名（用于富集分析），还可以注释标签、显示行名、基因数量（用于热图的绘制）</p>
+<hr />
+<p>点开这个数据可以发现很多信息，包括了计算好的差异分析结果（deg），还有上调、下调、无意义的基因列表（cgs），并且都已经注释好了，同时还有一个plots，包含了热图、PCA图、维恩图和多组差异分析的火山图，火山图还给你自动计算了上下调基因数量，配色也是相当的素雅，见Figure <a href="#fig:plots">1</a>所示。</p>
+<pre class="r"><code>dcp120736$plots</code></pre>
+<div class="figure" style="text-align: center"><span style="display:block;" id="fig:plots"></span>
+<img src="{{< blogdown/postref >}}index_files/figure-html/plots-1.png" alt="多个图的整合" width="672" />
+<p class="caption">
+Figure 1: 多个图的整合
+</p>
+</div>
+<p>当然我们可以使用draw_volcano()函数或者draw_volcano2()函数提取两组或者多组的差异分析火山图</p>
+<p>比如两组的火山图，见Figure <a href="#fig:vol1">2</a>所示</p>
+<pre class="r"><code>draw_volcano(dcp120736$deg$`MIBC-NMIBC`,pkg = 4) # pkg=4为limma法</code></pre>
+<div class="figure" style="text-align: center"><span style="display:block;" id="fig:vol1"></span>
+<img src="{{< blogdown/postref >}}index_files/figure-html/vol1-1.png" alt="两组的火山图" width="672" />
+<p class="caption">
+Figure 2: 两组的火山图
+</p>
+</div>
+<p>多组的火山图，见Figure <a href="#fig:vol2">3</a></p>
+<pre class="r"><code>draw_volcano2(dcp120736$deg)</code></pre>
+<div class="figure" style="text-align: center"><span style="display:block;" id="fig:vol2"></span>
+<img src="{{< blogdown/postref >}}index_files/figure-html/vol2-1.png" alt="多组的火山图" width="672" />
+<p class="caption">
+Figure 3: 多组的火山图
+</p>
+</div>
+<p>还可以提取热图等</p>
+</div>
+<div id="快速的kegg富集分析" class="section level3">
+<h3>快速的KEGG富集分析</h3>
+<p>调用<strong>clusterProfiler</strong>，可以一次性将上调和下调基因进行KEGG的富集分析，并且同时计算上、下调，按柱状图显示，这个自己演示吧，这里只放出代码</p>
+<pre><code>p1&lt;-double_enrich(20736$deg$`MIBC-NMIBC`)
+p1</code></pre>
+</div>

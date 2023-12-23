@@ -1,0 +1,147 @@
+---
+title: 可视化矩阵的相关性分析之ggstatsplot
+author: 欧阳松
+date: '2022-03-09'
+slug: cor-ggstatsplot
+categories:
+  - 教程
+tags:
+  - 相关性分析
+  - ggstatsplot
+---
+
+之前我分别介绍了用[**GGally**](http://localhost:4321/course/ggally/)**、[ggcorrplot](http://localhost:4321/course/ggcorrplot/)**和[**corrplot**](http://localhost:4321/course/corrplot/)进行矩阵的相关性分析，今天继续介绍一个包**ggstatsplot**
+
+关于**ggstatsplot**这个包，后面有机会再做介绍，这是一个做统计学分析的天花板软件，可以很好的进行柱状图、箱式图、点状图、饼图、散点图、相关性分析、回归分析等等分析，并且基于ggplot2，效果很好
+
+继续使用mtcars数据进行演示
+
+```{r message=FALSE, warning=FALSE}
+data(mtcars)
+```
+
+```{r echo=FALSE}
+DT::datatable(mtcars)
+```
+
+```{r message=FALSE, warning=FALSE}
+library(ggstatsplot)
+```
+
+进行相关性分析，需要用到的函数是`ggcorrmat()`，我们先看看官方介绍
+
+    ggcorrmat(
+      data,
+      cor.vars = NULL,
+      cor.vars.names = NULL,
+      output = "plot",
+      matrix.type = "upper",
+      type = "parametric",
+      tr = 0.2,
+      partial = FALSE,
+      k = 2L,
+      sig.level = 0.05,
+      conf.level = 0.95,
+      bf.prior = 0.707,
+      p.adjust.method = "holm",
+      pch = "cross",
+      ggcorrplot.args = list(method = "square", outline.color = "black", pch.cex = 14),
+      package = "RColorBrewer",
+      palette = "Dark2",
+      colors = c("#E69F00", "white", "#009E73"),
+      ggtheme = ggstatsplot::theme_ggstatsplot(),
+      ggplot.component = NULL,
+      title = NULL,
+      subtitle = NULL,
+      caption = NULL,
+      ...
+    )
+
+可以看到可以定制的参数很多，这样我们就可以一一去尝试了
+
+我们首先运行最简单的默认函数，见Figure \@ref(fig:fig1)所示，可以看到默认的是上半部分显示，并且自动计算好了相关性系数和显著性标识，非常的方便
+
+```{r fig1,fig.align='center',fig.cap="默认函数的图"}
+ggcorrmat(mtcars)
+```
+
+这时候我们可以跟之前的结果比较，会发现P值显示不一样，那是因为默认的是校正的p值，如果我们只想显示默认p值，只要设置`p.adjust.method = 'none'`即可，同时我们再设置成显示下半部分，只需要加一句`matrix.type = 'lower'`，结果见Figure \@ref(fig:fig2)
+
+```{r fig2,fig.align='center',fig.cap="将p值设置为none，即不校正"}
+ggcorrmat(mtcars,p.adjust.method = 'none',matrix.type = 'lower')
+```
+
+由于所有计算都是后台运行，如果我们想看结果的话，只需要设置`output = "dataframe"`即可，这里我们依然可以用校正p值，或者不校正p值，我们试试不校正p值，结果见表所示
+
+    data<-ggcorrmat(mtcars,p.adjust.method = 'none',output = 'datafream')
+    round( data[3:9],3) ## 显示小数点3位
+
+```{r,echo=FALSE}
+data<-ggcorrmat(mtcars,p.adjust.method = 'none',output = 'datafream')
+DT::datatable(round( data[3:9],3))
+```
+
+接下来，我们可以深入定制
+
+全部显示结果，见Figure \@ref(fig:fig3)所示
+
+```{r fig3,fig.align='center',fig.cap="显示全部"}
+ggcorrmat(mtcars, ##表达矩阵
+          p.adjust.method = 'none', ## 不校正p值
+          matrix.type = 'full'##全部显示
+          )
+```
+
+默认的是参数检验，也是就是Pearson相关性分析，我们可以设置成非参数检验，即Spearman相关性分析，设置type = 'nonparametric'，见图Figure \@ref(fig:fig4)所示。另外还有"robust"和"bayes"两种检验方法，也就是Winsorized Pearson和Bayesian Pearson，这个我不懂啥意思，有兴趣的可以玩一下
+
+```{r fig4,fig.align='center',fig.cap="Spearman非参数检验"}
+ ggcorrmat(mtcars,
+           p.adjust.method = 'none', #不校正p值
+           type = 'nonparametric' # 非参数检验，即Spearman
+           )
+```
+
+如果觉得默认的X不好看，还可以设置别的形状，比如圆形，三角形和菱形等等，只需要设置pch的形状即可，如
+
+```{r}
+ggcorrmat(mtcars,p.adjust.method = 'none',pch = 'diamond')
+```
+
+以下是可能的形状英语，不过我觉得还是默认的那把叉就可以了
+
+    diamond
+    star
+    triangle
+    circle
+
+如果觉得配色不好，我们还可以设置不同的颜色差，这里要有三组颜色，比如我们设置蓝色白色和红色，结果见Figure \@ref(fig:fig5)所示
+
+```{r fig5,fig.align='center',fig.cap="更改颜色"}
+ggcorrmat(mtcars,p.adjust.method = 'none',colors=c("blue" ,"white" ,"red"))
+```
+
+当然我们还可以自定义别的颜色，比如下面这个素颜的配色
+
+```{r}
+ggcorrmat(mtcars,p.adjust.method = 'none',colors=c("#2874C5" ,"white" ,"#f87669"))
+```
+
+我们也可以自定义主题，比如我们喜欢用的prism，然后加上一个标题
+
+```{r}
+library(ggprism)
+ggcorrmat(mtcars,p.adjust.method = 'none',
+          colors=c("#2874C5" ,"white" ,"#f87669"),
+          ggtheme = theme_prism(),
+          title = "Pearson corration")
+```
+
+如果觉得p\<0.05的不合理，我们还可以调一调，比如0.01，这样的结果如Figure \@ref(fig:fig6)所示，跟Figure \@ref(fig:fig2)相比，是不是又多了很多XX
+
+```{r fig6,fig.align='center',fig.cap="修改p值"}
+ggcorrmat(mtcars,p.adjust.method = 'none',colors=c("#2874C5" ,"white" ,"#f87669"),sig.level = 0.01,matrix.type = 'lower')
+```
+
+---
+
+同时，还有一个`grouped_ggcorrmat()`函数可以分面显示相关性结果，这个自己尝试吧

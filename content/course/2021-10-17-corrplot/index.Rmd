@@ -1,0 +1,198 @@
+---
+title: 可视化矩阵的相关性分析之corrplot
+author: 欧阳松
+date: '2021-10-17'
+slug: corrplot
+categories:
+  - corrplot
+tags:
+  - 相关性分析
+hideToc: yes
+---
+
+目前有**corrplot**、**ggcorrplot**和**GGally**这三个包可以用来可视化矩阵的相关性分析，而这三个包都已经被CRAN收录，安装都很简单，所以可以先直接输入安装好。
+
+    install.packages("corrplot")
+    install.packages("ggcorrplot")
+    install.packages("GGally")
+
+我准备在别人的基础上复现一下这三个包的相关参数，使用Rmarkdown进行渲染，数据都是使用自带的`mtcars`进行分析。
+
+本节首先介绍最基础的**corrplot**进行操作，首先一键清空，导入数据，加载**corrplot**
+
+    rm(list = ls())
+    library(corrplot)
+    data(mtcars)
+    mtcars
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+library(corrplot)
+data(mtcars)
+DT::datatable(mtcars)
+```
+
+## 计算相关性系数
+
+通过自带的`cor()`函数可以很快的计算各矩阵参数直接的相关性系数，如下所示：
+
+    M <- cor(mtcars)  # 相关性分析
+    round(M,3) # 只显示小数点后三位数
+
+```{r,echo=FALSE}
+M <- cor(mtcars)
+DT::datatable(round(M,3))
+```
+
+## 可视化分析
+
+有了这个相关性系数，我们就可以可视化作图了，作图用的是`corrplot()`函数，我们可以先看一下这个包的基本参数
+
+    corrplot(corr, method = c("circle", "square", "ellipse", "number", "shade", "color", "pie"), 
+             type = c("full", "lower", "upper"), add = FALSE, col = NULL, 
+             bg = "white", title = "", is.corr = TRUE, diag = TRUE,
+             outline = FALSE, mar = c(0, 0, 0, 0), addgrid.col = NULL,
+             addCoef.col = NULL, addCoefasPercent = FALSE, 
+             order = c("original","AOE", "FPC", "hclust", "alphabet"), 
+             hclust.method = c("complete", "ward", "ward.D", "ward.D2", 
+                              "single", "average", "mcquitty", "median", "centroid"),
+             addrect = NULL, rect.col = "black", rect.lwd = 2, tl.pos = NULL,
+             tl.cex = 1, tl.col = "red", tl.offset = 0.4, tl.srt = 90,
+             cl.pos = NULL, cl.lim = NULL, cl.length = NULL, cl.cex = 0.8,
+             cl.ratio = 0.15, cl.align.text = "c", cl.offset = 0.5, number.cex = 1,
+             number.font = 2, number.digits = NULL, 
+             addshade = c("negative", "positive", "all"), shade.lwd = 1, shade.col = "white", p.mat = NULL,
+             sig.level = 0.05, insig = c("pch", "p-value", "blank", "n", "label_sig"),
+             pch = 4, pch.col = "black", pch.cex = 3, plotCI = c("n", "square", "circle", "rect"), 
+             lowCI.mat = NULL, uppCI.mat = NULL, na.label = "?",
+             na.label.col = "black", win.asp = 1, ...)
+
+在CSDN博主「R语言中文社区」的原创文章[**corrplot包与ggcorrplot相关图（一）**](https://blog.csdn.net/kMD8d5R/article/details/89346052)中有如下解释：
+
+> corr, 需要可视化的相关系数矩阵，
+>
+> method, 指定可视化的形状，可以是circle圆形(默认)，square方形，
+>
+> ellipse, 椭圆形，number数值，shade阴影，color颜色，pie饼图。
+>
+> type，指定显示范围，可以是full完全(默认)，lower下三角，upper上三角。
+>
+> col, 指定图形展示的颜色，默认以均匀的颜色展示。
+>
+> 支持grDevices包中的调色板，也支持RColorBrewer包中调色板。
+>
+> bg, 指定背景颜色。
+>
+> add, 表示是否添加到已经存在的plot中。默认FALSE生成新plot。
+>
+> title, 指定标题，
+>
+> is.corr，是否为相关系数绘图，默认为TRUE,FALSE则可将其它数字矩阵进行可视化。
+>
+> diag, 是否展示对角线上的结果，默认为TRUE，
+>
+> outline, 是否添加圆形、方形或椭圆形的外边框，默认为FALSE。
+>
+> mar， 设置图形的四边间距。数字分别对应(bottom, left, top, right)。
+>
+> addgrid.col, 设置网格线颜色，当指定method参数为color或shade时， 默认的网格线颜色为白色，其它method则默认为灰色，也可以自定义颜色。
+>
+> addCoef.col， 设置相关系数值的颜色，只有当method不是number时才有效。
+>
+> addCoefasPercent, 是否将相关系数转化为百分比形式，以节省空间，默认为FALSE。
+>
+> order, 指定相关系数排序的方法, 可以是original原始顺序，AOE特征向量角序，
+>
+> FPC第一主成分顺序，hclust层次聚类顺序，alphabet字母顺序。
+>
+> hclust.method, 指定hclust中细分的方法，只有当指定order参数为hclust时有效，
+>
+> 有7种可选：complete, ward, single, average, mcquitty, median, centroid。
+>
+> addrect， 是否添加矩形框，只有当指定order参数为hclust时有效， 默认不添加， 用整数指定即可添加。
+>
+> rect.col, 指定矩形框的颜色。
+>
+> rect.lwd, 指定矩形框的线宽。
+>
+> tl.pos, 指定文本标签(变量名称)相对绘图区域的位置，为"lt"(左侧和顶部),
+>
+> "ld"(左侧和对角线), "td"(顶部和对角线),"d"(对角线),"n"(无)之一。
+>
+> 当type="full"时,默认"lt"。
+>
+> 当type="lower"时，默认"ld"。
+>
+> 当type="upper"时，默认"td"。
+>
+> tl.cex, 设置文本标签的大小。
+>
+> tl.col, 设置文本标签的颜色。
+>
+> cl.pos, 设置图例位置，为"r"(右边), "b"(底部),"n"(无)之一。
+>
+> 当type="full"/"upper"时，默认"r"; 当type="lower"时，默认"b"。
+>
+> addshade, 表示给增加阴影，只有当method="shade"时有效。
+>
+> 为"negative"(对负相关系数增加阴影),负相关系数的阴影是135度；
+>
+> "positive"(对正相关系数增加阴影), 正相关系数的阴影是45度；
+>
+> "all"(对所有相关系数增加阴影)，之一。
+>
+> shade.lwd, 指定阴影线宽。
+>
+> shade.col, 指定阴影线的颜色。
+
+---
+
+而在帮助文档里有一个比较详细的介绍，我这里不做介绍，大家可以自己去看，我先按介绍的基本参数跑一下：
+
+-   可视化的形状有七种，默认是circle，我们可以进行修改
+
+```{r}
+corrplot(M) # 默认是circle，即method = 'circle'
+```
+
+```{r}
+corrplot(M, method = 'number') # 按数字大小绘制颜色
+```
+
+```{r}
+corrplot(M, method = 'color', order = 'alphabet')  # 按颜色绘制，排序
+```
+
+```{r}
+corrplot(M, order = 'AOE') # 按'AOE'排序
+```
+
+```{r}
+corrplot(M, method = 'shade', order = 'AOE', diag = FALSE)  #换个形状
+```
+
+```{r}
+corrplot(M, method = 'square', order = 'FPC', type = 'lower', diag = FALSE)
+```
+
+```{r}
+corrplot(M, method = 'ellipse', order = 'AOE', type = 'upper')
+```
+
+```{r}
+corrplot.mixed(M, order = 'AOE')
+```
+
+```{r}
+corrplot.mixed(M, lower = 'shade', upper = 'pie', order = 'hclust')
+```
+
+还可以分镞排序
+
+```{r}
+corrplot(M, order = 'hclust', addrect = 2)
+
+```
+
+---
+
+简书上还有一篇文章[使用corrplot包绘制相关性图 - 简书 (jianshu.com)](https://www.jianshu.com/p/00000f6f32df)，也挺好，大家可以试着跑跑。

@@ -1,0 +1,326 @@
+---
+title: ggplot2画富集分析图，文本太长又怎么办
+author: 欧阳松
+date: '2022-03-01'
+slug: long-short
+categories:
+  - ggplot2
+  - 教程
+tags:
+  - 文本
+  - 教程
+---
+
+<script src="{{< blogdown/postref >}}index_files/header-attrs/header-attrs.js"></script>
+
+
+<p>今天骨科一位学生问我他在做富集分析的时候，得到的文字太长了，如何让文字分开的问题，其实富集分析经常会得到一些结果的标题很长很长，不管是barplot还是dotplot都会出现文本太长的问题，这个问题Y叔的公众号给了答案，参见<a href="https://mp.weixin.qq.com/s/YQZSkzYquYg3LEx433W_WA">ggplot2画图，文本太长了怎么办？ (qq.com)</a></p>
+<p>Y叔的教程演示的叔柱状图可以缩短文本长度，点状图的话只需要将代码里的x改为y就行，我的简书<a href="https://www.jianshu.com/p/cdb256fc1f75">GSEA富集分析的点状图画法（R） - 简书 (jianshu.com)</a>其实有一段讲过了缩小文本的代码，顺便还说了如果将点的大小也改的办法。</p>
+<hr />
+<p>比如，有一组GO的结果，如Table <a href="#tab:table">1</a>所示,我们复现成clusterprofilier的结果，可以参考果子老师的教程<a href="https://mp.weixin.qq.com/s/oyjSDeN-FjzETGP32Hl5mA">假如没有clusterprofiler，怎么活？ (qq.com)</a></p>
+<pre><code>data&lt;-readxl::read_xlsx(&#39;sample_data.xlsx&#39;)</code></pre>
+<table>
+<caption><span id="tab:table">Table 1: </span>演示的数据</caption>
+<thead>
+<tr class="header">
+<th align="left">Term</th>
+<th align="right">Count</th>
+<th align="right">Pvalue</th>
+<th align="left">group</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">defense response to virus</td>
+<td align="right">14</td>
+<td align="right">0.0006331</td>
+<td align="left">BP</td>
+</tr>
+<tr class="even">
+<td align="left">chemotaxis</td>
+<td align="right">30</td>
+<td align="right">0.0007099</td>
+<td align="left">BP</td>
+</tr>
+<tr class="odd">
+<td align="left">taxis</td>
+<td align="right">30</td>
+<td align="right">0.0007099</td>
+<td align="left">BP</td>
+</tr>
+<tr class="even">
+<td align="left">Vitamin digestion and absorption</td>
+<td align="right">7</td>
+<td align="right">0.0010557</td>
+<td align="left">BP</td>
+</tr>
+<tr class="odd">
+<td align="left">DNA dealkylation</td>
+<td align="right">4</td>
+<td align="right">0.0011075</td>
+<td align="left">CC</td>
+</tr>
+<tr class="even">
+<td align="left">response to virus</td>
+<td align="right">17</td>
+<td align="right">0.0015642</td>
+<td align="left">CC</td>
+</tr>
+<tr class="odd">
+<td align="left">regulation of blood volume by renin-angiotensin</td>
+<td align="right">3</td>
+<td align="right">0.0016331</td>
+<td align="left">CC</td>
+</tr>
+<tr class="even">
+<td align="left">embryonic viscerocranium morphogenesis</td>
+<td align="right">3</td>
+<td align="right">0.0016331</td>
+<td align="left">CC</td>
+</tr>
+<tr class="odd">
+<td align="left">immune system process</td>
+<td align="right">77</td>
+<td align="right">0.0021909</td>
+<td align="left">MF</td>
+</tr>
+<tr class="even">
+<td align="left">positive regulation of macrophage differentiation</td>
+<td align="right">3</td>
+<td align="right">0.0022041</td>
+<td align="left">MF</td>
+</tr>
+<tr class="odd">
+<td align="left">response to external stimulus</td>
+<td align="right">68</td>
+<td align="right">0.0024327</td>
+<td align="left">MF</td>
+</tr>
+<tr class="even">
+<td align="left">positive regulation of epithelial cell proliferation</td>
+<td align="right">10</td>
+<td align="right">0.0026016</td>
+<td align="left">MF</td>
+</tr>
+</tbody>
+</table>
+<div id="barplot画法" class="section level3">
+<h3>Barplot画法</h3>
+<p>Barplot只需要两组数据即可：柱子的长度和名称，如果还想显示P值的话，我们可以按P值设置颜色。</p>
+<p>简单的图可以见Figure <a href="#fig:bar">1</a>所示，也就是<strong>clusterprofiler</strong>中<code>barplot()</code>的效果。</p>
+<p><strong>clusterprofiler</strong>得意之处就是按照大小对柱子的长度进行了排序，这个功能可以通过<strong>forcats</strong>包的<code>fct_reorder()</code>调整因子level的顺序显示，而柱状图的颜色则用<code>scale_fill_continuous()</code>来控制它在红色和蓝色中间转变。</p>
+<p><br />
+代码如下：</p>
+<pre class="r"><code>library(ggplot2) # 画图工具
+library(dplyr) # 提数据工具
+## 设定显示的数目
+showCategory =12
+## 设定字体的大小
+font.size =12
+p&lt;-data %&gt;% 
+  ## 按照p值排序，选区既定数目的行
+  arrange(Pvalue) %&gt;% 
+  slice(1:showCategory) %&gt;% 
+  ## 开始ggplot2 作图，其中fct_reorder调整因子level的顺序
+  ggplot(aes(x=forcats::fct_reorder(Term,Pvalue,.desc = T),y=Count,fill=Pvalue))+ 
+  ## 画出bar图
+  geom_bar(stat=&quot;identity&quot;)+
+  coord_flip()+
+  ## 调整颜色，guide_colorbar调整色图的方向
+  scale_fill_continuous(low=&quot;red&quot;, high=&quot;blue&quot;, guide=guide_colorbar(reverse=TRUE))+
+  ## 如果用ylab(&quot;&quot;)或出现左侧空白
+  labs(x=NULL) +
+  ## 如果没有这一句，上方会到顶
+  ggtitle(&quot;&quot;)+
+  ## 设定主题
+  theme_bw() +
+  theme(axis.text.x = element_text(colour = &quot;black&quot;,
+                                   size = font.size, vjust =1 ),
+        axis.text.y = element_text(colour = &quot;black&quot;,
+                                   size = font.size, hjust =1 ),
+        axis.title = element_text(margin=margin(10, 5, 0, 0),
+                                  color = &quot;black&quot;,size = font.size),
+        axis.title.y = element_text(angle=90))
+p</code></pre>
+<div class="figure" style="text-align: center"><span style="display:block;" id="fig:bar"></span>
+<img src="{{< blogdown/postref >}}index_files/figure-html/bar-1.png" alt="初始柱状图" width="672" />
+<p class="caption">
+Figure 1: 初始柱状图
+</p>
+</div>
+<p>我们还可以按照GO类型进行分面画图，也就是</p>
+<pre><code>barplot(data, split = &quot;ONTOLOGY&quot;) +
+  facet_grid(ONTOLOGY~., scale = &quot;free&quot;)</code></pre>
+<p>的效果，结果见Figure <a href="#fig:bar2">2</a>所示</p>
+<pre class="r"><code>p1&lt;-p+ facet_grid(group~., scale = &quot;free&quot;) ## 分面的结果
+p1</code></pre>
+<div class="figure" style="text-align: center"><span style="display:block;" id="fig:bar2"></span>
+<img src="{{< blogdown/postref >}}index_files/figure-html/bar2-1.png" alt="分面后的柱状图" width="672" />
+<p class="caption">
+Figure 2: 分面后的柱状图
+</p>
+</div>
+<p>但是，这时候我们会发现有一些文本注释很长，这个时候我们想把文本缩短怎么办？？？</p>
+<blockquote>
+<p>这个问题其实很简单，用<strong>stringr</strong>包的<code>str_wrap</code>来完成文本自动换行就行了。这里使用barplot来演示一下： - - 引自<a href="https://mp.weixin.qq.com/s/YQZSkzYquYg3LEx433W_WA">ggplot2画图，文本太长了怎么办？ (qq.com)</a></p>
+</blockquote>
+<p>运行一下，结果见Figure <a href="#fig:bar3">3</a>所示</p>
+<pre class="r"><code>library(stringr)
+p2&lt;-p1 + 
+  scale_x_discrete(labels=function(x) str_wrap(x, width=30)) 
+## width后面填写数字，我们可以自己尝试合适的文本长度
+p2</code></pre>
+<div class="figure" style="text-align: center"><span style="display:block;" id="fig:bar3"></span>
+<img src="{{< blogdown/postref >}}index_files/figure-html/bar3-1.png" alt="缩短文本长度的柱状图" width="672" />
+<p class="caption">
+Figure 3: 缩短文本长度的柱状图
+</p>
+</div>
+</div>
+<div id="dotplot画法" class="section level2">
+<h2>Dotplot画法</h2>
+<p>接着我们再运行一下点图，点图的效果其实是比柱状图的细节更多的，按照<strong>clusterprofiler</strong>中结果，有一个Gene Ratio，这个是用单个的count除以count的总和，这需要我们新建一组数据，当然，我们也可以直接用count进行统计，只是这样的话差距会很大</p>
+<p>我们可以按照点的大小定义值的大小，然后按照颜色显示P值，横坐标为Gene Ratio</p>
+<p>点状图的难点也是排序，我之前简书也没有写排序的代码，所以图是很丑的，其实纵坐标排序的问题也是可以用<strong>forcats</strong>包中的<code>fct_reorder</code>函数来搞定的，而点的颜色则需要用<code>scale_color_continuous</code>来控制。</p>
+<p>首先我们添加一列GeneRatio，见Table <a href="#tab:table2">2</a>所示</p>
+<pre class="r"><code>data$GeneRatio = paste(data$Count, sum(data$Count), sep=&quot;/&quot;)</code></pre>
+<table>
+<caption><span id="tab:table2">Table 2: </span>添加GeneRatio列</caption>
+<thead>
+<tr class="header">
+<th align="left">Term</th>
+<th align="right">Count</th>
+<th align="right">Pvalue</th>
+<th align="left">group</th>
+<th align="left">GeneRatio</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">defense response to virus</td>
+<td align="right">14</td>
+<td align="right">0.0006331</td>
+<td align="left">BP</td>
+<td align="left">14/266</td>
+</tr>
+<tr class="even">
+<td align="left">chemotaxis</td>
+<td align="right">30</td>
+<td align="right">0.0007099</td>
+<td align="left">BP</td>
+<td align="left">30/266</td>
+</tr>
+<tr class="odd">
+<td align="left">taxis</td>
+<td align="right">30</td>
+<td align="right">0.0007099</td>
+<td align="left">BP</td>
+<td align="left">30/266</td>
+</tr>
+<tr class="even">
+<td align="left">Vitamin digestion and absorption</td>
+<td align="right">7</td>
+<td align="right">0.0010557</td>
+<td align="left">BP</td>
+<td align="left">7/266</td>
+</tr>
+<tr class="odd">
+<td align="left">DNA dealkylation</td>
+<td align="right">4</td>
+<td align="right">0.0011075</td>
+<td align="left">CC</td>
+<td align="left">4/266</td>
+</tr>
+<tr class="even">
+<td align="left">response to virus</td>
+<td align="right">17</td>
+<td align="right">0.0015642</td>
+<td align="left">CC</td>
+<td align="left">17/266</td>
+</tr>
+<tr class="odd">
+<td align="left">regulation of blood volume by renin-angiotensin</td>
+<td align="right">3</td>
+<td align="right">0.0016331</td>
+<td align="left">CC</td>
+<td align="left">3/266</td>
+</tr>
+<tr class="even">
+<td align="left">embryonic viscerocranium morphogenesis</td>
+<td align="right">3</td>
+<td align="right">0.0016331</td>
+<td align="left">CC</td>
+<td align="left">3/266</td>
+</tr>
+<tr class="odd">
+<td align="left">immune system process</td>
+<td align="right">77</td>
+<td align="right">0.0021909</td>
+<td align="left">MF</td>
+<td align="left">77/266</td>
+</tr>
+<tr class="even">
+<td align="left">positive regulation of macrophage differentiation</td>
+<td align="right">3</td>
+<td align="right">0.0022041</td>
+<td align="left">MF</td>
+<td align="left">3/266</td>
+</tr>
+<tr class="odd">
+<td align="left">response to external stimulus</td>
+<td align="right">68</td>
+<td align="right">0.0024327</td>
+<td align="left">MF</td>
+<td align="left">68/266</td>
+</tr>
+<tr class="even">
+<td align="left">positive regulation of epithelial cell proliferation</td>
+<td align="right">10</td>
+<td align="right">0.0026016</td>
+<td align="left">MF</td>
+<td align="left">10/266</td>
+</tr>
+</tbody>
+</table>
+<p>这里的GeneRatio是字符串，我们现在要把它变成一个数值，有两种算法</p>
+<p>第一种是直接计算</p>
+<pre class="r"><code>data$GeneRatio = data$Count/sum(data$Count)</code></pre>
+<p>第二种是提取分号前面和后面的数，并变成数值</p>
+<pre><code>forward &lt;- as.numeric(sub(&quot;/\\d+$&quot;, &quot;&quot;, data$GeneRatio))
+backward &lt;- as.numeric(sub(&quot;^\\d+/&quot;, &quot;&quot;, data$GeneRatio))
+## 增加数值表示的一列GeneRatio
+data$GeneRatio = forward/backward</code></pre>
+<p>简单的<code>dotplot(data)</code>的代码如下,</p>
+<pre class="r"><code>p3&lt;-data %&gt;% 
+  ## 按照p值排序，选区既定数目的行
+  arrange(Pvalue) %&gt;% 
+  slice(1:showCategory) %&gt;% 
+  ## 开始ggplot2 作图，其中fct_reorder调整因子level的顺序
+  ggplot(aes(GeneRatio,forcats::fct_reorder(Term,Count)))+ 
+  ## 画出点图
+  geom_point(aes(color=Pvalue, size = Count)) +
+  ## 调整颜色，guide_colorbar调整色图的方向
+  scale_color_continuous(low=&quot;red&quot;, high=&quot;blue&quot;, guide=guide_colorbar(reverse=TRUE))+
+  ## 调整泡泡的大小
+  scale_size_continuous(range=c(3, 8))+ ### 这里可以改点的大小
+  ## 如果用ylab(&quot;&quot;)或出现左侧空白
+  labs(y=NULL) +
+  ## 如果没有这一句，上方会到顶
+  ggtitle(&quot;&quot;)+
+  ## 设定主题
+  theme_bw() +
+  theme(axis.text.x = element_text(colour = &quot;black&quot;,
+                                   size = font.size, vjust =1 ),
+        axis.text.y = element_text(colour = &quot;black&quot;,
+                                   size = font.size, hjust =1 ),
+        axis.title = element_text(margin=margin(10, 5, 0, 0),
+                                  color = &quot;black&quot;,size = font.size),
+        axis.title.y = element_text(angle=90))
+p3</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-4-1.png" width="672" /></p>
+<p>缩短文本的话，要把之前函数里的x改成y</p>
+<pre class="r"><code>p4&lt;-p3+
+  scale_y_discrete(labels=function(y) str_wrap(y,width = 30))
+p4</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-5-1.png" width="672" /></p>
+</div>

@@ -1,0 +1,157 @@
+---
+title: ggcharts画漂亮的图（折线图、棒棒糖图、哑铃图、金字塔图）
+author: 欧阳松
+date: '2022-03-10'
+slug: ggcharts
+categories:
+  - 教程
+tags:
+  - ggcharts
+---
+
+如果你会ggplot2，其实折线图、棒棒糖图、哑铃图、金字塔图你都可以画，但是代码很长，ggcharts是一个简洁的包，一行代码画好，其实也是很香的啊
+
+教程来自[ggcharts 快速绘制优美图形 (qq.com)](https://mp.weixin.qq.com/s/a28xCthALA0LOIJ-0jlV8Q)
+
+这个包包的功能其实很多，我当一下搬运工演示一下
+
+安装包很简单，如果没有安装，只需要一行命令安装
+
+    install.packages("ggcharts")
+
+```{r}
+## 加载这个包包
+library(ggcharts)
+```
+
+## 分面条形图
+
+首先看ggolot2画这种图有多么的麻烦，代码那么长
+
+```{r message=FALSE, warning=FALSE}
+library(dplyr)
+    library(ggplot2)
+    library(ggcharts)
+    data("biomedicalrevenue")
+
+    biomedicalrevenue%>%
+    filter(year%in%c(2012,2015,2018))%>%
+    group_by(year)%>%
+    top_n(10,revenue)%>%
+    ungroup()%>%
+    mutate(company=tidytext::reorder_within(company,revenue,year))%>%
+    ggplot(aes(company,revenue))+
+    geom_col()+
+    coord_flip()+ ##转置
+    tidytext::scale_x_reordered()+ ## 设置x排序，需要安装tidytext
+    facet_wrap(vars(year),scales="free_y") ##分面，按y分面
+```
+
+如果用ggcharts，代码是那么短，而且蓝蓝的配色，很舒服
+
+```{r}
+biomedicalrevenue %>%
+  filter(year %in% c(2012, 2015, 2018)) %>%
+  bar_chart(x = company, y = revenue, facet = year, top_n = 10)
+```
+
+## 折线图
+
+```{r}
+data("revenue_wide")
+line_chart(data = revenue_wide, x = year, y = Roche:Bayer) +
+  labs(x = "Year", y = "Revenue (Billion USD)")
+## 这里要注意，只要github的包才能用line_chart函数，CRAN那个包不行
+```
+
+## 棒棒糖图
+
+```{r message=FALSE, warning=FALSE}
+biomedicalrevenue %>%
+  filter(year == 2018) %>%
+  lollipop_chart(x = company, y = revenue, threshold = 30) +
+  labs(
+    x = NULL,
+    y = "Revenue",
+    title = "Biomedical Companies with Revenue > $30Bn."
+  ) +
+  scale_y_continuous(
+    labels = function(x) paste0("$", x, "Bn."),
+    expand = expansion(mult = c(0, .05))
+  )
+```
+
+## 哑铃图
+
+```{r}
+data("popeurope")
+dumbbell_chart(
+  data = popeurope,
+  x = country,
+  y1 = pop1952,
+  y2 = pop2007,
+  top_n = 10,
+  point_colors = c("lightgray", "#494F5C")
+) +
+  labs(
+    x = NULL,
+    y = "Population",
+    title = "Europe's Largest Countries by Population in 2007"
+  ) +
+  scale_y_continuous(
+    limits = c(0, NA),
+    labels = function(x) paste(x, "Mn.")
+  )
+```
+
+## 双面柱状图
+
+```{r}
+data(mtcars)
+mtcars_z <- dplyr::transmute(
+  .data = mtcars,
+  model = row.names(mtcars),
+  hpz = scale(hp)
+)
+
+diverging_bar_chart(data = mtcars_z, x = model, y = hpz)
+```
+
+双面棒棒糖图
+
+```{r}
+
+diverging_lollipop_chart(
+  data = mtcars_z,
+  x = model,
+  y = hpz,
+  lollipop_colors = c("#006400", "#b32134"),
+  text_color = c("#006400", "#b32134")
+)
+```
+
+## 金字塔图
+
+```{r}
+data("popch")
+pyramid_chart(data = popch, x = age, y = pop, group = sex)
+```
+
+## 不同主题
+
+```{r}
+ggcharts_set_theme("theme_hermit")
+bar_chart(data = diamonds, x = cut)
+```
+
+```{r}
+ggcharts_set_theme("theme_ng")
+bar_chart(data = diamonds, x = cut)
+```
+
+```{r}
+ggcharts_set_theme("theme_nightblue")
+bar_chart(data = diamonds, x = cut)
+```
+
+更多定制，等你来发现

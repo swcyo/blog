@@ -1,0 +1,248 @@
+---
+title: R语言处理PCR数据，一步画柱状图、添加显著性标志并实现截断
+author: R package build
+date: '2021-09-01'
+slug: r语言处理pcr数据-一步画柱状图-添加显著性标志并实现截断
+categories:
+  - 教程
+  - R
+tags:
+  - 教程
+  - R
+  - PCR
+---
+
+<script src="{{< blogdown/postref >}}index_files/header-attrs/header-attrs.js"></script>
+
+
+<p>临床上经常需要处理PCR数据，但是一般下机给的都是Ct值（或者Cq值），这时候我们需要用一个相对恒定的内参基因（一般是GAPDH或actin）去校正，一般而言，Ct值越大，其实代表他的相对表达量最少。</p>
+<p>现在最普遍使用的方法是<strong>-2<sup>∆∆Ct</sup></strong>法，当然还有针对PCR array的专门算法，这里不说。</p>
+<p>PCR数据要有三列，一列是组名，一列是内参基因的Ct值，一列是目的基因的Ct值，计算方法是-2<sup>∆∆Ct</sup> 法，实现一步出图用的是<code>ggpubr</code>，实现截断则是Y叔出手的<code>ggbreak</code></p>
+<p>- 比如有下面这个表，保存并定义为<code>PCR.csv</code>，放桌面上：</p>
+<table>
+<thead>
+<tr class="header">
+<th>group</th>
+<th>GAPDH</th>
+<th>XXX</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>control</td>
+<td>12.17</td>
+<td>23.76</td>
+</tr>
+<tr class="even">
+<td>control</td>
+<td>11.88</td>
+<td>23.79</td>
+</tr>
+<tr class="odd">
+<td>control</td>
+<td>11.92</td>
+<td>23.57</td>
+</tr>
+<tr class="even">
+<td>treat</td>
+<td>11.81</td>
+<td>19.06</td>
+</tr>
+<tr class="odd">
+<td>treat</td>
+<td>11.66</td>
+<td>19.14</td>
+</tr>
+<tr class="even">
+<td>treat</td>
+<td>11.59</td>
+<td>18.81</td>
+</tr>
+</tbody>
+</table>
+<div id="读取表格并计算相对mrna定量" class="section level3">
+<h3>读取表格，并计算相对mRNA定量</h3>
+<pre class="r"><code>PCR &lt;- read.csv(&quot;~/Desktop/PCR.csv&quot;) #读表
+PCR$dct=PCR$XXX-PCR$GAPDH  ##目的基因Ct-内存基因Ct，即∆Ct
+PCR$ddct=PCR$dct-mean(PCR$dct[1:3])  ##∆Ct-对照组Ct均值，即∆∆Ct
+PCR$mrna=2^-PCR$ddct  ##取-∆∆Ct的2次放，即-2^∆∆Ct</code></pre>
+<p>很快的，我们就计算好了，表格现在是这样的。</p>
+<table>
+<thead>
+<tr class="header">
+<th align="left">group</th>
+<th align="right">GAPDH</th>
+<th align="right">XXX</th>
+<th align="right">dct</th>
+<th align="right">ddct</th>
+<th align="right">mrna</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">control</td>
+<td align="right">12.17</td>
+<td align="right">23.76</td>
+<td align="right">11.59</td>
+<td align="right">-0.1266667</td>
+<td align="right">1.0917683</td>
+</tr>
+<tr class="even">
+<td align="left">control</td>
+<td align="right">11.88</td>
+<td align="right">23.79</td>
+<td align="right">11.91</td>
+<td align="right">0.1933333</td>
+<td align="right">0.8745827</td>
+</tr>
+<tr class="odd">
+<td align="left">control</td>
+<td align="right">11.92</td>
+<td align="right">23.57</td>
+<td align="right">11.65</td>
+<td align="right">-0.0666667</td>
+<td align="right">1.0472941</td>
+</tr>
+<tr class="even">
+<td align="left">treat</td>
+<td align="right">11.81</td>
+<td align="right">19.06</td>
+<td align="right">7.25</td>
+<td align="right">-4.4666667</td>
+<td align="right">22.1106061</td>
+</tr>
+<tr class="odd">
+<td align="left">treat</td>
+<td align="right">11.66</td>
+<td align="right">19.14</td>
+<td align="right">7.48</td>
+<td align="right">-4.2366667</td>
+<td align="right">18.8522742</td>
+</tr>
+<tr class="even">
+<td align="left">treat</td>
+<td align="right">11.59</td>
+<td align="right">18.81</td>
+<td align="right">7.22</td>
+<td align="right">-4.4966667</td>
+<td align="right">22.5751969</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="一步基础作图" class="section level3">
+<h3>一步基础作图</h3>
+<p>我们需要的数值都有了，一步出图可以用ggpubr，当然也可以用ggplot2，这个可以看我之前关于柱状图的教程，我们先画个基础图</p>
+<pre class="r"><code>suppressMessages(library(ggpubr)) # 加个suppressMessages，可以不显示加载包的提示
+p&lt;-ggbarplot(PCR,
+        &#39;group&#39;,
+        &#39;mrna&#39;,
+        fill = &#39;group&#39;,# 按组填充颜色，当然如果喜欢单色，就用‘black’
+        color = &#39;group&#39;, # 按组填充颜色
+        palette = &quot;jco&quot;,  ## &quot;npg&quot;, &quot;aaas&quot;, &quot;lancet&quot;等主题任意选
+        add = &quot;mean_sd&quot;, #计算均数和标准差
+        xlab = F,ylab = &#39;Relative mRNA expression&#39;,legend=&#39;none&#39;,
+        ggtheme = theme_bw()) #选一个自己喜欢的主题
+p</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-3-1.png" width="672" /></p>
+<p>可以看到差别很大，可以截断一下</p>
+<p>PS：不知道为什么我这一版（0.04版）的截断结果变样了，哪天去Y叔那投诉一下</p>
+<pre class="r"><code>suppressMessages(library(ggbreak))
+p+scale_y_break(c(1.5, 15))</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-4-1.png" width="672" /></p>
+</div>
+<div id="科学的统计方法" class="section level3">
+<h3>科学的统计方法</h3>
+<p>我们知道简单的t检验或者非参数检验都是偷懒的办法，两独立样本我们需要先做正态检验，，然后是方差齐性检验，最后才是选择哪种检验方法。</p>
+<p>我们首先可以看一下数据的分布情况，用<strong>psych</strong>包里的<code>describeBy()</code>函数，可以分别统计各组数据</p>
+<pre class="r"><code>suppressMessages(library(psych))  
+describeBy(PCR[c(1,6)],PCR$group) # 我们只看分组和最终的mrna结果</code></pre>
+<pre><code>## 
+##  Descriptive statistics by group 
+## group: control
+##        vars n mean   sd median trimmed  mad  min  max range  skew kurtosis   se
+## group*    1 3    1 0.00   1.00       1 0.00 1.00 1.00  0.00   NaN      NaN 0.00
+## mrna      2 3    1 0.11   1.05       1 0.07 0.87 1.09  0.22 -0.32    -2.33 0.07
+## ------------------------------------------------------------ 
+## group: treat
+##        vars n  mean   sd median trimmed  mad   min   max range  skew kurtosis
+## group*    1 3  1.00 0.00   1.00    1.00 0.00  1.00  1.00  0.00   NaN      NaN
+## mrna      2 3 21.18 2.03  22.11   21.18 0.69 18.85 22.58  3.72 -0.36    -2.33
+##          se
+## group* 0.00
+## mrna   1.17</code></pre>
+<p>可以很快的看到control和treat组的均数、标准差、最大值、最小值、组距、标准误等结果。</p>
+<div id="正态性检验" class="section level4">
+<h4>正态性检验</h4>
+<p>一般两组的比较推荐<code>shapiro检验</code>，这里我们要主要不是做整体数据的正态性检验，e而应该是把每一个变量按照分组分别进行正态检验，如果两组里面哪怕有一组正态分布和一组不正态分布，那么它也是不正态分布，这种情况也要选择非参数检验。</p>
+<p>下面的函数是分别统计，可以用<code>tapply()</code>，也可以用<code>by()</code>，结果可以发现两组的p值都&gt;0.5，也就是说都符合正态分布，这时候我们还要看两组数据有没有方差齐性。</p>
+<pre class="r"><code>with(PCR,tapply(PCR$mrna, group, shapiro.test))</code></pre>
+<pre><code>## $control
+## 
+##  Shapiro-Wilk normality test
+## 
+## data:  X[[i]]
+## W = 0.89589, p-value = 0.3725
+## 
+## 
+## $treat
+## 
+##  Shapiro-Wilk normality test
+## 
+## data:  X[[i]]
+## W = 0.84196, p-value = 0.2192</code></pre>
+</div>
+<div id="方差齐性检验" class="section level4">
+<h4>方差齐性检验</h4>
+<p>我们可以选择<code>var.test()</code>做方差齐性检验，也就是F检验。</p>
+<ul>
+<li><p>如果方差具有齐性，我们直接选择t检验，</p></li>
+<li><p>如果方差不具有齐性，则要选择校正过的近似t检验</p></li>
+</ul>
+<pre class="r"><code>var.test(mrna ~ group, data = PCR)$p.value #如果想看完整的结果，可以把$p.value去掉</code></pre>
+<pre><code>## [1] 0.006376371</code></pre>
+<p>我们可以看到这里的p值&lt;0.05，说明了这个数据的方差不具有齐性，那么我们就要用校正的t检验</p>
+</div>
+<div id="校正t检验" class="section level4">
+<h4>校正t检验</h4>
+<p>由于F检验的P值小于0.05，我们选择校正的t检验，在R语言里，默认的其实就是校正的t检验，所以对于方差具有齐性的数据，一定要注意，这里不要偷懒，一定要用完整的代码，不用总是默认；</p>
+<pre class="r"><code>t.test(mrna ~ group,
+       data = PCR,
+       var.equal = FALSE, #默认的就是FALSE，但是我们要记住如果方差齐就要改TURE
+       alternative = &quot;two.sided&quot;) #双尾事件，如果是单尾，可以用greater或less</code></pre>
+<pre><code>## 
+##  Welch Two Sample t-test
+## 
+## data:  mrna by group
+## t = -17.198, df = 2.0128, p-value = 0.003271
+## alternative hypothesis: true difference in means between group control and group treat is not equal to 0
+## 95 percent confidence interval:
+##  -25.19171 -15.15791
+## sample estimates:
+## mean in group control   mean in group treat 
+##              1.004548             21.179359</code></pre>
+<p>结果可知用的是Welch Two Sample t-test，也就是<strong>近似t检验</strong>，这个p值小于0.05，差异有显著性意义，这个时候，我们在回过来给之前的图加显著性标识，一定要知道选择的统计方法是什么。</p>
+<hr />
+<p>由于默认的t检验，就是校正的t检验，这里我们继续用ggpubr自带的统计学方法，当然也可以事先检验验证一下，代码是:</p>
+<pre class="r"><code>compare_means(mrna~group, data=PCR, method = &#39;t.test&#39;)</code></pre>
+<pre><code>## # A tibble: 1 × 8
+##   .y.   group1  group2       p  p.adj p.format p.signif method
+##   &lt;chr&gt; &lt;chr&gt;   &lt;chr&gt;    &lt;dbl&gt;  &lt;dbl&gt; &lt;chr&gt;    &lt;chr&gt;    &lt;chr&gt; 
+## 1 mrna  control treat  0.00327 0.0033 0.0033   **       T-test</code></pre>
+<p>如果是不需要校正的t检验，也就是正规的t检验，方法其实是anova。</p>
+<blockquote>
+<p>compare_means(mrna~group, data=PCR, method = ‘anova’)</p>
+</blockquote>
+<p>最后加个显著性标识作图，顺便再添加个数据点</p>
+<pre class="r"><code>p+stat_compare_means(aes(label = ..p.signif..),  
+                     comparisons = list(c(&#39;control&#39;,&#39;treat&#39;)),  
+                     method = &#39;t.test&#39;)+#正规的t检验好像是anova
+  geom_jitter(color=&#39;black&#39;,size=2) </code></pre>
+<pre><code>## Warning: Using `as.character()` on a quosure is deprecated as of rlang 0.3.0.
+## Please use `as_label()` or `as_name()` instead.
+## This warning is displayed once per session.</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-10-1.png" width="672" /></p>
+<hr />
+<p>t检验的统计学方法学会了吗？</p>
+</div>
+</div>

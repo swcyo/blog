@@ -1,0 +1,119 @@
+---
+title: R语言数据合并一行代码搞定
+author: 欧阳松
+date: '2022-02-26'
+slug: cbind
+categories:
+  - 教程
+tags:
+  - 数据合并
+---
+
+<script src="{{< blogdown/postref >}}index.zh_files/header-attrs/header-attrs.js"></script>
+<script src="{{< blogdown/postref >}}index.zh_files/htmlwidgets/htmlwidgets.js"></script>
+<link href="{{< blogdown/postref >}}index.zh_files/datatables-css/datatables-crosstalk.css" rel="stylesheet" />
+<script src="{{< blogdown/postref >}}index.zh_files/datatables-binding/datatables.js"></script>
+<script src="{{< blogdown/postref >}}index.zh_files/jquery/jquery-3.6.0.min.js"></script>
+<link href="{{< blogdown/postref >}}index.zh_files/dt-core/css/jquery.dataTables.min.css" rel="stylesheet" />
+<link href="{{< blogdown/postref >}}index.zh_files/dt-core/css/jquery.dataTables.extra.css" rel="stylesheet" />
+<script src="{{< blogdown/postref >}}index.zh_files/dt-core/js/jquery.dataTables.min.js"></script>
+<link href="{{< blogdown/postref >}}index.zh_files/crosstalk/css/crosstalk.css" rel="stylesheet" />
+<script src="{{< blogdown/postref >}}index.zh_files/crosstalk/js/crosstalk.min.js"></script>
+
+
+<p>​ R语言中数据合并的函数有很多，如<code>merge()</code>,<code>cbind()</code>,<code>bind_rows()</code>还有<a href="https://swcyo.rbind.io/">我的博客</a>域名里的<code>rbind()</code>等。</p>
+<div id="准备数据" class="section level2">
+<h2>准备数据</h2>
+<p>我们先构建一组数据，以便后续演示</p>
+<pre class="r"><code>data1&lt;-data.frame(namea=c(&quot;海波&quot;,&quot;立波&quot;,&quot;秀波&quot;),
+                  value=c(&quot;一波&quot;,&quot;接&quot;,&quot;一波&quot;)
+                  )</code></pre>
+<div id="htmlwidget-1" style="width:100%;height:auto;" class="datatables html-widget"></div>
+<script type="application/json" data-for="htmlwidget-1">{"x":{"filter":"none","vertical":false,"data":[["海波","立波","秀波"],["一波","接","一波"]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>namea<\/th>\n      <th>value<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"order":[],"autoWidth":false,"orderClasses":false}},"evals":[],"jsHooks":[]}</script>
+<pre class="r"><code>data2&lt;-data.frame(nameb=c(&quot;柯震东&quot;,&quot;刘强东&quot;,&quot;何盛东&quot;),
+                  value=c(&quot;东去&quot;,&quot;又&quot;,&quot;东来&quot;)
+                  )</code></pre>
+<div id="htmlwidget-2" style="width:100%;height:auto;" class="datatables html-widget"></div>
+<script type="application/json" data-for="htmlwidget-2">{"x":{"filter":"none","vertical":false,"data":[["柯震东","刘强东","何盛东"],["东去","又","东来"]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>nameb<\/th>\n      <th>value<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"order":[],"autoWidth":false,"orderClasses":false}},"evals":[],"jsHooks":[]}</script>
+<div id="按列合并" class="section level3">
+<h3>按列合并</h3>
+<pre class="r"><code>cbind(data1,data2)</code></pre>
+<div id="htmlwidget-3" style="width:100%;height:auto;" class="datatables html-widget"></div>
+<script type="application/json" data-for="htmlwidget-3">{"x":{"filter":"none","vertical":false,"data":[["海波","立波","秀波"],["一波","接","一波"],["柯震东","刘强东","何盛东"],["东去","又","东来"]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>namea<\/th>\n      <th>value<\/th>\n      <th>nameb<\/th>\n      <th>value<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"order":[],"autoWidth":false,"orderClasses":false}},"evals":[],"jsHooks":[]}</script>
+</div>
+<div id="按行合并" class="section level3">
+<h3>按行合并</h3>
+<p>​ 按列合并是<code>cbind()</code>，那么按行合并自然是<code>rbind()</code></p>
+<pre><code>rbind(data1,data2)
+Error in match.names(clabs, names(xi)) : 名字同原来已有的名字不相对</code></pre>
+<p>我们发现这时候会出现错误，那是因为data1和data2的name列名不一样，这时候需要更改列名</p>
+<pre class="r"><code>colnames(data1)[1]&lt;-&#39;name&#39;
+colnames(data2)[1]&lt;-&#39;name&#39;</code></pre>
+<pre><code>rbind(data1,data2)</code></pre>
+<div id="htmlwidget-4" style="width:100%;height:auto;" class="datatables html-widget"></div>
+<script type="application/json" data-for="htmlwidget-4">{"x":{"filter":"none","vertical":false,"data":[["海波","立波","秀波","柯震东","刘强东","何盛东"],["一波","接","一波","东去","又","东来"]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>name<\/th>\n      <th>value<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"order":[],"autoWidth":false,"orderClasses":false}},"evals":[],"jsHooks":[]}</script>
+<p>对数据修改后，没有出现错误。</p>
+<ul>
+<li>那么，如果不想修改修改数据又该怎么做呢？</li>
+</ul>
+<p>​ 为了解决这个问题，使用<strong>dplyr</strong>包中的<code>bind_rows()</code>函数，不要求合并字段的名称必须相同，这个函数会自己做判断。</p>
+<pre><code>library(dplyr) 
+dplyr::bind_rows(data1,data2)</code></pre>
+<div id="htmlwidget-5" style="width:100%;height:auto;" class="datatables html-widget"></div>
+<script type="application/json" data-for="htmlwidget-5">{"x":{"filter":"none","vertical":false,"data":[["海波","立波","秀波",null,null,null],["一波","接","一波","东去","又","东来"],[null,null,null,"柯震东","刘强东","何盛东"]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>namea<\/th>\n      <th>value<\/th>\n      <th>nameb<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"order":[],"autoWidth":false,"orderClasses":false}},"evals":[],"jsHooks":[]}</script>
+<p>最后，再介绍一下<code>merge()</code>函数</p>
+<pre><code>merge(x, y, by = intersect(names(x), names(y)),
+      by.x = by, by.y = by, all = FALSE, all.x = all, all.y = all,
+      sort = TRUE, suffixes = c(&quot;.x&quot;,&quot;.y&quot;), no.dups = TRUE,
+      incomparables = NULL, ...)</code></pre>
+<p>merge函数参数的说明:</p>
+<blockquote>
+<p>x,y:用于合并的两个数据框</p>
+<p>by,by.x,by.y:指定依据哪些行合并数据框,默认值为相同列名的列.</p>
+<p>all,all.x,all.y:指定x和y的行是否应该全在输出文件.</p>
+<p>sort:by指定的列是否要排序.</p>
+<p>suffixes:指定除by外相同列名的后缀.</p>
+<p>incomparables:指定by中哪些单元不进行合并.</p>
+</blockquote>
+<p>演示merge()</p>
+<pre class="r"><code>data3&lt;-data.frame(
+  name = c(&quot;波&quot;,&quot;东&quot;,&quot;波&quot;,&quot;波&quot;),
+  type = c(&quot;秀&quot;,&quot;震&quot;,&quot;秀&quot;,&quot;秀&quot;),
+  class = c(10,5,4,11),
+  num = c(85,50,90,90)
+  )
+data3</code></pre>
+<pre><code>##   name type class num
+## 1   波   秀    10  85
+## 2   东   震     5  50
+## 3   波   秀     4  90
+## 4   波   秀    11  90</code></pre>
+<pre class="r"><code>data4&lt;-data.frame(
+  name = c(&quot;波&quot;,&quot;东&quot;),
+  type = c(&quot;海&quot;,&quot;震&quot;),
+  class = c(5,5),
+  num = c(88,81)
+  )
+data4</code></pre>
+<pre><code>##   name type class num
+## 1   波   海     5  88
+## 2   东   震     5  81</code></pre>
+<pre class="r"><code># 合并data3和data4
+merge(data3,data4,all = T)</code></pre>
+<pre><code>##   name type class num
+## 1   波   海     5  88
+## 2   波   秀     4  90
+## 3   波   秀    10  85
+## 4   波   秀    11  90
+## 5   东   震     5  50
+## 6   东   震     5  81</code></pre>
+<pre class="r"><code># 安装name，type，class合并data3，data4
+merge(data3,data4,by=c(&#39;name&#39;,&#39;type&#39;,&#39;class&#39;),all=T)</code></pre>
+<pre><code>##   name type class num.x num.y
+## 1   波   海     5    NA    88
+## 2   波   秀     4    90    NA
+## 3   波   秀    10    85    NA
+## 4   波   秀    11    90    NA
+## 5   东   震     5    50    81</code></pre>
+</div>
+</div>

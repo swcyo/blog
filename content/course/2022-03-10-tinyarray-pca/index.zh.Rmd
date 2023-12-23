@@ -1,0 +1,114 @@
+---
+title: 使用tinyarray做主成分分析
+author: 欧阳松
+date: '2022-03-10'
+slug: tinyarray-PCA
+categories:
+  - 教程
+  - tinyarray
+tags:
+  - 主成分分析
+  - PCA
+  - tinyarray
+---
+
+主成分分析（PCA）是一种降维分析，说实话我也不怎么懂什么叫PCA，只知道他要画一个分组的圈圈图，网上也有很多教程，这里我只介绍简单的一种，说实话**tinyarray**这个包是真的好，可以用的地方很多，这几天突然发现他的draw_pca又加了几个主题，试了一下，确实很不错，代码相当的简单，当然**你只安装tinyarray这个包肯定是不行，你是永远跑不出来结果的**，因为所有的东西都是一环套一环，tinyarray是一个搬运工，嵌入了很多包的函数，所以才会那么的快捷。
+
+基础命令如下：
+
+    draw_pca(
+      exp,
+      group_list,
+      color = c("#2874C5", "#f87669", "#e6b707", "#868686", "#92C5DE", "#F4A582",
+        "#66C2A5", "#FC8D62", "#8DA0CB", "#E78AC3", "#A6D854", "#FFD92F", "#E5C494",
+        "#B3B3B3"),
+      addEllipses = TRUE,
+      style = "default",
+      color.label = "Group"
+    )
+
+可以看到做PCA，你需要两个数据，一个是表达矩阵，另一个是分组，当然这个分组，你也是可以放在表达矩阵里的，我们用默认的介绍函数跑一下，结果见Figure \@ref(fig:fig1)所示，这里一定要注意的是**矩阵必须要倒置**，即`t(iris)`
+
+```{r fig1, fig.align='center', fig.cap="默认的iris数据出默认的图", message=FALSE, warning=FALSE}
+library(tinyarray)
+draw_pca(t(iris[,1:4]),iris$Species)
+```
+
+图是很禁欲的图，我们再回过头来看看到底是如何实现的？首先看看数据,见Table \@ref(tab:table)所示
+
+我们可以看到四列数据的表达矩阵，和一列Species的分组
+
+    iris[1:10,1:5]
+
+```{r table,echo=FALSE}
+knitr::kable(iris[1:10,1:5],caption = "iris数据前十行",align = 'c')
+```
+
+如果我们不想要外面那个圈的画，设置`addEllipses = F`即可，见Figure \@ref(fig:fig2)所示，但是这样太凌乱，所以还是建议加个外圈圈，也就是默认的函数
+
+```{r fig2,fig.align='center',fig.cap="不加圈"}
+draw_pca(t(iris[,1:4]),iris$Species,
+         addEllipses = F # 不加圈
+         )
+```
+
+仔细看函数，我们发现有一个`style =`的设置，介绍是style	
+plot style,"default","ggplot2"and "3D"，也就是说有默认，ggplot2和3D这三种模式，我们试着改改ggplot2（Figure \@ref(fig:fig3)）和3D（Figure \@ref(fig:fig4)）风格，这里可以看到只有ggplot2风格才能使用`color.label=`这个设置，但是这两个风格却没有来Dim1和Dim2的值来。
+
+```{r fig3,fig.align='center',fig.cap='ggplot2风格'}
+p1<-draw_pca(t(iris[,1:4]),iris$Species,
+         color.label = "Species",
+         style = 'ggplot2')
+p1
+```
+
+```{r fig4,fig.align='center',fig.cap='3D风格'}
+p2<-draw_pca(t(iris[,1:4]),iris$Species,
+             style = '3D')
+p2
+```
+
+---
+
+既然有ggplot2风格，我们当然可以继续增加元素，比如不见了的标题和比例值
+
+```{r}
+library(ggplot2)
+p1+theme_bw()+ggtitle('Individuals - PCA')+xlab('Dim1 (73%)')+ylab('Dim2 (22.9%)')
+```
+
+如果你安装了**ggprism**这个包，我们可以冒充一下prism主题
+
+```{r}
+p1+ggprism::theme_prism()+ggtitle('Individuals - PCA')+xlab('Dim1 (73%)')+ylab('Dim2 (22.9%)')
+```
+
+---
+
+对于没有分组信息的数据，我们需要人为添加一个分组，并且设置为因子格式，我们稍微修改一下示例，见Table \@ref(tab:table2)所示
+
+```{r}
+exp <-  matrix(rnorm(120),nrow = 15)
+colnames(exp) <- paste0("sample",1:8)
+rownames(exp) <- paste0("gene",1:15)
+```
+
+```{r table2,echo=FALSE}
+knitr::kable(exp,caption = "随机生成exp",align = 'c')
+```
+
+```{r}
+group_list <- factor(rep(c("A","B"),each = 4))  ## 随机定义分组
+```
+
+简简单单出个默认图，改个背景
+
+```{r}
+draw_pca(exp,group_list)+theme_bw()
+```
+
+或者我们再改个配色
+
+```{r}
+draw_pca(exp,group_list,color = c('steelblue','brown'))+theme_bw()
+```

@@ -1,0 +1,1088 @@
+---
+title: 使用jmv包进行T检验
+author: 欧阳松
+date: '2021-09-02'
+slug: jmvttest
+categories:
+  - 教程
+  - R
+  - t检验
+tags:
+  - 教程
+  - R
+  - jmv
+  - ttest
+---
+
+<script src="{{< blogdown/postref >}}index_files/header-attrs/header-attrs.js"></script>
+
+
+<p>最近，看到了一个关于<a href="https://www.jamovi.org/">jamovi</a>的统计学软件的介绍，界面类似于<strong>SPSS</strong>，然后后台却是基于R语言制作。除了熟悉的SPSS操作界面外，还可以加载R包模块，甚至还可以自己开发一些模块来使用。在B站上大致看了下教程，可以说常见的统计功能比较齐全，非常适合医学生的研究统计工作。</p>
+<p>然而，我花了一上午时间也没把安装包给下载下来，直接卡在第一步。</p>
+<p>花了几分钟浏览了网页介绍，其实jamovi的核心就是使用<strong>JMV</strong>]这个R包，然后进行各种可视化操作。官网很贴心，有许多教程，就在resource的<a href="https://www.jamovi.org/jmv/">JMV R PACKAGE</a>页面下.我看了以后，觉得可以按着教程跑一下学习学习，顺便写个中文版的，再加些个人的理解。</p>
+<p>目前官网主要有5⃣️章的介绍:</p>
+<ul>
+<li><p>第 1 章– <strong>统计学探索</strong></p></li>
+<li><p>第 2 章– <strong>T检验</strong></p></li>
+<li><p>第 3 章– <strong>方差分析</strong></p></li>
+<li><p>第 4 章– <strong>回归</strong></p></li>
+<li><p>第 5 章– <strong>频数</strong></p></li>
+<li><p>第 6 章– <strong>因子</strong></p></li>
+</ul>
+<p>由于我的统计学并不专业，只能算是照猫画虎的copy一下，希望大家指出意见。</p>
+<hr />
+<div id="Ttest" class="section level1">
+<h1>T检验</h1>
+<div id="独立样本t检验" class="section level2">
+<h2>独立样本<em>t</em>检验</h2>
+<p>Student’s独立样本<em>t</em>检验（有时称为两样本<em>t</em>检验）用于检验两组均值相同的无效假设。低的p值表明无效假设不成立，也就是说各组的平均值有差异。</p>
+<ul class="task-list">
+<li><p><input type="checkbox" disabled="" checked="" />
+Student’s独立样本<em>t</em>检验用于假设每组的数据来自正态分布，并且这些组的方差相等（方差具有齐性）。</p></li>
+<li><p><input type="checkbox" disabled="" checked="" />
+如果假设各组的方差不能满足相等（方差不具有齐性），则可以使用Welch’s <em>t</em>检验（近似<em>t</em>检验）。</p></li>
+<li><p><input type="checkbox" disabled="" checked="" />
+如果假设每组数据不满足均呈正态分布，则可以使用非参数Mann-Whitney <em>U</em>检验（但是，请注意，Mann-Whitney <em>U</em>检验的零假设略有不同，即每组的分布是相等的）。</p></li>
+</ul>
+<div id="示例演示" class="section level3">
+<h3>示例演示</h3>
+<p>比如我们调用自带的牙齿生长数据，部分显示见表<a href="#tab:dat2">1</a>，supp包含VC和OJ两组，dose包含0.5、1.0和2.0三种剂量</p>
+<pre class="r"><code>data(&#39;ToothGrowth&#39;) #调用牙齿生长数据</code></pre>
+<table>
+<caption><span id="tab:dat2">Table 1: </span>ToothGrowth数据的部分显示</caption>
+<thead>
+<tr class="header">
+<th align="right">len</th>
+<th align="left">supp</th>
+<th align="right">dose</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="right">4.2</td>
+<td align="left">VC</td>
+<td align="right">0.5</td>
+</tr>
+<tr class="even">
+<td align="right">11.5</td>
+<td align="left">VC</td>
+<td align="right">0.5</td>
+</tr>
+<tr class="odd">
+<td align="right">7.3</td>
+<td align="left">VC</td>
+<td align="right">0.5</td>
+</tr>
+<tr class="even">
+<td align="right">5.8</td>
+<td align="left">VC</td>
+<td align="right">0.5</td>
+</tr>
+<tr class="odd">
+<td align="right">6.4</td>
+<td align="left">VC</td>
+<td align="right">0.5</td>
+</tr>
+<tr class="even">
+<td align="right">10.0</td>
+<td align="left">VC</td>
+<td align="right">0.5</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="t检验" class="section level3">
+<h3>t检验</h3>
+<p>比如，我们想做len在supp两组的t检验，代码如下：</p>
+<pre class="r"><code>library(jmv)
+ttestIS(formula = len ~ supp, data = ToothGrowth)</code></pre>
+<pre><code>## 
+##  INDEPENDENT SAMPLES T-TEST
+## 
+##  Independent Samples T-Test                                   
+##  ──────────────────────────────────────────────────────────── 
+##                          Statistic    df          p           
+##  ──────────────────────────────────────────────────────────── 
+##    len    Student&#39;s t     1.915268    58.00000    0.0603934   
+##  ────────────────────────────────────────────────────────────</code></pre>
+<p><strong>但是</strong>实际上，我们不能如此简单粗暴的使用t检验，我们必须要先做正态性检验和方差齐性检验，这个函数也可以全部满足，具体的参数隐藏在help文档里。</p>
+<hr />
+<p>我们可以从<code>ttestIS()</code>函数的帮助文件里面看看独立样本<em>t</em>检验的所有参数。</p>
+</div>
+<div id="用法" class="section level3">
+<h3>用法</h3>
+<p>从示例代码可知，默认显为students法，但是真正的t检验开始时还要做正态检验和方差齐性检验，可以先设置<code>norm=T,eqv=T</code>预先检验一下。如果想知道更多的参数，可以进行相应的设置，如95%CI和effectSize等，这个可以按需使用。</p>
+<pre><code>ttestIS(data, vars, group, students = TRUE, bf = FALSE,
+  bfPrior = 0.707, welchs = FALSE, mann = FALSE,
+  hypothesis = &quot;different&quot;, norm = FALSE, qq = FALSE, eqv = FALSE,
+  meanDiff = FALSE, ci = FALSE, ciWidth = 95, effectSize = FALSE,
+  ciES = FALSE, ciWidthES = 95, desc = FALSE, plots = FALSE,
+  miss = &quot;perAnalysis&quot;, formula)</code></pre>
+</div>
+<div id="命令行参数" class="section level3">
+<h3>命令行参数</h3>
+<table>
+<colgroup>
+<col width="30%" />
+<col width="69%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>参数</th>
+<th>解释</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>data</td>
+<td>指定一个为数据结构的数据</td>
+</tr>
+<tr class="even">
+<td>vars</td>
+<td>因变量 （使用公式时不需要，请参见示例）</td>
+</tr>
+<tr class="odd">
+<td>group</td>
+<td>具有两个级别的分组变量 （使用公式时不需要，请参见示例）</td>
+</tr>
+<tr class="even">
+<td>students</td>
+<td><p>是否执行Student’s <em>t</em>检验</p>
+<ul>
+<li>填<strong>TRUE</strong>（默认）或者FALSE</li>
+</ul></td>
+</tr>
+<tr class="odd">
+<td>bf</td>
+<td><p>是否提供提供贝叶斯因子</p>
+<ul>
+<li>填TRUE或者<strong>FALSE</strong>（默认）</li>
+</ul></td>
+</tr>
+<tr class="even">
+<td>bfPrior</td>
+<td>输入一个介于 0.5 和 2（默认为 0.707）之间的数 字，用于计算贝叶斯因子的先验宽度</td>
+</tr>
+<tr class="odd">
+<td>welchs</td>
+<td><p>是否执行Welch’s <em>t</em>检验</p>
+<ul>
+<li>填TRUE或者<strong>FALSE</strong>（默认）</li>
+</ul></td>
+</tr>
+<tr class="even">
+<td>mann</td>
+<td><p>是否执行Mann-Whitney <em>U</em>检验</p>
+<ul>
+<li>填TRUE或者<strong>FALSE</strong>（默认）</li>
+</ul></td>
+</tr>
+<tr class="odd">
+<td>hypothesis</td>
+<td><p>替代假设</p>
+<ul>
+<li>填</li>
+</ul>
+<p>‘different’（默认）、‘oneGreater’ 或者 ‘twoGreater’ - 分别代表 组1</p>
+<p>与组2不同、组1大于组2或组2大于组1</p></td>
+</tr>
+<tr class="even">
+<td>norm</td>
+<td><p>是否执行Shapiro-Wilk正态性检验</p>
+<ul>
+<li>填TRUE或者<strong>FALSE</strong>（默认）</li>
+</ul></td>
+</tr>
+<tr class="odd">
+<td>qq</td>
+<td><p>是否提供残差<strong>Q-Q图</strong></p>
+<ul>
+<li>填TRUE或者<strong>FALSE</strong>（默认）</li>
+</ul></td>
+</tr>
+<tr class="even">
+<td>eqv</td>
+<td><p>是否执行Levene’s方差齐性检验</p>
+<ul>
+<li>填TRUE或者<strong>FALSE</strong>（默认）</li>
+</ul></td>
+</tr>
+<tr class="odd">
+<td>meanDiff</td>
+<td><p>是否提供均数和标准误</p>
+<ul>
+<li>填TRUE或者<strong>FALSE</strong>（默认）</li>
+</ul></td>
+</tr>
+<tr class="even">
+<td>ci</td>
+<td><p>是否提供置信区间</p>
+<ul>
+<li>填TRUE或者<strong>FALSE</strong>（默认）</li>
+</ul></td>
+</tr>
+<tr class="odd">
+<td>ciWidth</td>
+<td><p>置信区间的宽度</p>
+<ul>
+<li>输入一个介于50和99.9之间的数字 （默认为95）</li>
+</ul></td>
+</tr>
+<tr class="even">
+<td>effectSize</td>
+<td><p>是否提供效应大小</p>
+<ul>
+<li>填TRUE或者<strong>FALSE</strong>（默认）</li>
+</ul></td>
+</tr>
+<tr class="odd">
+<td>ciES</td>
+<td><p>是否提供效应大小的置信区间</p>
+<ul>
+<li>填TRUE或者<strong>FALSE</strong>（默认）</li>
+</ul></td>
+</tr>
+<tr class="even">
+<td>ciWidthES</td>
+<td><p>效应大小的置信区间的宽度</p>
+<ul>
+<li>输入一个介于50和99.9之间的数字 （默认为95）</li>
+</ul></td>
+</tr>
+<tr class="odd">
+<td>desc</td>
+<td><p>是否提供描述性统计</p>
+<ul>
+<li>填TRUE或者<strong>FALSE</strong>（默认）</li>
+</ul></td>
+</tr>
+<tr class="even">
+<td>plots</td>
+<td><p>是否提供描述性图片</p>
+<ul>
+<li>填TRUE或者<strong>FALSE</strong>（默认）</li>
+</ul></td>
+</tr>
+<tr class="odd">
+<td>miss</td>
+<td><p>如何处理缺失值</p>
+<ul>
+<li><p>填’perAnalysis’ 或者 ‘listwise’</p></li>
+<li><p>分别代表</p></li>
+</ul>
+<p>“排除个别因变量的缺失值”或者"如果</p>
+<p>某行缺失，则从所有分析中排除该行"</p></td>
+</tr>
+<tr class="even">
+<td>formula</td>
+<td>（可选）要使用的公式，请参见示例</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="返回结果" class="section level3">
+<h3>返回结果</h3>
+<p>如果定义一个结果对象（如<code>results&lt;-...</code>），可以返回以下结果：</p>
+<table>
+<thead>
+<tr class="header">
+<th align="left">代码</th>
+<th align="left">返回结果</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">results$ttest</td>
+<td align="left">一个包含t检验结果的表格</td>
+</tr>
+<tr class="even">
+<td align="left">results$assum$norm</td>
+<td align="left">一个包括正态性检验的表格</td>
+</tr>
+<tr class="odd">
+<td align="left">results$assum$eqv</td>
+<td align="left">一个包括方差齐性检验的表格</td>
+</tr>
+<tr class="even">
+<td align="left">results$desc</td>
+<td align="left">一个包括各组统计性描述的表格</td>
+</tr>
+<tr class="odd">
+<td align="left">results$plots</td>
+<td align="left">一个组图</td>
+</tr>
+</tbody>
+</table>
+<p>可以使用asDF或as.data.frame()将表格转换为数据框。例如：</p>
+<pre><code>results$ttest$asDF
+
+as.data.frame(results$ttest)</code></pre>
+<p>可以使用[[n]]访问数组中的元素。例如：</p>
+<pre><code>results$frequencies[[1]]   #访问第一个元素</code></pre>
+<hr />
+</div>
+<div id="统计思路" class="section level3">
+<h3>统计思路</h3>
+<p>两独立样本的<em>t</em>检验需要先做正态检验，如果是正态分布才能使用t检验，如果不是正态分布则要使用非参数检验。而对于正态分布的数据，还要看方差齐性，如果方差齐才有student的<em>t</em>检验，否则要使用welchs的<em>t</em>检验，而本函数可以全部计算好。</p>
+<p>思路如下：</p>
+<ul>
+<li><p>正态检验：<code>norm=T</code></p>
+<ul>
+<li><p>正态分布，继续做方差齐性检验：<code>eqv=T</code></p>
+<ul>
+<li><p>方差齐性：<code>student=T</code></p></li>
+<li><p>方差不齐：<code>welchs=T</code></p></li>
+</ul></li>
+<li><p>非正态分布：mann=T</p></li>
+</ul></li>
+</ul>
+</div>
+<div id="统计演示" class="section level3">
+<h3>统计演示</h3>
+<p>我们还是以ToothGrowth为例</p>
+<pre class="r"><code>jmv::ttestIS(formula = len ~ supp, data = ToothGrowth,norm = T,eqv = T)</code></pre>
+<pre><code>## 
+##  INDEPENDENT SAMPLES T-TEST
+## 
+##  Independent Samples T-Test                                   
+##  ──────────────────────────────────────────────────────────── 
+##                          Statistic    df          p           
+##  ──────────────────────────────────────────────────────────── 
+##    len    Student&#39;s t     1.915268    58.00000    0.0603934   
+##  ──────────────────────────────────────────────────────────── 
+## 
+## 
+##  ASSUMPTIONS
+## 
+##  Normality Test (Shapiro-Wilk)     
+##  ───────────────────────────────── 
+##           W            p           
+##  ───────────────────────────────── 
+##    len    0.9694896    0.1377619   
+##  ───────────────────────────────── 
+##    Note. A low p-value
+##    suggests a violation of the
+##    assumption of normality
+## 
+## 
+##  Homogeneity of Variances Test (Levene&#39;s)      
+##  ───────────────────────────────────────────── 
+##           F           df    df2    p           
+##  ───────────────────────────────────────────── 
+##    len    1.097334     1     58    0.2991977   
+##  ───────────────────────────────────────────── 
+##    Note. A low p-value suggests a
+##    violation of the assumption of equal
+##    variances</code></pre>
+<p>结果可以看到正态性检验和方差齐性检验的p值都是大于0.05，那就可以直接选择t检验</p>
+<p>如果只想用Welch’s t检验，代码如下：</p>
+<pre class="r"><code>ttestIS(formula = len ~ supp, data = ToothGrowth,welchs = T, students = F)</code></pre>
+<pre><code>## 
+##  INDEPENDENT SAMPLES T-TEST
+## 
+##  Independent Samples T-Test                                 
+##  ────────────────────────────────────────────────────────── 
+##                        Statistic    df          p           
+##  ────────────────────────────────────────────────────────── 
+##    len    Welch&#39;s t     1.915268    55.30943    0.0606345   
+##  ──────────────────────────────────────────────────────────</code></pre>
+<p>如果只想使用非参数检验，代码如下：</p>
+<pre class="r"><code>ttestIS(formula = len ~ supp, data = ToothGrowth,mann = T, students = F)</code></pre>
+<pre><code>## 
+##  INDEPENDENT SAMPLES T-TEST
+## 
+##  Independent Samples T-Test                          
+##  ─────────────────────────────────────────────────── 
+##                             Statistic    p           
+##  ─────────────────────────────────────────────────── 
+##    len    Mann-Whitney U     324.5000    0.0644907   
+##  ───────────────────────────────────────────────────</code></pre>
+<p>当然你还可以简单粗暴的把所有计算全部都用上，代码如下：</p>
+<pre class="r"><code>ttestIS(formula = len ~ supp, data = ToothGrowth,
+        mann = T, students = T,welchs = T,
+        norm = T,eqv = T)</code></pre>
+<pre><code>## 
+##  INDEPENDENT SAMPLES T-TEST
+## 
+##  Independent Samples T-Test                                      
+##  ─────────────────────────────────────────────────────────────── 
+##                             Statistic    df          p           
+##  ─────────────────────────────────────────────────────────────── 
+##    len    Student&#39;s t        1.915268    58.00000    0.0603934   
+##           Welch&#39;s t          1.915268    55.30943    0.0606345   
+##           Mann-Whitney U     324.5000                0.0644907   
+##  ─────────────────────────────────────────────────────────────── 
+## 
+## 
+##  ASSUMPTIONS
+## 
+##  Normality Test (Shapiro-Wilk)     
+##  ───────────────────────────────── 
+##           W            p           
+##  ───────────────────────────────── 
+##    len    0.9694896    0.1377619   
+##  ───────────────────────────────── 
+##    Note. A low p-value
+##    suggests a violation of the
+##    assumption of normality
+## 
+## 
+##  Homogeneity of Variances Test (Levene&#39;s)      
+##  ───────────────────────────────────────────── 
+##           F           df    df2    p           
+##  ───────────────────────────────────────────── 
+##    len    1.097334     1     58    0.2991977   
+##  ───────────────────────────────────────────── 
+##    Note. A low p-value suggests a
+##    violation of the assumption of equal
+##    variances</code></pre>
+<p>这里还有一个简单的统计图，见图 <a href="#fig:ttest1">1</a></p>
+<pre class="r"><code>ttestIS(formula = len ~ supp, data = ToothGrowth,plots = T)$plots</code></pre>
+<div class="figure" style="text-align: center"><span style="display:block;" id="fig:ttest1"></span>
+<img src="{{< blogdown/postref >}}index_files/figure-html/ttest1-1.png" alt="独立样本对照图" width="672" />
+<p class="caption">
+Figure 1: 独立样本对照图
+</p>
+</div>
+<p>如果想看Q-Q图,可以添加<code>qq=T,plots = T</code>，代码如下：</p>
+<hr />
+</div>
+</div>
+<div id="配对样本t检验" class="section level2">
+<h2>配对样本<em>t</em>检验</h2>
+<p>Student’s配对样本<em>t</em>检验（有时称为依赖样品<em>t</em>测检验）用于检验测量对之间的差异等于零的无效假设。低p值表明零假设不成立，测量对之间的差异不为零。</p>
+<ul>
+<li><p>Student’s配对样本<em>t</em>检验假设配对差异遵循正态分布</p></li>
+<li><p>如果不符合这种假设，则可以使用非参数Wilcoxon符号秩来代替（但是，请注意Wilcoxon符号秩具有稍微不同的零假设，即两组测量值遵循相同的分布）。</p></li>
+</ul>
+<div id="示例演示-1" class="section level3">
+<h3>示例演示</h3>
+<p>比如我们调用<strong>jmv</strong>包中的bugs数据，部分显示见表<a href="#tab:dat3">2</a>，我们比较LDLF和LDHF有没有差异</p>
+<pre class="r"><code>data(&#39;bugs&#39;, package = &#39;jmv&#39;)</code></pre>
+<table>
+<caption><span id="tab:dat3">Table 2: </span>bugs数据的部分显示</caption>
+<thead>
+<tr class="header">
+<th align="right">Subject</th>
+<th align="left">Gender</th>
+<th align="left">Region</th>
+<th align="left">Education</th>
+<th align="right">LDLF</th>
+<th align="right">LDHF</th>
+<th align="right">HDLF</th>
+<th align="right">HDHF</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="right">1</td>
+<td align="left">Female</td>
+<td align="left">North America</td>
+<td align="left">some</td>
+<td align="right">6</td>
+<td align="right">6.0</td>
+<td align="right">9.0</td>
+<td align="right">10.0</td>
+</tr>
+<tr class="even">
+<td align="right">2</td>
+<td align="left">Female</td>
+<td align="left">North America</td>
+<td align="left">advance</td>
+<td align="right">10</td>
+<td align="right">NA</td>
+<td align="right">10.0</td>
+<td align="right">10.0</td>
+</tr>
+<tr class="odd">
+<td align="right">3</td>
+<td align="left">Female</td>
+<td align="left">Europe</td>
+<td align="left">college</td>
+<td align="right">5</td>
+<td align="right">10.0</td>
+<td align="right">10.0</td>
+<td align="right">10.0</td>
+</tr>
+<tr class="even">
+<td align="right">4</td>
+<td align="left">Female</td>
+<td align="left">North America</td>
+<td align="left">college</td>
+<td align="right">6</td>
+<td align="right">9.0</td>
+<td align="right">6.0</td>
+<td align="right">9.0</td>
+</tr>
+<tr class="odd">
+<td align="right">5</td>
+<td align="left">Female</td>
+<td align="left">North America</td>
+<td align="left">some</td>
+<td align="right">3</td>
+<td align="right">6.5</td>
+<td align="right">5.5</td>
+<td align="right">8.5</td>
+</tr>
+<tr class="even">
+<td align="right">6</td>
+<td align="left">Female</td>
+<td align="left">Europe</td>
+<td align="left">some</td>
+<td align="right">2</td>
+<td align="right">0.5</td>
+<td align="right">7.5</td>
+<td align="right">3.0</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="配对t检验" class="section level3">
+<h3>配对t检验</h3>
+<pre class="r"><code>ttestPS(bugs, pairs = list(
+        list(i1 = &#39;LDLF&#39;, i2 = &#39;LDHF&#39;)))</code></pre>
+<pre><code>## 
+##  PAIRED SAMPLES T-TEST
+## 
+##  Paired Samples T-Test                                                  
+##  ────────────────────────────────────────────────────────────────────── 
+##                                   statistic    df          p            
+##  ────────────────────────────────────────────────────────────────────── 
+##    LDLF    LDHF    Student&#39;s t    -6.648618    90.00000    &lt; .0000001   
+##  ──────────────────────────────────────────────────────────────────────</code></pre>
+<p>注意，仅当差值呈正态分布时，才可以使用<strong>配对样本<em>t</em>检验</strong>，如果数据不是正态分布的，建议使用非参数<strong>配对样本<em>Wilcoxon</em>检验。</strong>这里要明确一个概念，配对资料不需要进行方差齐性检验。同样的，我们先看<code>ttestPS()</code>的help文档</p>
+</div>
+<div id="用法-1" class="section level3">
+<h3>用法</h3>
+<pre><code>ttestPS(data, pairs, students = TRUE, bf = FALSE, bfPrior = 0.707,
+  wilcoxon = FALSE, hypothesis = &quot;different&quot;, norm = FALSE,
+  qq = FALSE, meanDiff = FALSE, ci = FALSE, ciWidth = 95,
+  effectSize = FALSE, ciES = FALSE, ciWidthES = 95, desc = FALSE,
+  plots = FALSE, miss = &quot;perAnalysis&quot;)</code></pre>
+</div>
+<div id="命令行参数-1" class="section level3">
+<h3>命令行参数</h3>
+<p>基本与独立样本的t检验一致。只有两处不同，一个是把group换成了一个pair，另外是配对资料没有方差齐性检验，所以也没有Welch检验，其他的都是一样的。</p>
+<table>
+<colgroup>
+<col width="30%" />
+<col width="69%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>参数</th>
+<th>解释</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>data</td>
+<td>指定一个为数据结构的数据</td>
+</tr>
+<tr class="even">
+<td>pairs</td>
+<td>指定数据中配对参数列表的列表</td>
+</tr>
+<tr class="odd">
+<td>students</td>
+<td><p>是否执行Student’s <em>t</em>检验</p>
+<ul>
+<li>填<strong>TRUE</strong>（默认）或者FALSE</li>
+</ul></td>
+</tr>
+<tr class="even">
+<td>bf</td>
+<td><p>是否提供提供贝叶斯因子</p>
+<ul>
+<li>填TRUE或者<strong>FALSE</strong>（默认）</li>
+</ul></td>
+</tr>
+<tr class="odd">
+<td>bfPrior</td>
+<td>输入一个介于 0.5 和 2（默认为 0.707）之间的数 字，用于计算贝叶斯因子的先验宽度</td>
+</tr>
+<tr class="even">
+<td>wilconxon</td>
+<td><p>是否执行Wilcoxon signed rank检验</p>
+<ul>
+<li>填TRUE或者<strong>FALSE</strong>（默认）</li>
+</ul></td>
+</tr>
+<tr class="odd">
+<td>hypothesis</td>
+<td><p>替代假设</p>
+<ul>
+<li>填</li>
+</ul>
+<p>‘different’（默认）、‘oneGreater’ 或者 ‘twoGreater’ - 分别代表 组1</p>
+<p>与组2不同、组1大于组2或组2大于组1</p></td>
+</tr>
+<tr class="even">
+<td>norm</td>
+<td><p>是否执行Shapiro-Wilk正态性检验</p>
+<ul>
+<li>填TRUE或者<strong>FALSE</strong>（默认）</li>
+</ul></td>
+</tr>
+<tr class="odd">
+<td>qq</td>
+<td><p>是否提供残差<strong>Q-Q图</strong></p>
+<ul>
+<li>填TRUE或者<strong>FALSE</strong>（默认）</li>
+</ul></td>
+</tr>
+<tr class="even">
+<td>meanDiff</td>
+<td><p>是否提供均数和标准误</p>
+<ul>
+<li>填TRUE或者<strong>FALSE</strong>（默认）</li>
+</ul></td>
+</tr>
+<tr class="odd">
+<td>ci</td>
+<td><p>是否提供置信区间</p>
+<ul>
+<li>填TRUE或者<strong>FALSE</strong>（默认）</li>
+</ul></td>
+</tr>
+<tr class="even">
+<td>ciWidth</td>
+<td><p>置信区间的宽度</p>
+<ul>
+<li>输入一个介于50和99.9之间的数字 （默认为95）</li>
+</ul></td>
+</tr>
+<tr class="odd">
+<td>effectSize</td>
+<td><p>是否提供效应大小</p>
+<ul>
+<li>填TRUE或者<strong>FALSE</strong>（默认）</li>
+</ul></td>
+</tr>
+<tr class="even">
+<td>ciES</td>
+<td><p>是否提供效应大小的置信区间</p>
+<ul>
+<li>填TRUE或者<strong>FALSE</strong>（默认）</li>
+</ul></td>
+</tr>
+<tr class="odd">
+<td>ciWidthES</td>
+<td><p>效应大小的置信区间的宽度</p>
+<ul>
+<li>输入一个介于50和99.9之间的数字 （默认为95）</li>
+</ul></td>
+</tr>
+<tr class="even">
+<td>desc</td>
+<td><p>是否提供描述性统计</p>
+<ul>
+<li>填TRUE或者<strong>FALSE</strong>（默认）</li>
+</ul></td>
+</tr>
+<tr class="odd">
+<td>plots</td>
+<td><p>是否提供描述性图片</p>
+<ul>
+<li>填TRUE或者<strong>FALSE</strong>（默认）</li>
+</ul></td>
+</tr>
+<tr class="even">
+<td>miss</td>
+<td><p>如何处理缺失值</p>
+<ul>
+<li><p>填’perAnalysis’ 或者 ‘listwise’</p></li>
+<li><p>分别代表</p></li>
+</ul>
+<p>“排除个别因变量的缺失值”或者"如果</p>
+<p>某行缺失，则从所有分析中排除该行"</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="返回结果-1" class="section level3">
+<h3>返回结果</h3>
+<p>如果定义一个结果对象（如<code>results&lt;-...</code>），可以返回以下结果：</p>
+<table>
+<thead>
+<tr class="header">
+<th align="left">代码</th>
+<th align="left">返回结果</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">results$ttest</td>
+<td align="left">一个包含t检验结果的表格</td>
+</tr>
+<tr class="even">
+<td align="left">results$assum$norm</td>
+<td align="left">一个包括正态性检验的表格</td>
+</tr>
+<tr class="odd">
+<td align="left">results$assum$eqv</td>
+<td align="left">一个包括方差齐性检验的表格</td>
+</tr>
+<tr class="even">
+<td align="left">results$desc</td>
+<td align="left">一个包括各组统计性描述的表格</td>
+</tr>
+<tr class="odd">
+<td align="left">results$plots</td>
+<td align="left">一个组图</td>
+</tr>
+</tbody>
+</table>
+<p>可以使用asDF或as.data.frame()将表格转换为数据框。例如：</p>
+<pre><code>results$ttest$asDF
+
+as.data.frame(results$ttest)</code></pre>
+<p>可以使用[[n]]访问数组中的元素。例如：</p>
+<pre><code>results$frequencies[[1]]   #访问第一个元素</code></pre>
+<hr />
+</div>
+<div id="统计演示-1" class="section level3">
+<h3>统计演示</h3>
+<p>配对样本的<em>t</em>检验由于不用方差齐性检验，所以只需先做正态检验（<code>norm = T</code>）即可，如果是是正态分布就选择<em>t</em>检验，如果不是正态分布，就选择非参数检验。</p>
+<p>为了节约时间，我们可以把需要的计算全部算上，然后选择哪种检验方法</p>
+<p>结果可以发现这个数据是不符合正态分布的（正态检验的p值为0.0028489 ），所以官网给的示例演示不对，我们应该选择<code>wilcoxon = T</code>。</p>
+<pre class="r"><code>pairresult&lt;-ttestPS(bugs, pairs = list(
+        list(i1 = &#39;LDLF&#39;, i2 = &#39;LDHF&#39;)),
+        students = TRUE,wilcoxon = T,norm = T,qq=T,
+        plots = T,
+        desc = T,
+        miss = &quot;perAnalysis&quot; # 可以看到本数据有缺失值，我们需要设置缺失值
+        )
+pairresult</code></pre>
+<pre><code>## 
+##  PAIRED SAMPLES T-TEST
+## 
+##  Paired Samples T-Test                                                  
+##  ────────────────────────────────────────────────────────────────────── 
+##                                   statistic    df          p            
+##  ────────────────────────────────────────────────────────────────────── 
+##    LDLF    LDHF    Student&#39;s t    -6.648618    90.00000    &lt; .0000001   
+##                    Wilcoxon W      305.5000                &lt; .0000001   
+##  ────────────────────────────────────────────────────────────────────── 
+## 
+## 
+##  Normality Test (Shapiro-Wilk)                   
+##  ─────────────────────────────────────────────── 
+##                         W            p           
+##  ─────────────────────────────────────────────── 
+##    LDLF    -    LDHF    0.9541499    0.0028489   
+##  ─────────────────────────────────────────────── 
+##    Note. A low p-value suggests a violation
+##    of the assumption of normality
+## 
+## 
+##  Descriptives                                                    
+##  ─────────────────────────────────────────────────────────────── 
+##            N     Mean        Median      SD          SE          
+##  ─────────────────────────────────────────────────────────────── 
+##    LDLF    91    5.714286    6.000000    2.665774    0.2794490   
+##    LDHF    91    7.379121    8.000000    2.519194    0.2640833   
+##  ───────────────────────────────────────────────────────────────</code></pre>
+<div class="figure" style="text-align: center"><span style="display:block;" id="fig:pair-ttest-1"></span>
+<img src="{{< blogdown/postref >}}index_files/figure-html/pair-ttest-1.png" alt="配对资料T检验" width="672" />
+<p class="caption">
+Figure 2: 配对资料T检验
+</p>
+</div>
+<div class="figure" style="text-align: center"><span style="display:block;" id="fig:pair-ttest-2"></span>
+<img src="{{< blogdown/postref >}}index_files/figure-html/pair-ttest-2.png" alt="配对资料T检验" width="672" />
+<p class="caption">
+Figure 3: 配对资料T检验
+</p>
+</div>
+</div>
+</div>
+<div id="单样本t检验" class="section level2">
+<h2>单样本<em>t</em>检验</h2>
+<p>Student’s 的单样本<em>t</em>检验用于检验真实平均值等于特定值（通常为零）的零假设。低p值表明无效假设不成立，因此真实平均值必须与测试值不同。</p>
+<ul>
+<li><p>Student’s 的单样本<em>t</em>检验假设数据必要来自正态分布</p></li>
+<li><p>如果不愿意这样假设，则可以使用非参数Wilcoxon符号秩代替（但是，请注意，Wilcoxon符号秩具有稍微不同的零假设，即<em>中位数</em>等于测试值）。</p></li>
+</ul>
+<div id="示例演示-2" class="section level3">
+<h3>示例演示</h3>
+<p>我们依然调用自带的牙齿生长数据，部分显示见表<a href="#tab:dat2">1</a>，supp包含VC和OJ两组，dose包含0.5、1.0和2.0三种剂量</p>
+<pre class="r"><code>data(&#39;ToothGrowth&#39;)</code></pre>
+</div>
+<div id="单样本t检验-1" class="section level3">
+<h3>单样本t检验</h3>
+<pre class="r"><code>ttestOneS(ToothGrowth, vars = vars(len, dose))</code></pre>
+<pre><code>## 
+##  ONE SAMPLE T-TEST
+## 
+##  One Sample T-Test                                              
+##  ────────────────────────────────────────────────────────────── 
+##                           Statistic    df          p            
+##  ────────────────────────────────────────────────────────────── 
+##    len     Student&#39;s t     19.05105    59.00000    &lt; .0000001   
+##    dose    Student&#39;s t     14.37011    59.00000    &lt; .0000001   
+##  ──────────────────────────────────────────────────────────────</code></pre>
+<p>注意，仅当差值呈正态分布时，才可以使用<strong>单样本<em>t</em>检验</strong>，如果数据不是正态分布的，建议使用非参数<strong>单样本<em>Wilcoxon</em>检验。</strong>这里跟配对资料一样不需要进行方差齐性检验。同样的，我们先看<code>ttestOneS()</code>的help文档</p>
+</div>
+<div id="用法-2" class="section level3">
+<h3>用法</h3>
+<pre><code>ttestOneS(data, vars, students = TRUE, bf = FALSE, bfPrior = 0.707,
+  wilcoxon = FALSE, testValue = 0, hypothesis = &quot;dt&quot;, norm = FALSE,
+  qq = FALSE, meanDiff = FALSE, ci = FALSE, ciWidth = 95,
+  effectSize = FALSE, ciES = FALSE, ciWidthES = 95, desc = FALSE,
+  plots = FALSE, miss = &quot;perAnalysis&quot;, mann = FALSE)</code></pre>
+</div>
+<div id="命令行参数-2" class="section level3">
+<h3>命令行参数</h3>
+<p>基本与独立样本的t检验一致。唯一两处不同，一个不同是没有group，另外一个不同就是就是没有方差齐性检验，所以也没有Welch检验，另外虽然有mann，但其实是换成了wilcoxon，其他的都是一样的。</p>
+<table>
+<colgroup>
+<col width="30%" />
+<col width="69%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>参数</th>
+<th>解释</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>data</td>
+<td>指定一个为数据结构的数据</td>
+</tr>
+<tr class="even">
+<td>vars</td>
+<td>因变量 （使用公式时不需要，请参见示例）</td>
+</tr>
+<tr class="odd">
+<td>students</td>
+<td><p>是否执行Student’s <em>t</em>检验</p>
+<ul>
+<li>填<strong>TRUE</strong>（默认）或者FALSE</li>
+</ul></td>
+</tr>
+<tr class="even">
+<td>bf</td>
+<td><p>是否提供提供贝叶斯因子</p>
+<ul>
+<li>填TRUE或者<strong>FALSE</strong>（默认）</li>
+</ul></td>
+</tr>
+<tr class="odd">
+<td>bfPrior</td>
+<td>输入一个介于 0.5 和 2（默认为 0.707）之间的数 字，用于计算贝叶斯因子的先验宽度</td>
+</tr>
+<tr class="even">
+<td>wilcoxon</td>
+<td><p>是否执行Wilcoxon signed rank检验</p>
+<ul>
+<li>填TRUE或者<strong>FALSE</strong>（默认）</li>
+</ul></td>
+</tr>
+<tr class="odd">
+<td>testValue</td>
+<td>指定零假设值的数字，一般为0</td>
+</tr>
+<tr class="even">
+<td>hypothesis</td>
+<td><p>替代假设</p>
+<ul>
+<li>填</li>
+</ul>
+<p>‘different’（默认）、‘oneGreater’ 或者 ‘twoGreater’ - 分别代表 组1</p>
+<p>与组2不同、组1大于组2或组2大于组1</p></td>
+</tr>
+<tr class="odd">
+<td>norm</td>
+<td><p>是否执行Shapiro-Wilk正态性检验</p>
+<ul>
+<li>填TRUE或者<strong>FALSE</strong>（默认）</li>
+</ul></td>
+</tr>
+<tr class="even">
+<td>qq</td>
+<td><p>是否提供残差<strong>Q-Q图</strong></p>
+<ul>
+<li>填TRUE或者<strong>FALSE</strong>（默认）</li>
+</ul></td>
+</tr>
+<tr class="odd">
+<td>eqv</td>
+<td><p>是否执行Levene’s方差齐性检验</p>
+<ul>
+<li>填TRUE或者<strong>FALSE</strong>（默认）</li>
+</ul></td>
+</tr>
+<tr class="even">
+<td>meanDiff</td>
+<td><p>是否提供均数和标准误</p>
+<ul>
+<li>填TRUE或者<strong>FALSE</strong>（默认）</li>
+</ul></td>
+</tr>
+<tr class="odd">
+<td>ci</td>
+<td><p>是否提供置信区间</p>
+<ul>
+<li>填TRUE或者<strong>FALSE</strong>（默认）</li>
+</ul></td>
+</tr>
+<tr class="even">
+<td>ciWidth</td>
+<td><p>置信区间的宽度</p>
+<ul>
+<li>输入一个介于50和99.9之间的数字 （默认为95）</li>
+</ul></td>
+</tr>
+<tr class="odd">
+<td>effectSize</td>
+<td><p>是否提供效应大小</p>
+<ul>
+<li>填TRUE或者<strong>FALSE</strong>（默认）</li>
+</ul></td>
+</tr>
+<tr class="even">
+<td>ciES</td>
+<td><p>是否提供效应大小的置信区间</p>
+<ul>
+<li>填TRUE或者<strong>FALSE</strong>（默认）</li>
+</ul></td>
+</tr>
+<tr class="odd">
+<td>ciWidthES</td>
+<td><p>效应大小的置信区间的宽度</p>
+<ul>
+<li>输入一个介于50和99.9之间的数字 （默认为95）</li>
+</ul></td>
+</tr>
+<tr class="even">
+<td>desc</td>
+<td><p>是否提供描述性统计</p>
+<ul>
+<li>填TRUE或者<strong>FALSE</strong>（默认）</li>
+</ul></td>
+</tr>
+<tr class="odd">
+<td>plots</td>
+<td><p>是否提供描述性图片</p>
+<ul>
+<li>填TRUE或者<strong>FALSE</strong>（默认）</li>
+</ul></td>
+</tr>
+<tr class="even">
+<td>miss</td>
+<td><p>如何处理缺失值</p>
+<ul>
+<li><p>填’perAnalysis’ 或者 ‘listwise’</p></li>
+<li><p>分别代表</p></li>
+</ul>
+<p>“排除个别因变量的缺失值”或者"如果</p>
+<p>某行缺失，则从所有分析中排除该行"</p></td>
+</tr>
+<tr class="odd">
+<td>formula</td>
+<td>（可选）要使用的公式，请参见示例</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="返回结果-2" class="section level3">
+<h3>返回结果</h3>
+<p>如果定义一个结果对象（如<code>results&lt;-...</code>），可以返回以下结果：</p>
+<table>
+<thead>
+<tr class="header">
+<th align="left">代码</th>
+<th align="left">返回结果</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">results$ttest</td>
+<td align="left">一个包含t检验结果的表格</td>
+</tr>
+<tr class="even">
+<td align="left">results$normality</td>
+<td align="left">一个包括正态性检验结果的表格</td>
+</tr>
+<tr class="odd">
+<td align="left">results$descriptives</td>
+<td align="left">一个包括统计学描述的表格</td>
+</tr>
+<tr class="even">
+<td align="left">results$plots</td>
+<td align="left">一个统计性描述的图片</td>
+</tr>
+<tr class="odd">
+<td align="left">results$qq</td>
+<td align="left">Q-Q图图</td>
+</tr>
+</tbody>
+</table>
+<p>可以使用asDF或as.data.frame()将表格转换为数据框。例如：</p>
+<pre><code>results$ttest$asDF
+
+as.data.frame(results$ttest)</code></pre>
+<p>可以使用[[n]]访问数组中的元素。例如：</p>
+<pre><code>results$frequencies[[1]]   #访问第一个元素</code></pre>
+<hr />
+</div>
+<div id="统计思路-1" class="section level3">
+<h3>统计思路</h3>
+<p>单样本的<em>t</em>检验需要先做正态检验，如果是正态分布才能使用t检验，如果不是正态分布则要使用非参数检验。</p>
+</div>
+<div id="统计演示-2" class="section level3">
+<h3>统计演示</h3>
+<p>为了节约时间，我们可以把需要的计算全部算上，然后选择哪种检验方法</p>
+<p>结果可以发现这个数据中dose是不符合正态分布的（正态检验的p值为0.0028489 ），所以要选择<code>wilcoxon = T</code>，也就是len可以用t检验，但是dose要用非参数检验。</p>
+<pre class="r"><code>oneS&lt;- ttestOneS(ToothGrowth, vars = vars(len, dose),
+                 students = T,wilcoxon = T,
+                 norm=T,qq=T,plots=T)
+oneS</code></pre>
+<pre><code>## 
+##  ONE SAMPLE T-TEST
+## 
+##  One Sample T-Test                                              
+##  ────────────────────────────────────────────────────────────── 
+##                           Statistic    df          p            
+##  ────────────────────────────────────────────────────────────── 
+##    len     Student&#39;s t     19.05105    59.00000    &lt; .0000001   
+##            Wilcoxon W      1830.000                &lt; .0000001   
+##                                                                 
+##    dose    Student&#39;s t     14.37011    59.00000    &lt; .0000001   
+##            Wilcoxon W      1830.000                &lt; .0000001   
+##  ────────────────────────────────────────────────────────────── 
+## 
+## 
+##  Normality Test (Shapiro-Wilk)       
+##  ─────────────────────────────────── 
+##            W            p            
+##  ─────────────────────────────────── 
+##    len     0.9674286     0.1091005   
+##    dose    0.7649050    &lt; .0000001   
+##  ─────────────────────────────────── 
+##    Note. A low p-value suggests
+##    a violation of the assumption
+##    of normality</code></pre>
+<div class="figure" style="text-align: center"><span style="display:block;" id="fig:one-ttest-1"></span>
+<img src="{{< blogdown/postref >}}index_files/figure-html/one-ttest-1.png" alt="单样本的T检验" width="672" />
+<p class="caption">
+Figure 4: 单样本的T检验
+</p>
+</div>
+<div class="figure" style="text-align: center"><span style="display:block;" id="fig:one-ttest-2"></span>
+<img src="{{< blogdown/postref >}}index_files/figure-html/one-ttest-2.png" alt="单样本的T检验" width="672" />
+<p class="caption">
+Figure 5: 单样本的T检验
+</p>
+</div>
+<div class="figure" style="text-align: center"><span style="display:block;" id="fig:one-ttest-3"></span>
+<img src="{{< blogdown/postref >}}index_files/figure-html/one-ttest-3.png" alt="单样本的T检验" width="672" />
+<p class="caption">
+Figure 6: 单样本的T检验
+</p>
+</div>
+</div>
+</div>
+</div>

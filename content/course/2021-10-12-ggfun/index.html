@@ -1,0 +1,106 @@
+---
+title: 使用ggfun给ggplot2添加一个圆润的方框
+author: 欧阳松
+date: '2021-10-12'
+slug: ggfun
+categories:
+  - ggplot2
+  - ggfun
+tags:
+  - ggplot2
+enableToc: no
+bibliography: references.bib
+---
+
+<script src="{{< blogdown/postref >}}index_files/header-attrs/header-attrs.js"></script>
+
+
+<p>Y叔的clusterProfiler更新到了4.0以后就发表了一篇新文章<em>clusterProfiler 4.0: A universal enrichment tool for interpreting omics data</em><span class="citation">(<a href="#ref-wu2021" role="doc-biblioref">Wu et al. 2021</a>)</span>，发表在新兴杂志<strong>The Innovation</strong>上，该杂志目前还没有影响因子，但是预计起码20分左右，文章中有个比较新型的图，就是给图例说明加了个圆框，见Figure<a href="#fig:go">1</a> 和Figure <a href="#fig:kegg">2</a>所示。</p>
+<div class="figure" style="text-align: center"><span style="display:block;" id="fig:go"></span>
+<img src="go.jpg" alt="GO富集分析" width="100%" />
+<p class="caption">
+Figure 1: GO富集分析
+</p>
+</div>
+<div class="figure" style="text-align: center"><span style="display:block;" id="fig:kegg"></span>
+<img src="kegg.jpg" alt="比较多组数据功能谱" width="100%" />
+<p class="caption">
+Figure 2: 比较多组数据功能谱
+</p>
+</div>
+<hr />
+<p>我们直接用clusterProfiler画图时，是不会有这个圆润的边框的（画说Y叔总是先保留一手，画个美美的图引诱人前行）好在Y叔的公众号还是公布了方法，见<a href="https://mp.weixin.qq.com/s/P3Un_M6DHqwiwYGbJEZpmw" title="画圆画方，让我们来画一个圆润的方">画圆画方，让我们来画一个圆润的方</a>这篇文章。</p>
+<p>那么，我们先看Y叔的说了啥：</p>
+<blockquote>
+<p>在我们发表的文章里，你会看到图例被框起来了，而且是个圆角的方形。这绝对是为了美观，而大家知道<code>ggplot2</code>是不支持的，你只能用<code>theme(legend.background=element_rect())</code>去加一个方形的而已。要圆润，是办不到的。</p>
+<p>那我们要美，还要童叟无欺，也就是要做到不存在买家秀和卖家秀的区别，那就只能够实现一个圆角的方形了。为了clusterProfiler 4.0这篇文章，我们专门又写了一个包，叫<strong>ggfun</strong>，就是跟ggplot2有关的一些杂七杂八的功能，你也可能解读为和ggplot2相关的有趣的东西。</p>
+</blockquote>
+<p>接着，我们按照教程跑一遍，出图如Figure <a href="#fig:legend">3</a>所示，把facet label给换成圆角的啦：</p>
+<pre class="r"><code>library(ggplot2)
+library(ggfun)
+
+p &lt;- ggplot(mpg, aes(displ, cty)) + geom_point()
+p &lt;- p + facet_grid(cols = vars(cyl))
+p &lt;- p + theme(strip.background=element_roundrect(fill=&quot;grey40&quot;, color=NA, r=0.15))
+p</code></pre>
+<div class="figure" style="text-align: center"><span style="display:block;" id="fig:legend"></span>
+<img src="{{< blogdown/postref >}}index_files/figure-html/legend-1.png" alt="分面效果的上边框变圆角" width="672" />
+<p class="caption">
+Figure 3: 分面效果的上边框变圆角
+</p>
+</div>
+<p>再来一个圆润的图例例子，见Figure <a href="#fig:legend2">4</a>所示，这个出图如下，对应着<code>clusterProfiler</code> 4.0的文章，是不是图例的效果就出来了。</p>
+<pre class="r"><code>p2 &lt;- ggplot(mtcars, aes(mpg, disp, color=factor(cyl), size=cyl)) +
+         geom_point()
+p2 + theme(legend.background=element_roundrect(color=&quot;#808080&quot;, linetype=2))</code></pre>
+<div class="figure" style="text-align: center"><span style="display:block;" id="fig:legend2"></span>
+<img src="{{< blogdown/postref >}}index_files/figure-html/legend2-1.png" alt="圆润图例" width="672" />
+<p class="caption">
+Figure 4: 圆润图例
+</p>
+</div>
+<p>我们还可以换个线型，换个颜色，见Figure <a href="#fig:legend3">5</a>所示：</p>
+<pre class="r"><code>p2 + theme(legend.background=element_roundrect(color=&quot;gray&quot;, linetype=1))</code></pre>
+<div class="figure" style="text-align: center"><span style="display:block;" id="fig:legend3"></span>
+<img src="{{< blogdown/postref >}}index_files/figure-html/legend3-1.png" alt="圆润图例2" width="672" />
+<p class="caption">
+Figure 5: 圆润图例2
+</p>
+</div>
+<blockquote>
+<p>只要你用<code>theme</code>能改的，可以使用<code>element_rect</code>的地方，比如<code>plot.background</code>, <code>panel.border</code>啥的，你就可以使用<code>element_roundrect</code>，出圆润形的方块。</p>
+</blockquote>
+<p>比如，在外框加个圆，见Figure <a href="#fig:legend4">6</a>所示：</p>
+<pre class="r"><code>p2 + theme(plot.background=element_roundrect(color=&quot;gray&quot;, linetype=1))</code></pre>
+<div class="figure" style="text-align: center"><span style="display:block;" id="fig:legend4"></span>
+<img src="{{< blogdown/postref >}}index_files/figure-html/legend4-1.png" alt="圆润图例3" width="672" />
+<p class="caption">
+Figure 6: 圆润图例3
+</p>
+</div>
+<p>简单总结一下就是：</p>
+<ol style="list-style-type: decimal">
+<li><p>strip.background 画分面的边框</p></li>
+<li><p>legend.background 画标签的外框</p></li>
+<li><p>plot.background 画整体的外框</p></li>
+</ol>
+<p>当然三者也是可以叠加的，比如我们用GSEA做出了一个KEGG的图，我们知道GSEA是可以分激活和抑制的，我们就可以把这三个圆润的框框都加上，比如我们适当修饰一下，结果见Figure <a href="#fig:gsea">7</a>所示</p>
+<pre><code>dotplot(dgn,showCategory=5,split=&#39;.sign&#39;)+
+  facet_grid(~.sign)+
+  theme(legend.background=element_roundrect(color=&quot;gray&quot;, 
+  linetype=4,size = 0.4))+
+  theme(plot.background=element_roundrect(color=&quot;gray&quot;, 
+  linetype=4,r=0.05))+
+  theme(strip.background=element_roundrect(fill=&quot;grey&quot;, 
+  color=NA, r=0.25))</code></pre>
+<div class="figure" style="text-align: center"><span style="display:block;" id="fig:gsea"></span>
+<img src="Rplot01.png" alt="GSEA的圆润图例" width="100%" />
+<p class="caption">
+Figure 7: GSEA的圆润图例
+</p>
+</div>
+<div id="refs" class="references csl-bib-body hanging-indent">
+<div id="ref-wu2021" class="csl-entry">
+Wu, Tianzhi, Erqiang Hu, Shuangbin Xu, Meijun Chen, Pingfan Guo, Zehan Dai, Tingze Feng, et al. 2021. <span>“clusterProfiler 4.0: A Universal Enrichment Tool for Interpreting Omics Data.”</span> <em>The Innovation</em> 2 (3): 100141. <a href="https://doi.org/10.1016/j.xinn.2021.100141">https://doi.org/10.1016/j.xinn.2021.100141</a>.
+</div>
+</div>

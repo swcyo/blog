@@ -1,0 +1,279 @@
+---
+title: "使用排序值的基因集进行GSEA之fgsea"
+author: "欧阳松"
+date: "2022-09-30"
+slug: fgsea
+categories:
+- GSEA
+- "Pre-ranked GSEA"
+tags:
+- GSEA
+- "Pre-ranked GSEA"
+description: null
+hideToc: yes
+enableToc: yes
+enableTocContent: no
+tocFolding: no
+tocPosition: inner
+tocLevels:
+- h2
+- h3
+- h4
+series:
+- ~
+image: null
+---
+
+今天，学习使用排序值的基因集进行GSEA的第二种方法：fgsea，跟[使用排序值的基因集进行GSEA之GSEA软件分析](/course/pre-ranked-gsea1/)这个教程一样，需要两组数据：一个含有排序值的genelist，一个gmt文件。
+
+fgsea全称是**Fast Gene Set Enrichment Analysis**，也就是快速基因集富集分析的意思，使用该软件包比GSAEjava软件好的地方是不要额外安装软件，这是比java好的地方，而且相对而言也不是很难。
+
+## 数据的准备
+
+进行GSEA需要两组数据，一个rank文件，一个gmt文件。
+
+rank其实就是一个表格，一列为基因名，一列为数值，而gmt我们可以去下载。
+
+我们继续用之前教程的数据，之前我们说把数据保存为制表符分隔的文本文件，然后该后缀为`.rnk`，实际上仍然只是一个`txt`，我们直接导入进入,这里我们一定要注意基因的名称是symbol还是ENTREZ，
+
+    gsea.rnk<-read.table('~/gsea.rnk.txt',header = F) # 读取数据，不用表头
+     genelist<-gsea.rnk$V2 # 提取排序值
+     names(genelist)<-gsea.rnk$V1 #列名定义为基因名
+     genelist=sort(genelist,decreasing = T) #按排序值进行排序，制作基因列表
+     remove(gsea.rnk) ## 可以删掉rnk了
+
+```{r message=FALSE, warning=FALSE}
+gsea.rnk<-read.table('/Users/mac/Desktop/gsea.rnk.txt',header = F)
+ genelist<-gsea.rnk$V2
+ names(genelist)<-gsea.rnk$V1
+ genelist=sort(genelist,decreasing = T)
+ remove(gsea.rnk)
+```
+
+接下来，我们读取`.gmt`文件，这个下载时一定要注意是*symbol*还是*entrze*，symbol是带有英文字母的，entrze就是一串数字，其实从实用性而言，一般都推荐更为稳定的entrze，这里我们先按最常见的symbol演示，读取gmt可以直接使用**fgsea**包里的`gmtPathways()`函数
+
+    library(fgsea)
+    gmt<-gmtPathways("~/KEGG.gmt") ## 找到你的目标文件夹里的gmt
+
+```{r message=FALSE, warning=FALSE}
+library(fgsea)
+gmt<-gmtPathways("/Users/mac/Desktop/KEGG.gmt")
+```
+
+## GSEA分析
+
+有了这两组数据，我们就可以直接分析了，这里我们可以设置一直运行1000次，最大最小size等，至于到底运行多少次，我觉得其实按默认的就好，其实我们可以发现每次运动的结果不都完全一样。。。
+
+```{r}
+fgseaRes <- fgsea(pathways=gmt,
+                  stats=genelist, 
+                  nperm=1000,minSize=15, maxSize=500)
+```
+
+从警告信息里，我们可以看到第一条说：您正在尝试运行fgseaSimple。建议使用fgseaMultilivel()。要运行fgseaMultilivel，需要删除fgsea函数调用中的nperm参数。有兴趣的可以自己运行一下。
+
+我们看一下计算出来的结果：
+
+```{r}
+head(fgseaRes)
+```
+
+    fgseaMultilevelRes <- fgseaMultilevel(pathways=gmt,
+                                          stats=genelist,
+                                          maxSize=500)
+
+另外，有时候从警告中可以看到，fgsea有一个默认的下限eps=1e-10，用于估计P值。如果需要更准确地估计P值，可以在fgsea函数中将eps参数设置为零。
+
+    fgseaRes <- fgsea(pathways=gmt,
+                      stats=genelist, 
+                      eps=0,minSize=15, maxSize=500)
+
+到此，运行就已经结束了，我们接下来是可视化结果
+
+## 可视化结果
+
+### 单个GSEA的结果
+
+单独可视化某一个通路的结果，可以直接使用plotEnrichment函数，比如PPAR这个通路，见Figure \@ref(fig:fig1)所示。
+
+```{r fig1,fig.align='center',fig.cap="单个GSEA通路的结果"}
+plotEnrichment(gmt[['KEGG_PPAR_signaling_pathway%hsa03320']],genelist)+
+  ggplot2::ggtitle('PPAR_signaling_pathway')
+dev.off() #清空一下图片，不然一会图片会覆盖
+```
+
+### 多个GSEA的结果
+
+多个通路的结果，可以使用plotGseaTable函数，其实就是调用表格数据，由于我们可以富集出很多结果，这里我们需要缩小显示范围。
+
+GSEA的结果是按ES分组的，比如`ES>0就是激活，ES<0就是抑制`，我们可以按p值排序，然后分别提取ES\>0时和ES\<0时前10的结果。结果见Figure \@ref(fig:fig2)所示。
+
+```{r fig2,fig.align='center',fig.cap="多个GSEA通路的结果"}
+topPathwaysUp <- fgseaRes[ES > 0][head(order(pval), n=10), pathway]
+topPathwaysDown <- fgseaRes[ES < 0][head(order(pval), n=10), pathway]
+topPathways <- c(topPathwaysUp, rev(topPathwaysDown))
+plotGseaTable(gmt[topPathways], genelist, fgseaRes, 
+              gseaParam=0.5)
+dev.off()
+```
+
+可以看到通路的名称很长，包括了前缀KEGG和后缀%hsa，因此，为了进一步美化结果，我们可以参照**clusterProfiler**的`dotplot`结果自定义修改。。。
+
+### 自定义GSEA的dotplot结果
+
+在Y数的**clusterProfiler**运算完以后，结合**enrichplot**包的`dotplot`函数，我们可以实现将GSEA的结果以分面的结果来显示，而且各自的分面都显示相同的数目。
+
+DIY的原理如下：
+
+> -   去除pathway中的KEGG_前缀后%hsa的后缀
+> -   按ES是否大于0分为激活和抑制两组
+> -   计算出GeneRatio，即每条通路富集的实际基因数量除以每条通路的背景基因总数
+> -   按照各自分组显示同样数量的富集结果，而不是只按p值显示富集的数量
+
+那么，我们首先就是重新设置数据
+
+```{r}
+fgseaRes$sign<-ifelse(fgseaRes$ES>0,"Activated","Suppressed") ## 定义分组
+fgseaRes$Description<- gsub('KEGG_','',fgseaRes$pathway) ##删除KEGG_的前缀
+fgseaRes$Description<- gsub('_',' ',fgseaRes$Description) ## 将下划线替换为空格
+fgseaRes$Description<-trimws(fgseaRes$Description, whitespace = "\\s*%.*") #删除%以后的字符
+
+### 设置GeneRatio，即该通路富集到的基因数/基因总数
+library(tidyverse)
+library(dplyr)
+num<-fgseaRes[,c(1,8)] # 单独提取通路和富集的基因名
+#添加富集的核心基因个数
+num<-num%>% separate_rows(leadingEdge, sep = "/")%>%group_by(pathway)%>%count() #计算每条通路富集到的基因数量
+num<-num[match(fgseaRes$pathway,num$pathway),]
+sum(num$pathway==fgseaRes$pathway)
+fgseaRes$Count<-num$n
+fgseaRes$GeneRatio = fgseaRes$Count/fgseaRes$size
+remove(num)
+```
+
+有了重新计算好的结果后，我们就可以绘图了，我们先看不分面的结果，我们看前12个最显著的结果，见Figure \@ref(fig:fig3)所示。
+
+```{r fig3,fig.align='center',fig.cap="未分面的GSEA点图"}
+### 出图
+library(ggplot2)
+p1<-fgseaRes %>% 
+  arrange(pval) %>% ## 按照p值排序
+  slice(1:12) %>%  ## 设置各组要显示的数目，这个可以自己定义
+  ## 开始ggplot2 作图
+  ggplot(aes(GeneRatio,
+             forcats::fct_reorder(Description,GeneRatio)) ## 按GeneRatio排序
+         )+ 
+  ## 画出点图
+  geom_point(aes(color=pval, size = Count)) + #按pval显示颜色，按数量显示大小
+  scale_color_continuous(low="#f87669", high="#2874C5", guide=guide_colorbar(reverse=TRUE))+ ##选择好看的颜色
+  scale_size_continuous(range=c(3, 8))+
+  labs(y=NULL) +
+  ggtitle("GSEA-KEGG")+ ##设置标题
+  theme_bw(base_size = 12)+  ## 设定主题
+  theme(plot.title = element_text(hjust = 0.5)) ##标题居中
+p1
+```
+
+上图的结果，我们无法知道哪个是激活，哪个是抑制。如果我们需要按是否激活来分面显示，这个时候我们要**特别注意，需要先按sign分组，然后再按p值统计需要显示的数量**，比如我们各自显示12对结果，见Figure \@ref(fig:fig4)所示
+
+```{r fig4,fig.align='center',fig.cap="分面的GSEA点图"}
+### 出图
+p2<-fgseaRes %>% 
+  group_by(sign) %>%  ## 很重要，先按照sign分组
+  arrange(pval) %>% ## 按照p值排序
+  slice(1:12) %>%  ## 设置各组要显示的数目，这个可以自己定义
+  ## 开始ggplot2 作图
+  ggplot(aes(GeneRatio,
+             forcats::fct_reorder(Description,GeneRatio)) ## 按GeneRatio排序
+         )+ 
+  ## 画出点图
+  geom_point(aes(color=pval, size = Count)) + #按pval显示颜色，按数量显示大小
+  scale_color_continuous(low="#f87669", high="#2874C5", guide=guide_colorbar(reverse=TRUE))+ ##选择好看的颜色
+  scale_size_continuous(range=c(3, 8))+
+  labs(y=NULL) +
+  ggtitle("GSEA-KEGG")+ ##设置标题
+  theme_bw(base_size = 12)+  ## 设定主题
+  theme(plot.title = element_text(hjust = 0.5)) ##标题居中
+p2+facet_grid(~sign,scales = 'free')
+```
+
+当然，我们还有另一种分面方法，就是各自分面显示，这里要用`facet_wrap`函数，见Figure \@ref(fig:fig5)所示。
+
+```{r fig5,fig.align='center',fig.cap="各自分面的GSEA点图"}
+p2+facet_wrap(~sign,scales = 'free')
+```
+
+还可以用我前面结束的ggfun，我们也可以给标签加个外框，设置一下分面标签的圆角
+
+```{r fig6,fig.align='center',fig.cap="DIY分面的GSEA点图"}
+library(ggfun)
+p2+facet_grid(~sign,scales = 'free')+
+  theme(strip.background=element_roundrect(fill="#808080", color=NA, r=0.15),
+        legend.background=element_roundrect(color="#808080", linetype=2))
+```
+
+### 自定义GSEA的火山图
+
+有时候，出来点状图外，我们还可以使用类似火山图的来显示，只需要按NES分组即可，见Figure \@ref(fig:fig7)所示。
+
+```{r fig7,fig.align='center',fig.cap="GSEA火山图"}
+library(ggplot2)
+library(ggrepel)
+ggplot(data=fgseaRes, aes(x=NES, y =-log10(pval))) +
+    geom_point(data=subset(fgseaRes,fgseaRes$pval>=0.05),aes(size=GeneRatio),color="grey",alpha=0.6)+ #标记p>0.05的通路
+    geom_point(data=subset(fgseaRes,fgseaRes$pval<0.05 & fgseaRes$NES > 1),aes(size=abs(GeneRatio)),color="#f87669",alpha=0.6) +    ## 标记显著激活的通路
+    geom_point(data=subset(fgseaRes,fgseaRes$pval<0.05 & fgseaRes$NES < -1),aes(size=abs(GeneRatio)),color="#2874C5",alpha=0.6) +    ## 标记显著抑制的通路
+    geom_hline(yintercept = -log10(0.05),lty=4,lwd=0.6,alpha=0.8)+    ## 画p值分界线
+    geom_vline(xintercept = c(1,-1),lty=4,lwd=0.6,alpha=0.8)+    ## 画NSE分界线
+   ggtitle("Volcano for GSEA")+ ## 加标题
+  theme_bw(base_size = 12)+ ## 主题
+    ## 打上标签
+    geom_text_repel(data=subset(fgseaRes,abs(NES) > 3.2),  #NES>2显示标签
+                    aes(label=Description),alpha = 0.8,
+                    ylim = c(0.5,1.2),
+                    direction    = "x",
+                    angle        = 90,
+                    vjust        = 0)
+```
+
+### 自定义GSEA的barplot
+
+有时候我们也可以用柱状图，同样以NES为分界线，思路可以参照[Y叔的教程](https://yulab-smu.top/biomedical-knowledge-mining-book/clusterProfiler-dplyr.html)，不过这个教程里有个bug，那就是它只按NES分组，没有考虑p值的排序，所以可以参考dotplot的分组思路进行修改，见Figure \@ref(fig:fig8)所示。
+
+```{r fig8,fig.align='center',fig.cap="GSEA的柱状图，按NES分组，按NES大小排序"}
+library(forcats)
+library(ggplot2)
+library(ggstance)
+
+fgseaRes %>% 
+  group_by(sign) %>%  ## 很重要，先按照sign分组
+  arrange(pval) %>% ## 按照p值排序
+  slice(1:12) %>%  ## 设置各组要显示的数目，这个可以自己定义
+  ## 开始ggplot2 作图
+  ggplot( aes(NES, fct_reorder(Description, NES),fill=pval)) + 
+  geom_col(orientation='y') + 
+  scale_fill_continuous(low="#f87669", high="#2874C5", guide=guide_colorbar(reverse=TRUE)) +   
+  ylab(NULL)+  ggtitle("GSEA-KEGG")+ ##设置标题
+  theme_bw(base_size = 12)+  ## 设定主题
+  theme(plot.title = element_text(hjust = 0.5)) ##标题居中
+```
+
+或者，我们也可以适当的变形，直接设置上下调的颜色，然后按照-log10 P值排序，这里要主要如果是激活的通路就计算-log10 P值，如果是抑制的通路就建设log10 P值，结果见Figure \@ref(fig:fig9)所示。
+
+```{r fig9,fig.align='center',fig.cap="GSEA的柱状图，按NES分组，按p值排序"}
+fgseaRes$pl = ifelse(fgseaRes$sign == "Activated",-log10(fgseaRes$pval),log10(fgseaRes$pval)) ##新增一列，如果是激活通路就计算-log10 p，否则就是log10 p
+### 分组作图
+fgseaRes %>% 
+  group_by(sign) %>%  ## 很重要，先按照sign分组
+  arrange(pval) %>% ## 按照p值排序
+  slice(1:12) %>%  ## 设置各组要显示的数目，这个可以自己定义
+
+  ggplot( aes(pl, fct_reorder(Description, pl),fill=sign)) + # 按通路分组
+  geom_col(orientation='y') + 
+  scale_fill_manual(values = c("#2874C5", "#f87669")) +   
+  ylab(NULL)+ xlab('-log10(pval)') +ggtitle("GSEA-KEGG")+ ##设置标题
+  theme_bw(base_size = 12)+  ## 设定主题
+  theme(plot.title = element_text(hjust = 0.5)) ##标题居中
+```
+
+更多定制等你发现。。。

@@ -1,0 +1,169 @@
+---
+title: 使用tinyarray做富集分析（GO和KEGG一步到位）
+author: 欧阳松
+date: '2022-03-10'
+slug: tinyarray-enrich
+categories:
+  - 教程
+  - tinyarray
+tags:
+  - tinyarray
+  - 富集分析
+---
+
+富集分析的教程很多，当然最优秀的是**clusterProfiler**，而**tinyarray**也是可以做富集分析的，而且必须基于**clusterProfiler**，它可以自动实现GO和KEGG的结果，还可以实现上下调基因分别的柱状图，当然如果你没有Y叔的**clusterProfiler**，你肯定也是跑不出来的。。。
+
+这里有两个函数，一个是`quick_enrich()`函数，一个是`double_enrich()`函数，我们分别看看结果（能不能跑出来取决与访问KEGG的速度，建议深夜跑。。。。不要问我为什么）
+
+## quick_enrich()
+
+介绍是*do diffiencial analysis according to exprission set and group information,for human only*，翻译成人话就是**根据表达集和群体信息进行差异分析，仅供人类使用**，如果你想做的别的生物，需要去修改函数
+
+官方指令是
+
+    quick_enrich(genes, kkgo_file = "kkgo_file.Rdata", destdir = getwd())
+
+这里的genes是一个已经转换好的genelist，格式可以是symbol或者entrizid，当时如果你的基因列表是symbol，后台是自动转换成entrizid，而且还去除了重复基因，这里使用的是**clusterProfiler**里的`bitr()`函数，如果你转换不了，那是因为你还需要安装**org.Hs.eg.db**这个包，这个包的安装需要下面的代码
+
+> BiocManager::install("org.Hs.eg.db")
+
+------------------------------------------------------------------------
+
+我们试试示例的genes这个genelist直接跑一下这个快速enrich，时间可能会比较长，如果你想快点的话，可以修改函数，然后使用内部参数use_internal_data = T来快速跑KEGG，当然慢还有一个原因就是跑GO需要很长的时间，因为这里的GO默认的是all，而不是bp，所以时间会比较长
+
+```{r message=FALSE, warning=FALSE}
+library(tinyarray)
+g = quick_enrich(genes,destdir = tempdir())
+```
+
+我们点一下生成的g可以发现，有4个结果，分别是"kk" "go" "kk.dot" "go.dot"四个数据，前面两个分别是kegg和go的结果，而后面两个分别是KEGG和GO的点状图，如果细心的话，其实可以发现这个包已经把基因名改成了symbol，并且还限制了GO的文本长度是45等等...
+
+如果我们需要提取GO个KEGG的结果，只需要使用data.frame即可
+
+```{r}
+kk<-data.frame(g$kk)
+go<-data.frame(g$go)
+```
+
+简单看一下KEGG的结果
+
+    g[[1]][1:6,1:6] \#\# 或者gg\$kk[1:6,1:6]
+    ## kk[1:6,1:6]
+
+```{r}
+DT::datatable(data.frame(g$kk)[1:6,1:6])
+```
+
+我们看看默认的图吧，KEGG的图
+
+```{r}
+g$kk.dot
+```
+
+GO的图，自动分面，并且文本长度限制为45，如果想修改，可以看我之前的教程
+
+```{r}
+g$go.dot
+```
+
+如果你安装了enrichplot的画，我们还可以对KEGG的结果进一步优化，更多的结果可以参考Y叔的教程[Chapter 15 Visualization of functional enrichment result](https://yulab-smu.top/biomedical-knowledge-mining-book/enrichplot.html),比如我们来个cnetplot，我认为这是基因和通路的关联
+
+```{r}
+library(enrichplot)
+cnetplot(g$kk)
+```
+
+我们画个环状的图图
+
+```{r}
+cnetplot(g$kk,foldChange = genes, circular = TRUE, colorEdge = TRUE)
+```
+
+最新的enrichplot添加了treeplot，我们也可以跑一跑，先pairwise_termsim一下，我觉得这个图是聚类
+
+```{r}
+edox<-pairwise_termsim(g$kk)
+treeplot(edox)
+```
+
+还有一个emapplot我们试试，也就是通路和通路之间的联系
+
+```{r}
+emapplot(edox)
+```
+
+另外还有一个upset的图
+
+```{r}
+upsetplot(g$kk)
+```
+
+你就说花不花吧。。。。
+
+---
+
+## double_enrich()
+
+说完了快速的enrich，我们再说一个double_enrich()，顾名思义就是可以画两边，其实就是分别将上调基因和下调基因同时绘图，因为传统的把所有基因做富集分析，我们不知道哪个是激活，哪个是抑制，而分别做又浪费时间，这个double_enrich()可以很好的看到那个是激活的结果，那个是抑制的结果
+
+这里的示例是自动的deg数据，其实我们如果用自己的数据的话，那么你的数据必须要有这样的两列数据：
+
+-   一列的列名必须是`change`，结果里必须要有up和down（已经计算好的上下调标志）
+
+-   另一列的列名必须是`ENTREZID`，基因必须是entrezid格式，如果是symbol或者其他格式，我们就需要手动进行转换
+
+运行的函数很简单，只需要一行代码，我们先命名一下
+
+    double_enrich(deg, n = 10, color = c("#2874C5", "#f87669"))
+    ## 这里的n默认是各自显示10个，bar的颜色也可以自己修改
+
+我们用示例数据跑一下，漫长的等待一下
+
+```{r}
+d<-double_enrich(deg)
+```
+
+点击d可以看到是两个结果，一个kp，一个gp，也就是一个KEGG，一个GO，我们分别看看结果，提取数据的话照样用只需要可以
+
+```{r}
+d$kp
+d$gp
+```
+
+如果想提取数据，只需要下面这个代码，比如KEGG
+
+```{r}
+KEGG<-d$kp$data
+```
+
+我们发现美美的一张双面bar图的X轴是pl，我们可以手动修改为log10 Pvalue，我们需要注意的是bar的X轴其实是转置的y轴，所以改名需要用的是ylab，同时y轴的注释我们改掉，如果嫌弃文本的长度太短，还可以修改
+
+```{r message=FALSE, warning=FALSE}
+library(ggplot2)
+library(stringr)
+ d$kp+
+   ylab('log10 (Pvalue)') +
+   xlab(NULL)+
+   scale_x_discrete(labels=function(x) str_wrap(x, width=45))
+```
+
+我们还可以把两张图拼成一张图，用cowplot的plot_wrap即可，我们适度美化一下
+
+```{r message=FALSE, warning=FALSE,fig.align='center'}
+pkegg<- d$kp+
+   ylab('log10 (Pvalue)') +
+   xlab(NULL)+
+  ggtitle("KEGG")+
+   scale_x_discrete(labels=function(x) str_wrap(x, width=45))
+pgo<-d$gp+
+   ylab('log10 (Pvalue)') +
+   xlab(NULL)+
+  ggtitle("GO")+
+   scale_x_discrete(labels=function(x) str_wrap(x, width=45))
+cowplot::plot_grid(pkegg,pgo,
+                   ncol = 1, # 设置成一列
+                   labels = "AUTO" # 加个ABC
+                   )
+```
+
+是不是简单多了呢。。。

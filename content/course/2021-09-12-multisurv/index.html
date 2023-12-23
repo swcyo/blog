@@ -1,0 +1,236 @@
+---
+title: 把多个生存分析进行合并
+author: 欧阳松
+date: '2021-09-12'
+slug: multisurv
+categories:
+  - 博客
+  - R
+tags:
+  - 生存分析
+editor_options: 
+  markdown: 
+    wrap: 72
+---
+
+<script src="{{< blogdown/postref >}}index_files/header-attrs/header-attrs.js"></script>
+
+
+<p><strong>survminer</strong>包的<code>ggsurvplot()</code>函数可以画好看的生存分析曲线，也可以用分面的方法分面绘制多组图片（教程可以见我以前给生信助手上的一个小建议<a href="https://mp.weixin.qq.com/s/3GPQF75-SaUzMSfa1dFX9Q">「凌云34」Multiple
+Overall Survival
+Plots(2)</a>，但是它的图却不是标准的ggplot2格式，所以对于多个生存曲线图，你并不能使用<del>cowplot</del>，<del>ggarrange</del>和<del>patchwork</del>进行拼接，甚至于Y叔开发的<del><strong>ggplotify</strong></del> 也都不能转换为ggplot图形（大家如有好的方案，也可以下方评论），后面在生信技能术的<a href="https://github.com/jmzeng1314/GEO/tree/master/GSE11121_survival">Github</a>上发现解决方案。</p>
+<p>测试数据在这里，<a href="/course/multisurv/phe.csv">phe.csv</a>，我们导入数字，看看前几行的数据，如表<a href="#tab:phe">1</a>所示。</p>
+<pre><code>phe&lt;-read.csv(&#39;~/phe.csv/)
+phe[1:10,]</code></pre>
+<table>
+<caption><span id="tab:phe">Table 1: </span>phe示例数据前10行</caption>
+<thead>
+<tr class="header">
+<th align="center">event</th>
+<th align="center">grade</th>
+<th align="center">size</th>
+<th align="center">time</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="center">1</td>
+<td align="center">2</td>
+<td align="center">1.8</td>
+<td align="center">92</td>
+</tr>
+<tr class="even">
+<td align="center">0</td>
+<td align="center">3</td>
+<td align="center">2.5</td>
+<td align="center">71</td>
+</tr>
+<tr class="odd">
+<td align="center">1</td>
+<td align="center">3</td>
+<td align="center">1.5</td>
+<td align="center">58</td>
+</tr>
+<tr class="even">
+<td align="center">0</td>
+<td align="center">2</td>
+<td align="center">1.2</td>
+<td align="center">68</td>
+</tr>
+<tr class="odd">
+<td align="center">0</td>
+<td align="center">2</td>
+<td align="center">2.4</td>
+<td align="center">103</td>
+</tr>
+<tr class="even">
+<td align="center">0</td>
+<td align="center">2</td>
+<td align="center">1.8</td>
+<td align="center">93</td>
+</tr>
+<tr class="odd">
+<td align="center">0</td>
+<td align="center">2</td>
+<td align="center">1.4</td>
+<td align="center">111</td>
+</tr>
+<tr class="even">
+<td align="center">0</td>
+<td align="center">3</td>
+<td align="center">1.3</td>
+<td align="center">85</td>
+</tr>
+<tr class="odd">
+<td align="center">0</td>
+<td align="center">2</td>
+<td align="center">0.8</td>
+<td align="center">98</td>
+</tr>
+<tr class="even">
+<td align="center">0</td>
+<td align="center">1</td>
+<td align="center">1.6</td>
+<td align="center">81</td>
+</tr>
+</tbody>
+</table>
+<p>这里可以看到size是一些数字，我们想一个办法，按照中位数，把它分为big和small两组（同理一些基因表达量也可以这样分组）,我们还可以转换成因子形式，这样后面的顺序不会因为字母排序而编号</p>
+<pre class="r"><code>phe$size&lt;-ifelse(phe$size&gt;median(phe$size),&quot;big&quot;,&quot;small&quot;)
+phe$size&lt;-factor(phe$size,levels = c(&quot;small&quot;,&quot;big&quot;))</code></pre>
+<p>现在size就转换成字符的因子形式了，见表<a href="#tab:phe2">2</a>所示。</p>
+<table>
+<caption><span id="tab:phe2">Table 2: </span>phe示例数据前10行，size改变了形式</caption>
+<thead>
+<tr class="header">
+<th align="center">event</th>
+<th align="center">grade</th>
+<th align="center">size</th>
+<th align="center">time</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="center">1</td>
+<td align="center">2</td>
+<td align="center">small</td>
+<td align="center">92</td>
+</tr>
+<tr class="even">
+<td align="center">0</td>
+<td align="center">3</td>
+<td align="center">big</td>
+<td align="center">71</td>
+</tr>
+<tr class="odd">
+<td align="center">1</td>
+<td align="center">3</td>
+<td align="center">small</td>
+<td align="center">58</td>
+</tr>
+<tr class="even">
+<td align="center">0</td>
+<td align="center">2</td>
+<td align="center">small</td>
+<td align="center">68</td>
+</tr>
+<tr class="odd">
+<td align="center">0</td>
+<td align="center">2</td>
+<td align="center">big</td>
+<td align="center">103</td>
+</tr>
+<tr class="even">
+<td align="center">0</td>
+<td align="center">2</td>
+<td align="center">small</td>
+<td align="center">93</td>
+</tr>
+<tr class="odd">
+<td align="center">0</td>
+<td align="center">2</td>
+<td align="center">small</td>
+<td align="center">111</td>
+</tr>
+<tr class="even">
+<td align="center">0</td>
+<td align="center">3</td>
+<td align="center">small</td>
+<td align="center">85</td>
+</tr>
+<tr class="odd">
+<td align="center">0</td>
+<td align="center">2</td>
+<td align="center">small</td>
+<td align="center">98</td>
+</tr>
+<tr class="even">
+<td align="center">0</td>
+<td align="center">1</td>
+<td align="center">small</td>
+<td align="center">81</td>
+</tr>
+</tbody>
+</table>
+<p>接下来，我们可以参照之前的教程，画一个不同size在生存状态上的生存曲线，如图<a href="#fig:km">1</a>所示</p>
+<pre><code>library(survival)
+library(survminer)
+sfit &lt;- survfit(Surv(time, event)~size, data=phe)
+p1&lt;-ggsurvplot(sfit,data = phe,
+           palette = &#39;jco&#39;, 
+           conf.int = T,conf.int.style=&#39;step&#39;, 
+           pval = T,pval.method = T,
+           risk.table = T,risk.table.pos=&#39;in&#39;,
+           legend=c(0.85,0.85),
+           legend.title=&quot;Size&quot;,
+           legend.labs=c(&quot;small&quot;,&quot;big&quot;),
+           title=&quot;Survival curve for size&quot;, 
+           ggtheme = theme_bw(base_size = 12))
+p1</code></pre>
+<div class="figure" style="text-align: center"><span style="display:block;" id="fig:km"></span>
+<img src="{{< blogdown/postref >}}index_files/figure-html/km-1.png" alt="不同Size分组的生存曲线" width="672" />
+<p class="caption">
+Figure 1: 不同Size分组的生存曲线
+</p>
+</div>
+<p>同样的我们可以画grade分组的生存曲线，见图<a href="#fig:km2">2</a>所示</p>
+<pre class="r"><code>gfit=survfit(Surv(time, event)~grade, data=phe)
+p2&lt;-ggsurvplot(gfit,data = phe,
+           palette = &#39;lancet&#39;, 
+           conf.int = T,conf.int.style=&#39;step&#39;, 
+           pval = T,pval.method = T,
+           risk.table = T,risk.table.pos=&#39;in&#39;,
+           legend=c(0.85,0.85),
+           legend.title=&quot;Grade&quot;,
+           title=&quot;Survival curve for grade&quot;, 
+           ggtheme = theme_bw(base_size = 12) 
+           )
+p2</code></pre>
+<div class="figure" style="text-align: center"><span style="display:block;" id="fig:km2"></span>
+<img src="{{< blogdown/postref >}}index_files/figure-html/km2-1.png" alt="不同Grade分组的生存曲线" width="672" />
+<p class="caption">
+Figure 2: 不同Grade分组的生存曲线
+</p>
+</div>
+<p>然而，我们并不能拼接图形，使用下面的经典拼图代码全都会报错，连转换为ggplot都做不到</p>
+<pre><code>cowplot::plot_grid(p1,p2) # 这个函数不行
+patchwork::p1+p1 # 这个函数也不行
+p1&lt;-ggplotify::as.ggplot(p1) # 转成ggplot也不行</code></pre>
+<p>那么，除了导出图片，用AI等工具意外，是不是就没有在R里直接的解决方案了呢？</p>
+<p>不然，我们可以用<strong>survminer的</strong><code>arrange_ggsurvplots</code>函数进行解决，如下面代码，见图<a href="#fig:km3">3</a>所示。</p>
+<pre class="r"><code>sfit1=survfit(Surv(time, event)~size, data=phe)
+sfit2=survfit(Surv(time, event)~grade, data=phe)
+splots &lt;- list()
+splots[[1]] &lt;- p1
+splots[[2]] &lt;- p2
+
+# 将多个图合并一起
+
+arrange_ggsurvplots(splots, print = TRUE,  
+                    ncol = 2, nrow = 1) #定义行数和列数</code></pre>
+<div class="figure" style="text-align: center"><span style="display:block;" id="fig:km3"></span>
+<img src="{{< blogdown/postref >}}index_files/figure-html/km3-1.png" alt="多个生存曲线的合并" width="672" />
+<p class="caption">
+Figure 3: 多个生存曲线的合并
+</p>
+</div>
