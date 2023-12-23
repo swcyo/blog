@@ -1,0 +1,403 @@
+---
+title: 科比投篮数据分析
+date: '2020-02-25'
+slug: kobe
+categories:
+  - kobe
+  - R
+tags:
+  - R
+---
+
+> 原文来自 <https://www.kaggle.com/xvivancos/kobe-bryant-shot-selection/report>
+>
+> **科比-布拉恩特** (Kobe Bryant，1978年8月23日-2020年1月26日)是我们80后每个篮球爱好者喜爱的球员，当年没少追，可惜英年早逝，只能用R来分析一生数据，以此纪念！
+
+<center><img src="http://i.imgur.com/xrOu1.png"/></center>
+
+<p style="font-family: times, serif; font-size:18pt; font-style:italic">
+“Everything negative – pressure, challenges – is all an opportunity for me to rise.”
+</p>
+<div style="text-align: right"> **Kobe Bryant** </div>
+
+# **介绍**
+
+我是一个篮球迷，在这个项目中，我们将分析来自 Kaggle的一个数据集，其中包含科比-布莱恩特在其 20 年职业生涯中尝试的每个外线投篮的位置和情况。我们将使用 [tidyverse](https://cran.r-project.org/web/packages/tidyverse/index.html) 软件包进行数据操作、探索和可视化。
+
+> 科比-布莱恩特（Kobe Bean Bryant，生于1978年8月23日），美国前职业篮球运动员。他在美国国家篮球协会（NBA）的洛杉矶湖人队效力了整整20年。他从高中毕业后直接进入 NBA，并为湖人队赢得了5次 NBA 总冠军。布莱恩特18次入选全明星，15次入选全美NBA阵容，12次入选全美防守阵容。他曾两个赛季领跑 NBA 总得分榜，在联盟常规赛总得分榜上排名第三，在季后赛总得分榜上排名第四。他保持着在整个职业生涯中为一家特许经营公司效力赛季数最多的NBA纪录，被公认为史上最伟大的篮球运动员之一。布莱恩特是NBA历史上第一位至少打了20个赛季的后卫。
+
+顺便说一句，如果你喜欢篮球，还可以看看其他的内容：
+
+-   [Michael Jordan vs Kobe Bryant vs Lebron James](https://www.kaggle.com/xvivancos/michael-jordan-vs-kobe-bryant-vs-lebron-james)
+
+-   [EDA - Tweets during Cleveland Cavaliers vs Golden State Warriors](https://www.kaggle.com/xvivancos/eda-tweets-during-cavaliers-vs-warriors)
+
+-   [How good is Luka Doncic?](https://www.kaggle.com/xvivancos/how-good-is-luka-doncic)
+
+# **加载数据** 
+
+```{r message=FALSE, warning=FALSE}
+# 加载需要的包
+library(tidyverse)
+library(gridExtra)
+library(knitr)
+library(ggplot2)
+library(ggpubr)
+```
+
+# 阅读统计数据
+
+```         
+shots <- read.csv("../input/kobe-bryant-shot-selection/data.csv")
+```
+
+```{r echo=FALSE}
+shots <- read.csv("/Users/mac/Documents/GitHub/blog/content/course/2020-02-25-kobe/data.csv")
+```
+
+让我们了解一下我们需要开始的工作。
+
+## 数据结构
+
+```{r message=FALSE, warning=FALSE}
+# 数据结构
+str(shots)
+```
+
+## 数据总结
+
+```{r message=FALSE, warning=FALSE}
+# 数据总结
+summary(shots)
+```
+
+## 数据头
+
+```{r message=FALSE, warning=FALSE}
+# 查看前 6 行
+head(shots)
+```
+
+## 数据尾
+
+```{r message=FALSE, warning=FALSE}
+# 查看后 6 行
+tail(shots)
+```
+
+在 `shot_made_flag` 列中有一些 NA。我们可以使用 `na.omit()` 函数删除所有有缺失值的行。
+
+```{r}
+# 删除有 NA 的行
+shots <- na.omit(shots)
+```
+
+# **数据分析**
+
+## 投篮类型
+
+```{r message=FALSE, warning=FALSE, fig.align='center'}
+# 投篮类型
+ggplot() + 
+  geom_point(data=shots %>% filter(combined_shot_type=="Jump Shot"),
+             aes(x=lon, y=lat), colour="grey", alpha=0.3) +
+  geom_point(data=shots %>% filter(combined_shot_type!="Jump Shot"),
+             aes(x=lon, y=lat, colour=combined_shot_type), alpha=0.8) +
+  labs(title="Shot type") +
+  ylim(c(33.7, 34.0883)) +
+  theme_void() +
+  theme(legend.title=element_blank(),
+        plot.title=element_text(hjust=0.5)) 
+```
+
+我们可以看到，可视化中的大多数点都与跳投（jump shots）相关。
+
+## 投篮区域
+
+```{r  message=FALSE, warning=FALSE, fig.align='center'}
+# 投篮区域
+p1 <- ggplot(shots, aes(x=lon, y=lat)) +
+  geom_point(aes(color=shot_zone_range)) +
+  labs(title="Shot zone range") +
+  ylim(c(33.7, 34.0883)) +
+  theme_void() +
+  theme(legend.position="none",
+        plot.title=element_text(hjust=0.5)) 
+
+# 各射区范围的频率
+p2 <- ggplot(shots, aes(x=fct_infreq(shot_zone_range))) + 
+  geom_bar(aes(fill=shot_zone_range)) +
+  labs(y="Frequency") +
+  theme_bw() +
+  theme(axis.title.x=element_blank(), 
+        legend.position="none")
+
+# 拼图
+grid.arrange(p1, p2, layout_matrix=cbind(c(1,2)))
+```
+
+```{r  message=FALSE, warning=FALSE, fig.align='center'}
+# 投篮区域面积
+p3 <- ggplot(shots, aes(x=lon, y=lat)) +
+  geom_point(aes(colour=shot_zone_area)) +
+  labs(title="Shot zone area") +
+  ylim(c(33.7, 34.0883)) +
+  theme_void() +
+  theme(legend.position="none",
+        plot.title=element_text(hjust=0.5)) 
+
+# 每个射区的频率
+p4 <- ggplot(shots, aes(x=fct_infreq(shot_zone_area))) + 
+  geom_bar(aes(fill=shot_zone_area)) +
+  labs(y="Frequency") +
+  theme_bw() +
+  theme(axis.text.x=element_text(size=7),
+        axis.title.x=element_blank(), 
+        legend.position="none")
+
+# 拼图
+grid.arrange(p3, p4, layout_matrix=cbind(c(1,2)))
+```
+
+```{r  message=FALSE, warning=FALSE, fig.align='center'}
+# Shot zone basic
+p5 <- ggplot(shots, aes(x=lon, y=lat)) +
+  geom_point(aes(color=shot_zone_basic)) +
+  labs(title="Shot zone basic") +
+  ylim(c(33.7, 34.0883)) +
+  theme_void() +
+  theme(legend.position="none",
+        plot.title=element_text(hjust=0.5))
+
+# Frequency for each shot zone basic
+p6 <- ggplot(shots, aes(x=fct_infreq(shot_zone_basic))) + 
+  geom_bar(aes(fill=shot_zone_basic)) +
+  labs(y="Frequency") +
+  theme_bw() +
+  theme(axis.text.x=element_text(size=6.3),
+        axis.title.x=element_blank(), 
+        legend.position="none")
+
+# Subplot
+grid.arrange(p5, p6, layout_matrix=cbind(c(1,2)))
+```
+
+## 投篮准确率
+
+```{r  message=FALSE, warning=FALSE, fig.align='center'}
+# 按投篮类型的准确率
+shots %>%
+  group_by(action_type) %>%
+  summarise(Accuracy=mean(shot_made_flag),
+            counts=n()) %>%
+  filter(counts>20) %>%
+  ggplot(aes(x=reorder(action_type, Accuracy), y=Accuracy)) + 
+  geom_point(aes(colour=Accuracy), size=3) +
+  scale_colour_gradient(low="orangered", high="chartreuse3") +
+  labs(title="Accuracy by shot type") +
+  theme_bw() +
+  theme(axis.title.y=element_blank(),
+        legend.position="none",
+        plot.title=element_text(hjust=0.5)) +
+  coord_flip()
+```
+
+```{r  message=FALSE, warning=FALSE, fig.align='center'}
+# 按赛季的准确率
+shots %>%
+  group_by(season) %>%
+  summarise(Accuracy=mean(shot_made_flag)) %>%
+  ggplot(aes(x=season, y=Accuracy, group=1)) +
+  geom_line(aes(colour=Accuracy)) +
+  geom_point(aes(colour=Accuracy), size=3) +
+  scale_colour_gradient(low="orangered", high="chartreuse3") +
+  labs(title="Accuracy by season", x="Season") +
+  theme_bw() +
+  theme(legend.position="none",
+        axis.text.x=element_text(angle=45, hjust=1),
+        plot.title=element_text(hjust=0.5)) 
+```
+
+As we see, the accuracy begins to decrease badly from the 2013-14 season. Why didn't you retire before, Kobe?
+
+```{r message=FALSE, warning=FALSE, fig.align='center'}
+# 季后赛和常规赛各赛季的准确率
+shots %>%
+  group_by(season) %>%
+  summarise(Playoff=mean(shot_made_flag[playoffs==1]),
+            RegularSeason=mean(shot_made_flag[playoffs==0])) %>%
+  ggplot(aes(x=season, group=1)) +
+  geom_line(aes(y=Playoff, colour="Playoff")) +
+  geom_line(aes(y=RegularSeason, colour="RegularSeason")) +
+  geom_point(aes(y=Playoff, colour="Playoff"), size=3) +
+  geom_point(aes(y=RegularSeason, colour="RegularSeason"), size=3) +
+  labs(title="Accuracy by season", 
+       subtitle="Playoff and Regular Season",
+       x="Season", y="Accuracy") +
+  theme_bw() +
+  theme(legend.title=element_blank(),
+        legend.position="bottom",
+        axis.text.x=element_text(angle=45, hjust=1),
+        plot.title=element_text(hjust=0.5),
+        plot.subtitle=element_text(hjust=0.5)) 
+```
+
+请注意，红线是不连续的，因为在某些赛季，洛杉矶湖人队没有进入 NBA 季后赛。
+
+```{r message=FALSE, warning=FALSE, fig.align='center'}
+# 各赛季两分球和三分球命中率
+shots %>%
+  group_by(season) %>%
+  summarise(TwoPoint=mean(shot_made_flag[shot_type=="2PT Field Goal"]),
+            ThreePoint=mean(shot_made_flag[shot_type=="3PT Field Goal"])) %>%
+  ggplot(aes(x=season, group=1)) +
+  geom_line(aes(y=TwoPoint, colour="TwoPoint")) +
+  geom_line(aes(y=ThreePoint, colour="ThreePoint")) +
+  geom_point(aes(y=TwoPoint, colour="TwoPoint"), size=3) +
+  geom_point(aes(y=ThreePoint, colour="ThreePoint"), size=3) +
+  labs(title="Accuracy by season", 
+       subtitle="2PT Field Goal and 3PT Field Goal",
+       x="Season", y="Accuracy") +
+  theme_bw() +
+  theme(legend.title=element_blank(),
+        legend.position="bottom",
+        axis.text.x=element_text(angle=45, hjust=1),
+        plot.title=element_text(hjust=0.5),
+        plot.subtitle=element_text(hjust=0.5)) 
+```
+
+2013-2014 赛季到底发生了什么？三分球命中率太低了！
+
+```{r message=FALSE, warning=FALSE, fig.align='center'}
+# 射击距离精度
+shots %>%
+  group_by(shot_distance) %>%
+  summarise(Accuracy=mean(shot_made_flag)) %>%
+  ggplot(aes(x=shot_distance, y=Accuracy)) + 
+  geom_line(aes(colour=Accuracy)) +
+  geom_point(aes(colour=Accuracy), size=2) +
+  scale_colour_gradient(low="orangered", high="chartreuse3") +
+  labs(title="Accuracy by shot distance", x="Shot distance (ft.)") +
+  xlim(c(0,45)) +
+  theme_bw() +
+  theme(legend.position="none",
+        plot.title=element_text(hjust=0.5)) 
+```
+
+```{r message=FALSE, warning=FALSE, fig.align='center'}
+# 按射区范围划分的精度
+p7 <- shots %>%
+  select(lat, lon, shot_zone_range, shot_made_flag) %>%
+  group_by(shot_zone_range) %>%
+  mutate(Accuracy=mean(shot_made_flag)) %>%
+  ggplot(aes(x=lon, y=lat)) +
+  geom_point(aes(colour=Accuracy)) +
+  scale_colour_gradient(low="red", high="lightgreen") +
+  labs(title="Accuracy by shot zone range") +
+  ylim(c(33.7, 34.0883)) +
+  theme_void() +
+  theme(plot.title=element_text(hjust=0.5))
+
+# 按射区面积计算的精度
+p8 <- shots %>%
+  select(lat, lon, shot_zone_area, shot_made_flag) %>%
+  group_by(shot_zone_area) %>%
+  mutate(Accuracy=mean(shot_made_flag)) %>%
+  ggplot(aes(x=lon, y=lat)) +
+  geom_point(aes(colour=Accuracy)) +
+  scale_colour_gradient(low="red", high="lightgreen") +
+  labs(title="Accuracy by shot zone area") +
+  ylim(c(33.7, 34.0883)) +
+  theme_void() +
+  theme(legend.position="none",
+        plot.title=element_text(hjust=0.5))
+
+# Accuracy by shot zone basic
+p9 <- shots %>%
+  select(lat, lon, shot_zone_basic, shot_made_flag) %>%
+  group_by(shot_zone_basic) %>%
+  mutate(Accuracy=mean(shot_made_flag)) %>%
+  ggplot(aes(x=lon, y=lat)) +
+  geom_point(aes(colour=Accuracy)) +
+  scale_colour_gradient(low="red", high="lightgreen") +
+  labs(title="Accuracy by shot zone basic") +
+  ylim(c(33.7, 34.0883)) +
+  theme_void() +
+  theme(legend.position="none",
+        plot.title=element_text(hjust=0.5))
+
+# Subplots
+grid.arrange(p7, p8, p9, layout_matrix=cbind(c(1,2), c(1,3)))
+```
+
+```{r message=FALSE, warning=FALSE, fig.align='center'}
+# 按剩余时间计算的精确度
+shots %>%
+  group_by(minutes_remaining) %>%
+  summarise(Accuracy=mean(shot_made_flag)) %>%
+  ggplot(aes(x=minutes_remaining, y=Accuracy)) + 
+  geom_bar(aes(fill=Accuracy), stat="identity") +
+  scale_fill_gradient(low="orangered", high="chartreuse3") +
+  labs(title="Accuracy by minutes remaining", x="Minutes remaining")  +
+  theme_bw() +
+  theme(legend.position="none",
+        plot.title=element_text(hjust=0.5)) 
+```
+
+```{r message=FALSE, warning=FALSE, fig.align='center'}
+# 按剩余秒数计算精确度
+shots %>%
+  group_by(seconds_remaining) %>%
+  summarise(Accuracy=mean(shot_made_flag)) %>%
+  ggplot(aes(x=seconds_remaining, y=Accuracy)) + 
+  geom_bar(aes(fill=Accuracy), stat="identity") +
+  scale_fill_gradient(low="orangered", high="chartreuse3") +
+  labs(title="Accuracy by seconds remaining", x="Seconds remaining")  +
+  theme_bw() +
+  theme(legend.position="none",
+        plot.title=element_text(hjust=0.5)) 
+```
+
+```{r message=FALSE, warning=FALSE, fig.align='center'}
+# Accuracy by opponent
+shots %>%
+  group_by(opponent) %>%
+  summarise(Accuracy=mean(shot_made_flag)) %>%
+  mutate(Conference=c("Eastern", "Eastern", "Eastern", "Eastern", "Eastern",
+                      "Eastern", "Western", "Western", "Eastern", "Western",
+                      "Western", "Eastern", "Western", "Western", "Eastern",
+                      "Eastern", "Western", "Eastern", "Western", "Western",
+                      "Eastern", "Western", "Eastern", "Eastern", "Western",
+                      "Western", "Western", "Western", "Western", "Eastern",
+                      "Western", "Western", "Eastern" )) %>%
+  ggplot(aes(x=reorder(opponent, -Accuracy), y=Accuracy)) + 
+  geom_bar(aes(fill=Conference), stat="identity") +
+  labs(title="Accuracy by opponent", x="Opponent") +
+  theme_bw() +
+  theme(legend.position="bottom",
+        legend.title=element_blank(),
+        axis.text.x=element_text(angle=45, hjust=1),
+        plot.title=element_text(hjust=0.5))  
+```
+
+```{r message=FALSE, warning=FALSE, fig.align='center'}
+# Accuracy by opponent in 2PT Field Goal and 3PT Field Goal
+shots %>%
+  group_by(opponent) %>%
+  summarise(TwoPoint=mean(shot_made_flag[shot_type=="2PT Field Goal"]),
+            ThreePoint=mean(shot_made_flag[shot_type=="3PT Field Goal"])) %>%
+  ggplot(aes(x=opponent, group=1)) +
+  geom_line(aes(y=TwoPoint, colour="TwoPoint")) +
+  geom_line(aes(y=ThreePoint, colour="ThreePoint")) +
+  geom_point(aes(y=TwoPoint, colour="TwoPoint"), size=3) +
+  geom_point(aes(y=ThreePoint, colour="ThreePoint"), size=3) +
+  labs(title="Accuracy by opponent", 
+       subtitle="2PT Field Goal and 3PT Field Goal",
+       x="Opponent", y="Accuracy") +
+  theme_bw() +
+  theme(legend.title=element_blank(),
+        legend.position="bottom",
+        axis.text.x=element_text(angle=45, hjust=1),
+        plot.title=element_text(hjust=0.5),
+        plot.subtitle=element_text(hjust=0.5)) 
+```

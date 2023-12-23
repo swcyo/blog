@@ -16,7 +16,7 @@ tags:
 其实有很多教程指导怎么下载count，最简单当然还有`xena`，但是我们知道TCGA的肿瘤样本中包括了肿瘤了正常样本，而且有些样本还是重复的，所以需要去重，还需要把肿瘤和正常过滤，现在推荐一下我自己摸索的一个办法\
 使用的是`GDCRNATools`，这个包可以下载RNA、miRNA和lncRNA，数据也是count，有人说能不能下载FPKM或者TPM，其实count才是最原始的，自己找一个包转换成TPM不就好了吗
 
-#### **第一步，下载所有的count**
+## 第一步，下载所有的count
 
     ### GDCRNATools是Bioconductor的包,所以先安装
     if (!requireNamespace("BiocManager", quietly = TRUE))
@@ -32,7 +32,7 @@ tags:
 
 这一步完成了以后，自己保存的路径会生成几个包括`gdc-client`的文件，其实就是调用这个去下载，最终生成一个`Data`的文件夹，里面可能有几百个子文件夹，每一个文件夹里面就是一个样本，下载完全取决于你的网速。
 
-#### **第二步，数据预处理**
+## 第二步，数据预处理
 
     ### 首先用gdcParseMetadata（）函数构建一个meta的表格
     meta<- gdcParseMetadata(project.id = 'TCGA-BLCA',
@@ -49,7 +49,7 @@ tags:
     tumor<-subset(meta,sample_type!="SolidTissueNormal")
     normal<-subset(meta,sample_type!="PrimaryTumor")
 
-#### **第三步，融合数据，gdcRNAMerge函数**
+## 第三步，融合数据，gdcRNAMerge函数
 
     #### 合并 RNAseq数据
     ### 所有的样本count

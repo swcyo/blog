@@ -1,0 +1,203 @@
+---
+title: 双组折线图的统计学绘制（两因素重复测量方差分析）
+author: 欧阳松
+date: '2022-11-20'
+slug: Two-way-repeated-measures-ANOVA
+categories:
+  - 双因素重复测量方差分析
+  - 单因素方差分析
+tags:
+  - 双因素重复测量
+  - 多因素方差分析
+---
+
+我之前写了一个[R语言处理CCK8或MTT数据，一步绘制生长曲线](/course/r-cck8-mtt/)的教程，现在看来还是粗躁的很，虽然也可视化了结果，但是**统计学方法估计是不科学的**，最近看了[Repeated Measures ANOVA in R: The Ultimate Guide](https://www.datanovia.com/en/lessons/repeated-measures-anova-in-r/#two-way-repeated-measures-anova)这个教程，加上仙桃学术的[示例数据](https://bioinfomatics.xiantao.love/biotools/data/demo/free/linePlot/%E6%8A%98%E7%BA%BF%E5%9B%BE.xlsx)和[脚本代码](https://bioinfomatics.xiantao.love/biotools/code/open/lineplot.R)，对两组的折线图的分析又了更新的理解，并且写了一篇简书教程[R进行两因素重复测量方差分析并可视化（双组折线图）](https://www.jianshu.com/p/9eae52c4a090?v=1668870325891)。也就是说这是一种**两因素重复测量方差分析**（**Two-way repeated measures ANOVA**）
+
+还是用之间的数据运行一下，原始数据如下：
+
+| Time | NC          | NC          | NC          | OE          | OE          | OE          |
+|:----------|:----------|:----------|:----------|:----------|:----------|:----------|
+| day1 | 0.549070969 | 0.549570976 | 0.547750963 | 0.543670962 | 0.536370963 | 0.545970956 |
+| day2 | 0.675742972 | 0.696628983 | 0.690574949 | 0.637390961 | 0.630422963 | 0.653620952 |
+| day3 | 0.894142977 | 0.884125994 | 0.882670941 | 0.82057096  | 0.803780962 | 0.819401947 |
+| day4 | 1.179670983 | 1.18457301  | 1.178542929 | 1.074040958 | 1.067993961 | 1.052209937 |
+| day5 | 1.505662991 | 1.507610027 | 1.500910915 | 1.387150955 | 1.32420196  | 1.389946927 |
+
+**但是**，这个表格数据形式不适合今天的教程，我们把数据转置一下，见下表所示，数据不多的话可以使用excel或者wps完成，然后保存为csv格式，比如我们放在桌面上，定义为`data.csv`。
+
+```         
+data<-read.csv("~data.csv")
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+data<-read.csv("/Users/mac/Documents/GitHub/blog/content/course/2022-11-20-two-way-repeated-measures-anova/data.csv")
+knitr::kable(data,caption = "需要的数据格式")
+```
+
+## 加载需要的包并导入数据
+
+```{r message=FALSE, warning=FALSE}
+library(reshape2) # 转换数据
+library(car) # 方差齐性检验
+library(rstatix) # 整体统计
+library(ggpubr) # 画图
+```
+
+## 新增一列id，id即为数字，用于后续分析，必不可少
+
+```{r}
+data$id <- 1:nrow(data)
+```
+
+```{r echo=FALSE}
+knitr::kable(data,rownames = 1,caption = "新增1列id")
+```
+
+## 将短数据转换为长数据
+
+```{r}
+data2 <- gather(data, key = "time", value = "value", -group, -id) #数据转换，保留group和id组
+data2<-data2 %>% convert_as_factor(group,id, time) # 转换为因子
+```
+
+```{r echo=FALSE}
+knitr::kable(data2,caption = "短数据转换为长数据")
+```
+
+## 对各组进行统计学描述
+
+使用**rstatix**包可以很快速的统计各组在不同时间上的值，包括了均数、标准差、标准误、最大值、最小值等等结果
+
+```{r}
+data3 <- data2 %>% 
+  group_by(group, time) %>% 
+  get_summary_stats(value)
+```
+
+```{r echo=FALSE}
+knitr::kable(data3,caption = "各组统计学描述")
+```
+
+## 异常值分析
+
+我们可以使用`identify_outliers()`函数检测一下有无异常值。结果发现没有异常值。
+
+```{r}
+data2 %>%
+  group_by(group, time) %>%
+  identify_outliers(value)
+```
+
+## 批量运行正态性检验（Shapiro-Wilk normality test）
+
+可以简单设置一个函数对各组进行正态性检验，我们要保证每一个数据都是正态性分布才能进行ANOVA，否则就是非参数检验分析。
+
+可以看到
+
+```{r}
+for(i in unique(data[,1])){
+  data1 <- data[data[,1] == i,]
+  print(lapply(data1[,-1], function(x) shapiro.test(x)))
+}
+```
+
+也可以使用下面的函数进行正态性检验。
+
+```{r}         
+data2 %>%
+    group_by(group, time) %>%
+    shapiro_test(value)
+```
+
+
+### QQ图目测一下正态性分析
+
+```{r}
+ggqqplot(data2, "value", ggtheme = theme_bw()) +
+  facet_grid(time ~ group, labeller = "label_both")
+```
+
+### 批量运行方差齐性检验
+
+方差齐性检验(Levene's test)显示，组内的观测变量的方差相等(P \> 0.05)
+
+```{r}
+for(i in unique(data2$time)){
+  data1 <- data2[data2$time == i,]
+  print(leveneTest(value~group, data = data1))
+}
+```
+
+| group | df1 | df2 | F     | Pr(\>F) |
+|-------|-----|-----|-------|---------|
+| day1  | 1   | 4   | 1.404 | 0.302   |
+| day2  | 1   | 4   | 0.015 | 0.910   |
+| day3  | 1   | 4   | 0.090 | 0.779   |
+| day4  | 1   | 4   | 1.189 | 0.337   |
+| day5  | 1   | 4   | 0.915 | 0.393   |
+
+## 统计学分析
+
+### 方差分析
+
+```{r}
+res.aov <-anova_test(data = data2, dv = value, wid = id, within = time, between = group) 
+
+res.aov
+```
+
+### 事后检验
+
+对于正态分布又方差齐性的数据，可以用Tukey检验进行事后检验。
+
+```{r}
+Pairwise <- data2 %>%
+  group_by(time) %>%
+   tukey_hsd(value ~ group)
+```
+
+```{r echo=FALSE}
+knitr::kable(Pairwise,caption = "土耳其检验")
+```
+
+我们也可以试试配对t检验，可以看到结果相差不大。
+
+```{r}
+pwc <- data2 %>%
+  group_by(time) %>%
+  pairwise_t_test(
+    value ~ group, paired = TRUE,
+    p.adjust.method = "bonferroni"
+    )
+```
+
+```{r echo=FALSE}
+knitr::kable(pwc,caption = "配对T检验")
+```
+
+### 自动两两比较，添加xy轴位置
+
+我们使用**rstatix**包的`add_xy_position()`函数可以添加两两比较列表和x轴y轴位置。
+
+```{r}
+Pairwise <- Pairwise %>% add_xy_position(x = "time")
+```
+
+## 可视化绘图
+
+我们使用**ggpubr**包的`ggline()`函数进行折线图的可视化，使用`stat_pvalue_manual()`自动标记p值和位置
+
+```{r}
+ggline(data2,x='time',y='value',
+color = 'group', #按组配色
+add = 'mean_sd', #添加均数标准差，也可以设置均数标准误，CI等。
+palette = "aaas",# aaas杂志配色
+ggtheme = theme_bw(base_size = 12),
+title = "CCK8 assay",xlab = "Time",ylab = "OD 450 value",legend.title="Group",legend=c(0.1,0.8)
+)+stat_pvalue_manual(Pairwise, bracket.size = 0) + # 添加两两比较，隐藏无意义
+    labs(subtitle = get_test_label(res.aov, detailed = TRUE), # 添加整体差异
+        caption = get_pwc_label(Pairwise) # 右下角显示两两比较方法。
+    )
+```
+
+可以看到结果跟之前是一样的，但是细节更多.
