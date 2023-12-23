@@ -20,9 +20,9 @@ tags:
 
 比如有这样一个WB表格数据
 
-```{r,echo=FALSE}
+```{r echo=FALSE, message=FALSE, warning=FALSE}
 library(readr)
-suppressMessages(wb<-read_csv("/Users/mac/Desktop/wb.csv"))
+wb<-read_csv("/Users/mac/Documents/GitHub/blog/content/course/2021-08-31-使用r语言统计多组-多蛋白的wb数据/wb.csv")
 wb=data.frame(wb)
 knitr::kable(wb)
 ```
@@ -68,21 +68,7 @@ wb_long<-melt(wb,
 wb_long$Group=rep(c('NC', 'OE','DR'), each = 3)  ##分为3组，每组3个数据
 ```
 
-但是这个数据是按NC1,OE1,DR1,NC2...这样排序,所以上面代码分组后是错的,最简单的办法是导出csv,然后Excel简单定义一下,其实也就是把数字去掉,加个Group的组就行,但是这部操作R我还没学会 有个shiny的`DataEditR`包可以交互式处理数据,但是又不能直接保存到Environment里,其实这种简单的处理,完全可以先excel处理好了以后再作图,毕竟`excel`号称除了不能生孩子... 当然如果你想用`shiny`,可以用`DataEditR`这个包,直接安装即可,但前提是要先安装好`shiny`
-
-> instal.packages("shiny")
->
-> instal.packages("DataEditR")
->
-> library(DataEditR)
->
-> data_edit(wb_long)
-
-这样就可以像excel那样处理表格里,导出数据,然后再导入数据.
-
-```{r,echo=FALSE}
-wb_long<-read.csv("/Users/mac/Desktop/wb_long.csv")
-```
+但是这个数据是按NC1,OE1,DR1,NC2...这样排序,所以上面代码分组后是错的,最简单的办法是导出csv,然后Excel简单定义一下,其实也就是把数字去掉,加个Group的组就行,但是这部操作R我还没学会 有个shiny的`DataEditR`包可以交互式处理数据,但是又不能直接保存到Environment里,其实这种简单的处理,完全可以先excel处理好了以后再作图,毕竟`excel`号称除了不能生孩子... 
 
 需要固定一下分组的顺序,需要先设置为`因子`
 
@@ -92,7 +78,7 @@ wb_long <- within(wb_long, Group <- factor(Group, levels = c("NC", "OE","DR")))
 
 `画图`,这里联合`ggplot2`和`ggpubr`,其实ggpubr可以一步出图,但是底层限制死了,我们可以借助ggppubr进行统计,画图还是用ggplot2,统计的是两种,首先进行anova看整体差异,然后看各组与对照组的差异
 
-```{r}
+```{r message=FALSE, warning=FALSE}
 library(ggplot2)
 library(ggpubr)
 ggplot(wb_long ,

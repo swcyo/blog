@@ -10,21 +10,7 @@ categories:
 tags:
 - ROC
 - multipleROC
-description: null
-hideToc: yes
-enableToc: yes
-enableTocContent: no
-tocFolding: no
-tocPosition: inner
-tocLevels:
-- h2
-- h3
-- h4
-series:
-- ~
-image: null
 ---
-
 之前写过一篇[使用pROC包画好看的ROC曲线](/course/proc/)的教程，那篇教程中使用的是**pROC**，这个包可以快速拟合ROC曲线，然后这个包需要提取进行运算结果，并且不能直接显示AUC值，今天推荐一个另一个绘制ROC的包**multipleROC**，顾名思义，这个包是可以一次性绘制多条ROC曲线的，并且也是基于ggplot2。
 
 目前这个包作者没有上传CRAN或BiocManager，只能通过Github安装，地址为<https://github.com/cardiomoon/multipleROC>
@@ -41,15 +27,15 @@ image: null
 
 我们继续使用上次的数据进行演示。
 
-以[仙桃学术](https://www.xiantao.love/)上的一个诊断性ROC[示例数据](https://bioinfomatics.xiantao.love/biotools/data/demo/test/rocPlot/ROC%E6%9B%B2%E7%BA%BF.xlsx)为例进行演示（下载请点击[xlxs链接](https://bioinfomatics.xiantao.love/biotools/data/demo/test/rocPlot/ROC%E6%9B%B2%E7%BA%BF.xlsx)）。
+以[仙桃学术](https://www.xiantaozi.com/)上的一个诊断性ROC[示例数据](https://bioinfomatics.xiantao.love/biotools/data/demo/test/rocPlot/ROC%E6%9B%B2%E7%BA%BF.xlsx)为例进行演示~~（下载请点击[xlxs链接](https://xt-biotools.oss-cn-hangzhou.aliyuncs.com/biotools-v3/data/public/demo/%E8%AF%8A%E6%96%ADROC.xlsx)）~~。
 
 ```{r}
 library(readxl)
-ROC <- read_excel("~/Desktop/ROC曲线.xlsx")
+ROC <- read_excel("/Users/mac/Downloads/仙桃学术示例数据及代码/诊断ROC.xlsx")
 ```
 
 ```{r,echo=FALSE}
-DT::datatable(ROC)
+knitr::kable(ROC[c(1:5,68:72),])
 ```
 
 ## 探索性分析
@@ -66,7 +52,7 @@ ROC %>%
   numSummaryTable(a)
 ```
 
-也可以使用箱示图和密度图进行展示，见Figure \@ref(fig:fig1)所示。
+也可以使用箱示图和密度图进行展示，见fig1所示。
 
 ```{r fig1,fig.align='center',fig.cap="group1和group2两组在a变量中的差别"}
 p1<- ggplot(data=ROC)+geom_density(aes(x=a,fill=outcome),alpha=0.5) 
@@ -88,7 +74,7 @@ cowplot::plot_grid(p2,p3,p4,labels = "AUTO",nrow = 1)
 
 绘制ROC曲线是确定最佳截断值的有用方法之一。您可以使用以下R命令执行ROC分析。下面的R命令使一个类为multipleROC的对象，并进行绘图。
 
-由于默认的函数中分组需为0和1，因此需要将group1和group2进行赋值，我们将group1定义为0，group2定义为1，我们绘制a变量在两组中的ROC图片，我们可以使用`multipleROC()`语句一步计算，可以看到最佳截断值，AUC值，另外敏感度、特异度都是可以直接显示的，见Figure \@ref(fig:fig3)所示。。
+由于默认的函数中分组需为0和1，因此需要将group1和group2进行赋值，我们将group1定义为0，group2定义为1，我们绘制a变量在两组中的ROC图片，我们可以使用`multipleROC()`语句一步计算，可以看到最佳截断值，AUC值，另外敏感度、特异度都是可以直接显示的，见fig3所示。。
 
 ```{r fig3,fig.align='center',fig.cap="a变量在两组的ROC曲线"}
 ROC$group<-ifelse(ROC$outcome=='group1',0,1) # 将group1定义为0，否则为1
@@ -109,7 +95,7 @@ a=multipleROC(group~a,data=ROC)
 
 ## AUC和p值
 
-在Figure \@ref(fig:fig3)的右下角，您可以看到曲线下面积（AUC）和Wilcoxon秩和检验的p值。p值来自以下计算结果。
+在fig3的右下角，您可以看到曲线下面积（AUC）和Wilcoxon秩和检验的p值。p值来自以下计算结果。
 
 ```{r}
 wilcox.test(ROC$a,ROC$group)
@@ -153,7 +139,7 @@ class(a2) ##a2已经转换为roc的类型了
 pROC::auc(a2) ## 我们用pROC看auc的结果
 ```
 
-我们可以使用pROC的绘图函数对a2进行绘图了，我们比较以下两种结果吧，见Figure \@ref(fig:fig4)所示。
+我们可以使用pROC的绘图函数对a2进行绘图了，我们比较以下两种结果吧，见fig4所示。
 
 ```{r fig4,fig.align='center',fig.cap="pROC和multipleROC的结果对比"}
 library(pROC)
@@ -167,7 +153,7 @@ cowplot::plot_grid(p5,p6)
 
 ## 多个ROC曲线的绘制
 
-可以用多个函数进行多个ROC的曲线，可以使用`plot_ROC(list())`一个个绘制曲线，见Figure \@ref(fig:fig5)所示。
+可以用多个函数进行多个ROC的曲线，可以使用`plot_ROC(list())`一个个绘制曲线，见fig5所示。
 
 ```{r fig5,fig.align='center',fig.cap="三条曲线同时绘制"}
 a=multipleROC(group~a,data=ROC,plot=FALSE)
@@ -187,13 +173,13 @@ plot_ROC2(yvar="group",xvars=c("a","b","c"),dataname="ROC")
 
 ### 分面显示
 
-将三张图放在一起，可以看到数值重叠，影响了颜值，因此我们可以用facet进行分面绘制，见Figure \@ref(fig:fig7)所示。。
+将三张图放在一起，可以看到数值重叠，影响了颜值，因此我们可以用facet进行分面绘制，见fig7所示。。
 
 ```{r fig7,fig.align='center',fig.cap="三条曲线的分面显示"}
 plot_ROC(list(a,b,c),facet=TRUE)
 ```
 
-可以发现分面的标签默认是1，2，3，我们可以使用Y叔团队开发的**ggfun**这个包的`facet_set()`函数进行快速的修改，见Figure \@ref(fig:fig8)所示。
+可以发现分面的标签默认是1，2，3，我们可以使用Y叔团队开发的**ggfun**这个包的`facet_set()`函数进行快速的修改，见fig8所示。
 
 ```{r fig8,fig.align='center',fig.cap="三条曲线的分面显示，改标签"}
 library(ggfun)
@@ -203,7 +189,7 @@ plot_ROC(list(a,b,c),facet=TRUE)+
 
 ### 换一种分面显示
 
-使用**ggplot2**包的`facet_grid`可以换一个分面显示方式，见Figure \@ref(fig:fig9)所示。
+使用**ggplot2**包的`facet_grid`可以换一个分面显示方式，见fig9所示。
 
 ```{r fig9,fig.align='center',fig.cap="三条曲线的分面显示，改标签"}
 plot_ROC(list(a,b,c))+facet_grid(no~.)+
