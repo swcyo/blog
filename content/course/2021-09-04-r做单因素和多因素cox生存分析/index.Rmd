@@ -23,15 +23,21 @@ data<-survival::lung #加载示例数据
 
 我们查看一下这个数据的前几个示例
 
+```         
+# head(data)
+```
+
 ```{r,echo=FALSE}
 knitr::kable(head(data))
 ```
 
 在运行之前，我们需要加载这几个包
 
-    library(dplyr)
-    library(survival)
-    library(plyr)
+```         
+library(dplyr)
+library(survival)
+library(plyr)
+```
 
 ```{r,echo=FALSE}
 suppressMessages(library(dplyr))
@@ -62,7 +68,7 @@ Unicox<-data.frame("Characteristics"="sex","Hazard Ratio"=HR,
                    "P value"=Pvalue)
 ```
 
-我们看一下sex的单因素结果，见表 \@ref(tab:sexunicox)
+我们看一下sex的单因素结果，见表 \@ref(tab:sexunicox)所示。
 
 ```{r sexunicox,echo=FALSE}
 knitr::kable(Unicox,caption = "sex的单因素Cox结果",booktabs = TRUE)
@@ -94,7 +100,7 @@ UniVar<-lapply(varNames, UniCox)
 UniVar<-ldply(UniVar,data.frame)
 ```
 
-我们看一下所有统计的结果，见表 \@ref(tab:unicox)
+我们看一下所有统计的结果，见表 \@ref(tab:unicox)所示。
 
 ```{r unicox,echo=FALSE}
 knitr::kable(UniVar,caption = "单因素Cox结果",booktabs = TRUE)
@@ -113,7 +119,9 @@ UniVar$Characteristics[UniVar$P.value<0.05]
 
 提取出p\<0.05的元素以后，我们可以对所有p\<0.05的因素再次进行多因素的Cox回归分析，如果说普通的多因素Cox，我们用+号选择需要的因素进行计算，比如下面这样：
 
-    MultiCox<-coxph(surv~age+sex+ph.ecog+ph.karno,data =data) #查某几个因素就使用+
+```         
+MultiCox<-coxph(surv~age+sex+ph.ecog+ph.karno,data =data) #查某几个因素就使用+
+```
 
 但是，我们我们需要所有单因素Cox结果里面p\<0.05的因素，我们就可以用函数批量计算\
 我们先定义函数，然后整合到一个表里
@@ -138,7 +146,7 @@ mulcox<-data.frame("Characteristics"=multiname,"Hazard Ratio"=mHR,
                    "P value"=mPvalue)
 ```
 
-这样，我们生存一个叫mulcox的多因素Cox回归结果的表格，见表 \@ref(tab:mulcox)
+这样，我们生存一个叫mulcox的多因素Cox回归结果的表格，见表 \@ref(tab:mulcox)所示。
 
 ```{r mulcox,echo=FALSE}
 knitr::kable(mulcox,caption = "多因素Cox结果",booktabs = TRUE)
@@ -148,7 +156,7 @@ knitr::kable(mulcox,caption = "多因素Cox结果",booktabs = TRUE)
 
 ## **单因素和多因素的整合**
 
-我们分别获得了单因素和多因素Cox回归的结果，最后我们需要把两个结果合并到一个表格里面，这里我们就可以用到`merge()`函数，见表 \@ref(tab:Final)
+我们分别获得了单因素和多因素Cox回归的结果，最后我们需要把两个结果合并到一个表格里面，这里我们就可以用到`merge()`函数，见表 \@ref(tab:Final)所示
 
 ```{r }
 Final<-merge.data.frame(UniVar,mulcox,by="Characteristics",all = T,sort = T)
@@ -162,5 +170,7 @@ knitr::kable(Final,caption = "单因素和多因素Cox整合结果",booktabs = T
 
 这样一个代表所有单因素和多因素Cox回归生存分析的表格就自动合成了，学会了吗？如果想导出成excel格式就可以输入下面的代码：
 
-    write.csv(Final,"coxreg.csv", row.names = FALSE)
-    write.csv(Final,"coxreg.csv",row.names = F,showNA=F ) #不显示NA值
+```         
+write.csv(Final,"coxreg.csv", row.names = FALSE)
+write.csv(Final,"coxreg.csv",row.names = F,showNA=F ) #不显示NA值
+```

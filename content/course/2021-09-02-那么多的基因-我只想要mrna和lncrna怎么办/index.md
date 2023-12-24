@@ -43,7 +43,7 @@ from_Rmd: yes
 如果你刚好需要做一个转录组测序，那么生物公司基本都会给你一个**gene.xls**的文件，我之前的那个公司大概是5万8千个基因左右，文件包括有gene_id、gene_name、gene_chr、gene_start、gene_end、gene_strand、gene_length、gene_biotype、gene_description等文件，大概这个样子。
 
 | gene_id         | gene_name  | gene_chr | gene_start | gene_end  | gene_strand | gene_length | gene_biotype                       | gene_description                                 |
-|-----------------|------------|----------|------------|-----------|-------------|-------------|------------------------------------|--------------------------------------------------|
+|--------|--------|--------|--------|--------|--------|--------|--------|----------|
 | ENSG00000285994 | AL731559.1 | 10       | 12563151   | 12567351  | \+          | 3732        | sense_intronic                     | novel transcript, sense intronic to CAMK1D       |
 | ENSG00000285993 | AC018931.1 | 18       | 46409197   | 46410645  | \-          | 1246        | antisense                          | novel transcript, antisense to RNF165            |
 | ENSG00000285992 | AC120036.5 | 8        | 47129262   | 47132628  | \+          | 956         | lincRNA                            | novel transcript                                 |
@@ -85,7 +85,7 @@ UCSC大学有一个[Xena](https://xenabrowser.net/)的网址，以前服务器�
 这个文件长这个样子：
 
 | gene_id           | gene_name    | seqname | start    | end      | strand | gene_type                          | gene_status | havana_gene          | full_length | exon_length | exon_num |
-|-------------------|--------------|---------|----------|----------|--------|------------------------------------|-------------|----------------------|-------------|-------------|----------|
+|------|------|------|------|------|------|------|------|------|------|------|------|
 | ENSG00000223972.5 | DDX11L1      | chr1    | 11869    | 14409    | \+     | transcribed_unprocessed_pseudogene | KNOWN       | OTTHUMG00000000961.2 | 2541        | 1735        | 9        |
 | ENSG00000238009.5 | RP11-34P13.7 | chr1    | 89295    | 133723   | \-     | lincRNA                            | NOVEL       | OTTHUMG00000001096.2 | 44429       | 3726        | 17       |
 | ENSG00000230415.1 | RP5-902P8.10 | chr1    | 1275223  | 1280420  | \+     | lincRNA                            | NOVEL       | OTTHUMG00000002234.2 | 5198        | 513         | 5        |
@@ -125,25 +125,29 @@ PS：这里我并没有自己统计，还剩2万5千多个基因是什么，也�
 
 ### **读入EXCEL文件的gene注释信息，这里用到从biotype上下载好的EXCEL文件**
 
-    # 注释mRNA，lncRNA和miRNA
-    mRNA_info <- read.xlsx("./RawData/Gene_info.xlsx",sheet = "mRNA_info")
-    lncRNA_info <- read.xlsx("./RawData/Gene_info.xlsx",sheet = "lncRNA_info")
-    miRNA_info <- read.xlsx("./RawData/Gene_info.xlsx",sheet = "miRNA_info")
+```         
+# 注释mRNA，lncRNA和miRNA
+mRNA_info <- read.xlsx("./RawData/Gene_info.xlsx",sheet = "mRNA_info")
+lncRNA_info <- read.xlsx("./RawData/Gene_info.xlsx",sheet = "lncRNA_info")
+miRNA_info <- read.xlsx("./RawData/Gene_info.xlsx",sheet = "miRNA_info")
+```
 
 ### **根据基因的注释信息，提取对应的表达矩阵**
 
-    ### 统计mRNA
-    mRNA_gset <- TCGA_gset[rownames(TCGA_gset) %in% mRNA_info$gene_name,]
-    dim(mRNA_gset) 
-    write.csv(mRNA_gset,"./TCGA_output/TCGA_HNSC_mRNA.csv",quote = F,row.names = T)
-    ### 统计lncRNA
-    lncRNA_gset <- TCGA_gset[rownames(TCGA_gset) %in% lncRNA_info$gene_name,]
-    dim(lncRNA_gset) 
-    write.csv(lncRNA_gset,"./TCGA_output/TCGA_HNSC_lncRNA.csv",quote = F,row.names = T)
-    ### 统计miRNA
-    miRNA_gset <- TCGA_gset[rownames(TCGA_gset) %in% miRNA_info$gene_name,]
-    dim(miRNA_gset)
-    write.csv(miRNA_gset,"./TCGA_output/TCGA_HNSC_miRNA.csv",quote = F,row.names = T)
+```         
+### 统计mRNA
+mRNA_gset <- TCGA_gset[rownames(TCGA_gset) %in% mRNA_info$gene_name,]
+dim(mRNA_gset) 
+write.csv(mRNA_gset,"./TCGA_output/TCGA_HNSC_mRNA.csv",quote = F,row.names = T)
+### 统计lncRNA
+lncRNA_gset <- TCGA_gset[rownames(TCGA_gset) %in% lncRNA_info$gene_name,]
+dim(lncRNA_gset) 
+write.csv(lncRNA_gset,"./TCGA_output/TCGA_HNSC_lncRNA.csv",quote = F,row.names = T)
+### 统计miRNA
+miRNA_gset <- TCGA_gset[rownames(TCGA_gset) %in% miRNA_info$gene_name,]
+dim(miRNA_gset)
+write.csv(miRNA_gset,"./TCGA_output/TCGA_HNSC_miRNA.csv",quote = F,row.names = T)
+```
 
 这样就很快的制成了三个表格，分别进行了提取。
 
@@ -153,7 +157,9 @@ PS：这里我并没有自己统计，还剩2万5千多个基因是什么，也�
 
 然而我觉得你应该很难安装的，所以我Fork到了我的gitee上面，因此，可以很快的安装
 
-    devtools::install_git('https://gitee.com/swcyo/tinyarray')
+```         
+devtools::install_git('https://gitee.com/swcyo/tinyarray')
+```
 
 中途提示你缺哪个包，你就安装哪个包，目前这个包非常强大，集成了很多很多的功能，可以处理GEO和TCGA的很多数据，还可以很快捷的画火山图、热图、PCA图、生存分析、富集分析等等，ID转换只是其中一个小部分，以后可以写个专门的教程推广一下。
 
@@ -165,7 +171,7 @@ PS：这里我并没有自己统计，还剩2万5千多个基因是什么，也�
 
 
 ```r
-suppressMessages(library(tinyarray))
+library(tinyarray)
 exp = matrix(rnorm(1000), ncol = 10)
 rownames(exp) = sample(mRNA_annov23$gene_id, 100)
 colnames(exp) = c(paste0("TCGA", 1:5), paste0("GTEX", 1:5))
@@ -185,21 +191,22 @@ colnames(exp) = c(paste0("TCGA", 1:5), paste0("GTEX", 1:5))
 
 这个转换函数是这样的，目前可以转mRNA和lncRNA，可以只转一种，也可以都转.
 
-    trans_exp(exp, mrna_only = FALSE, lncrna_only = FALSE, gtex = FALSE)
+```         
+trans_exp(exp, mrna_only = FALSE, lncrna_only = FALSE, gtex = FALSE)
+```
 
-#### 如果全部转换，那么代码如下：
+### 如果全部转换，那么代码如下：
 
 
 ```r
-library(tinyarray)
-k = mrna <- trans_exp(exp)  #一句话即可
+mrna <- trans_exp(exp)  #一句话即可
 ```
 
 ```
 ## 100 of genes successfully mapping to mRNA,0 of genes successfully mapping to lncRNA
 ```
 
-#### 如果只转mRNA，那么代码如下：
+### 如果只转mRNA，那么代码如下：
 
 
 ```r
@@ -221,7 +228,7 @@ mrna <- trans_exp(exp, mrna_only = T, gtex = T)  #有GTEx数据的话，可以�
 |NUDT12  |  2.1036| -0.0720| 0.2753|  0.9213| -0.8702| -1.2565|  2.4827| -1.5435| -0.8837| -0.6880|
 |BAZ2B   |  0.4819|  0.3909| 0.6623|  1.3229| -0.0922|  0.1290|  0.7661|  0.9023|  0.1108|  0.8792|
 
-#### 如果只转lncRNA，那么代码如下：
+### 如果只转lncRNA，那么代码如下：
 
 
 ```r

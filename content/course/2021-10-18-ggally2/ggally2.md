@@ -1,0 +1,94 @@
+---
+title: GGally绘制的几个图形
+author: 欧阳松
+date: '2021-10-18'
+slug: GGally2
+categories:
+  - GGally
+from_Rmd: yes
+---
+
+GGally是一个功能强大的可视化包，是可以集相关关系图、箱线图、直方图等于一身的R绘图包，现在复现这篇[GGally绘制的几个图形 - 知乎 (zhihu.com)](https://zhuanlan.zhihu.com/p/375622311)的图
+
+## **GGally绘制简单平行坐标图**
+
+使用iris数据进行绘制，函数是`ggparcoord()`
+
+
+```r
+library(GGally)
+```
+
+```
+## Loading required package: ggplot2
+```
+
+```
+## Registered S3 method overwritten by 'GGally':
+##   method from   
+##   +.gg   ggplot2
+```
+
+```r
+ggparcoord(data = iris,
+           columns = 1:4,
+           groupColumn = "Species",
+           showPoints = TRUE) +  ##添加点
+  scale_color_brewer(palette = "Set2")
+```
+
+![plot of chunk unnamed-chunk-1](/figures/course/2021-10-18-ggally2/ggally2/unnamed-chunk-1-1.png)
+
+通过设置"splineFactor = TRUE"参数，绘制平滑的平行坐标轴；
+
+
+```r
+ggparcoord(data = iris, columns = 1:4, groupColumn = "Species", splineFactor = TRUE) +
+  scale_color_brewer(palette = "Set2")
+```
+
+![plot of chunk unnamed-chunk-2](/figures/course/2021-10-18-ggally2/ggally2/unnamed-chunk-2-1.png)
+
+### 添加箱线图
+
+
+```r
+ggparcoord(data = iris, columns = 1:4, alphaLines = 0.2, showPoints = TRUE, boxplot = TRUE)
+```
+
+![plot of chunk unnamed-chunk-3](/figures/course/2021-10-18-ggally2/ggally2/unnamed-chunk-3-1.png)
+
+### 更改x轴变量的排序
+
+
+```r
+ggparcoord(data = iris,
+           columns = 1:4,
+           groupColumn = "Species",
+           order = "anyClass") + ##还可设置成allClass、skewness、Outlying
+  scale_color_brewer(palette = "Set2")
+```
+
+![plot of chunk unnamed-chunk-4](/figures/course/2021-10-18-ggally2/ggally2/unnamed-chunk-4-1.png)
+
+### 可以使用facet wrap函数为每个组创建一个平行坐标图
+
+
+```r
+ggparcoord(data = iris, columns = 1:4, alphaLines = 0.2, boxplot = TRUE, groupColumn = "Species",
+  order = "anyClass") + scale_color_brewer(palette = "Set2") + facet_wrap(~Species)
+```
+
+![plot of chunk unnamed-chunk-5](/figures/course/2021-10-18-ggally2/ggally2/unnamed-chunk-5-1.png)
+
+## GGally绘制矩阵散点图
+
+使用`ggscatmat()`函数绘制散点图
+
+
+```r
+ggscatmat(data = iris, columns = 1:4, color = "Species", alpha = 0.8) + theme_bw(base_size = 14) +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+![plot of chunk unnamed-chunk-6](/figures/course/2021-10-18-ggally2/ggally2/unnamed-chunk-6-1.png)

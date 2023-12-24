@@ -8,9 +8,6 @@ categories:
   - R
 tags:
   - 生存分析
-editor_options: 
-  markdown: 
-    wrap: 72
 ---
 
 **survminer**包的`ggsurvplot()`函数可以画好看的生存分析曲线，也可以用分面的方法分面绘制多组图片（教程可以见我以前给生信助手上的一个小建议[「凌云34」Multiple
@@ -23,7 +20,7 @@ Plots(2)](https://mp.weixin.qq.com/s/3GPQF75-SaUzMSfa1dFX9Q)，但是它的图�
     phe[1:10,]
 
 ```{r phe,echo=FALSE}
-phe<-read.csv('/Users/mac/Documents/Gitee/Rblog/content/course/2021-09-12-multisurv/phe.csv')
+phe<-read.csv('/Users/mac/Documents/GitHub/blog/content/course/2021-09-12-multisurv/phe.csv')
 knitr::kable(phe[1:10,],caption = "phe示例数据前10行",align = "c")
 ```
 

@@ -11,7 +11,7 @@ tags:
 - ROC
 - multipleROC
 ---
-之前写过一篇[使用pROC包画好看的ROC曲线](/course/proc/)的教程，那篇教程中使用的是**pROC**，这个包可以快速拟合ROC曲线，然后这个包需要提取进行运算结果，并且不能直接显示AUC值，今天推荐一个另一个绘制ROC的包**multipleROC**，顾名思义，这个包是可以一次性绘制多条ROC曲线的，并且也是基于ggplot2。
+之前写过一篇[使用pROC包画好看的ROC曲线](/course/2021-11-16-proc/proc/)的教程，那篇教程中使用的是**pROC**，这个包可以快速拟合ROC曲线，然后这个包需要提取进行运算结果，并且不能直接显示AUC值，今天推荐一个另一个绘制ROC的包**multipleROC**，顾名思义，这个包是可以一次性绘制多条ROC曲线的，并且也是基于ggplot2。
 
 目前这个包作者没有上传CRAN或BiocManager，只能通过Github安装，地址为<https://github.com/cardiomoon/multipleROC>
 
