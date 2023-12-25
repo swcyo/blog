@@ -27,9 +27,14 @@ tags:
 
 我们继续使用上次的数据进行演示。
 
-以[仙桃学术](https://www.xiantaozi.com/)上的一个诊断性ROC[示例数据](https://bioinfomatics.xiantao.love/biotools/data/demo/test/rocPlot/ROC%E6%9B%B2%E7%BA%BF.xlsx)为例进行演示~~（下载请点击[xlxs链接](https://xt-biotools.oss-cn-hangzhou.aliyuncs.com/biotools-v3/data/public/demo/%E8%AF%8A%E6%96%ADROC.xlsx)）~~。
+以[仙桃学术](https://www.xiantaozi.com/)上的一个诊断性ROC示例数据为例进行演示（下载请点击[xlxs链接](https://xt-biotools.oss-cn-hangzhou.aliyuncs.com/biotools-v3/data/public/demo/%E8%AF%8A%E6%96%ADROC.xlsx)）。
 
-```{r}
+```
+library(readxl)
+ROC <- read_excel("~/诊断ROC.xlsx")
+```
+
+```{r echo=FALSE}
 library(readxl)
 ROC <- read_excel("/Users/mac/Downloads/仙桃学术示例数据及代码/诊断ROC.xlsx")
 ```

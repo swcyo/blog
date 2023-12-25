@@ -51,7 +51,7 @@ go<-data.frame(g$go)
     ## kk[1:6,1:6]
 
 ```{r}
-DT::datatable(data.frame(g$kk)[1:6,1:6])
+knitr::kable(data.frame(g$kk)[1:6,1:6])
 ```
 
 我们看看默认的图吧，KEGG的图

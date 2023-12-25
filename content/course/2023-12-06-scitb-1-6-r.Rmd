@@ -1,0 +1,174 @@
+---
+title: scitb包1.6版本发布，一个为制作专业统计表格而生的R包
+author: 天桥下的卖艺者
+date: '2023-12-06'
+slug: scitb-1-6-r
+categories:
+  - 统计学
+  - scitb
+tags:
+  - scitb
+  - 统计学
+  - 基线表格
+---
+
+scitb包~~1.6~~ 1.7版本已经正式在R语言官方CRAN上线，**scitb**包是一个为生成专业化统计表格而生的R包。
+
+## 代码安装
+
+
+```         
+install.packages("scitb")
+```
+
+安装过旧版本的从新安装一次就可以升级了,根据粉丝的建议，增加了`Overall`参数对数据进行**汇总**的功能，增加了**连续卡方校正**和**fisher精确卡方**的功能。
+
+## 数据演示
+下面我来演示一下，**scitb**包生成结果需要**stringi**包和**nortest**包支持，这两个包你可以不导入，但要先安装好。
+
+```         
+install.packages(stringi)
+install.packages(nortest)
+```
+
+安装好需要的包后我们就可以开始了，先导入R包和数据，**scitb**自带有早产数据，咱们直接从包调用
+
+
+```{r}         
+library(scitb)
+bc<-prematurity
+# head(bc)
+```
+
+```{r echo=FALSE}
+knitr::kable(head(bc))
+```
+这是一个关于早产低体重儿的数据，低于2500g被认为是低体重儿。数据解释如下：
+- low 是否是小于2500g早产低体重儿
+- age 母亲的年龄
+- lwt 末次月经体重
+- race 种族
+- smoke孕期抽烟
+- ptl 早产史（计数）
+- ht 有高血压病史
+- ui 子宫过敏
+- ftv 早孕时看医生的次数
+- bwt 新生儿体重数值
+
+绘制基线表的主要是`scitb1`函数（以后会有更多其他表格函数），本次我主要是介绍新功能，基础功能请看既往文章，咱们来看下它的函数体
+
+```         
+scitb1(vars,fvars=NULL,strata,data,dec,num,nonnormal=NULL,type=NULL,statistic=F,atotest=T,NormalTest=NULL,fisher=FALSE,correct=FALSE,Overall=FALSE)
+```
+
+咱们先来看一下具体含义：
+- vars是变量的意思，你基线表中的变量放进去
+- fvars是分类变量，就是你vars变量中的分类变量，如果没有的话就留空
+- strata,就是分层的意思，这里填入你要研究的变量
+- data这里填入你的数据
+- dec就是你生成结果的小数点位数，默认是3位。
+
+### 分类变量演示
+
+假设咱们想`race`为研究目标，因为它是分类变量，咱们最好把它转成因子，因为**scitb**包有一定对数据类型的判定能力
+> 如果你的分类变量类别大于5个，而你不转成因子的话，它可能自动判定为连续变量，处理方式不一样的，所以这里最好自己设定一下
+
+```{r}         
+bc$race<-as.factor(bc$race)
+```
+
+接下来就是定义全部变量，分类变量和分层变量
+
+```{r}      
+allVars<-c("age", "lwt","smoke", "ptl", "ht", "ui","ftv", "bwt")
+fvars<-c("smoke","ht","ui")
+strata<-"race"
+```
+
+### 一键生成统计结果
+
+```{r}      
+out<-scitb1(vars=allVars,fvars=fvars,strata=strata,data=bc)
+```
+
+```{r echo=FALSE}
+knitr::kable(out)
+```
+
+### 汇总结果
+假如咱们论文需要汇总的结果，加上`Overall=T`
+
+```{r} 
+out<-scitb1(vars=allVars,fvars=fvars,strata=strata,data=bc,statistic=T,Overall=T)
+```
+
+```{r echo=FALSE}
+knitr::kable(out)
+```
+
+### 连续性校正的卡方进行检验
+
+如果你的数据比较特殊，如果**理论数T＜5但T≥1,并且n≥40**,需要用连续性校正的卡方进行检验.可以加上correct=T
+
+```{r}         
+out<-scitb1(vars=allVars,fvars=fvars,strata=strata,data=bc,statistic=T,
+            Overall=T,
+            fisher=F,
+            correct=T ## 连续性校正的卡方进行检验
+            )
+```
+
+```{r echo=FALSE}
+knitr::kable(out)
+```
+
+### Fisher's检验
+如果你**理论数T＜1或n＜40**,需要用到Fisher's检验.
+
+```{r}         
+out<-scitb1(vars=allVars,fvars=fvars,strata=strata,data=bc,statistic=T,
+            Overall=T,
+            fisher=T,
+            correct=F
+            )
+```
+
+```{r echo=FALSE}
+knitr::kable(out)
+```
+
+大家注意一下，fisher精确卡方和连续校正卡方同时选的话，只会出fisher精确卡方的结果，第二就是fisher精确卡方是没有统计值的，咱们看SPSS的结果也是没有的
+
+### 连续变量演示
+
+怎么制表需要你自己想好来。连续变量也是差不多的，我简单跑一下把
+
+
+```{r}         
+allVars<-c("race", "lwt","smoke", "ptl", "ht", "ui","ftv", "bwt")
+fvars<-c("smoke","ht","ui","race")
+strata<-"age"
+out<-scitb1(vars=allVars,fvars=fvars,strata=strata,data=bc)
+```
+
+```{r echo=FALSE}
+knitr::kable(out)
+```
+
+红色字体并不是说明有错误，而是温馨提示你目前函数是把这个变量当做连续变量来处理，并告诉你分段的截点
+
+
+### 添加汇总数据
+
+
+```{r}         
+out<-scitb1(vars=allVars,fvars=fvars,strata=strata,data=bc,
+            num=4,
+            Overall=T)
+```
+
+```{r echo=FALSE}
+knitr::kable(out)
+```
+
+其他的操作都差不多，我就不一一介绍了，想要详细了解的请看既往文章。

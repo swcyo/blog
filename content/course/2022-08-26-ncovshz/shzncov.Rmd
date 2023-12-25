@@ -8,18 +8,6 @@ categories:
   - ggfun
 tags:
   - 画图
-description: 石河子2022年8月疫情趋势
-hideToc: no
-enableToc: no
-enableTocContent: no
-tocFolding: no
-tocPosition: inner
-tocLevels:
-  - h2
-  - h3
-  - h4
-series: ~
-image: ~
 ---
 
 自2022年8月6日石河子发现新冠疫情以来，到现在已经过去20天，好多人都隔离在家不能出，这两天疫情有清零趋势，希望后面能有好消息吧，之前我在简书上发过绘制疫情地图的教程，不过很多教程已经老了，反正隔离也没事，又重新拿出了R来画画图，就算打发时间吧。。。
@@ -37,8 +25,8 @@ image: ~
     shz<-read.csv('~/shz.csv') ## 设置存放目录
 
 ```{r ,echo=FALSE}
-shz<-read.csv('/Users/mac/Documents/GitHub/Rblog/content/zh/course/2022-08-26-ncovshz/shz.csv')
-DT::datatable(shz,caption = "2022年8月至今石河子疫情趋势")
+shz<-read.csv('/Users/mac/Documents/GitHub/blog/content/course/2022-08-26-ncovshz/shz.csv')
+knitr::kable(shz,caption = "2022年8月至今石河子疫情趋势")
 ```
 
 ## 数据处理
@@ -51,12 +39,13 @@ long<-melt(shz,
            id.vars = c('日期'), ## 截取需要保留的值
            variable.name='组别', ## 设置一列分组
            value.name='数量') ## 设置一列数值
+# long
 ```
 
 结果见下表
 
 ```{r,echo=FALSE}
-DT::datatable(long,caption = "长数据转换后结果")
+knitr::kable(long[1:10,],caption = "长数据转换后结果")
 ```
 
 ## 绘图

@@ -1,0 +1,150 @@
+---
+title: 首发scitb包，一个为制作统计表格而生的R包
+author: 天桥下的卖艺者
+date: '2023-11-03'
+slug: scitb-r
+categories:
+  - 统计学
+  - scitb
+tags:
+  - scitb
+  - 统计学
+  - 基线表格
+---
+转自[首发scitb包，一个为制作统计表格而生的R包](https://mp.weixin.qq.com/s/rcztQzTcdgtWZthKVBgYmA)
+
+## 安装代码
+可以使用以下代码安装
+```
+install.packages("scitb")
+```
+## 数据演示
+下面咱们来演示一下咱们使用scitb包来绘制一个咱们论文需要的基线表
+scitb包自带早产数据，咱们直接从包调用
+
+```{r echo=TRUE, warning=FALSE}
+library(scitb)
+library(stringi)
+bc<-prematurity
+# head(bc)
+```
+
+```{r echo=FALSE}
+knitr::kable(head(bc))
+```
+这是一个关于早产低体重儿的数据，低于2500g被认为是低体重儿。数据解释如下：
+- low 是否是小于2500g早产低体重儿
+- age 母亲的年龄
+- lwt 末次月经体重
+- race 种族
+- smoke孕期抽烟
+- ptl 早产史（计数）
+- ht 有高血压病史
+- ui 子宫过敏
+- ftv 早孕时看医生的次数
+- bwt 新生儿体重数值
+
+### 分类变量
+
+假设咱们想**race**为研究目标，因为它是分类变量，咱们最好把它转成因子，因为**scitb**包有一定对数据类型的判定能力，如果你的分类变量类别大于5个，而你不转成因子的话，它可能自动判定为连续变量，处理方式不一样的，所以这里最好自己设定一下。
+
+```{r}
+bc$race<-as.factor(bc$race)
+```
+
+接下来就是定义全部变量，分类变量和分层变量，这和**tableone**包一模一样，如果你会使用**tableone**包，使用**scitb**包起来完全无压力。
+
+```{r}
+allVars<-c("age", "lwt","smoke", "ptl", "ht", "ui","ftv", "bwt")
+fvars<-c("smoke","ht","ui")
+strata<-"race"
+```
+
+### 一键生成统计结果
+```{r}
+out<-scitb1(vars=allVars,fvars=fvars,strata=strata,data=bc)
+```
+
+```{r echo=FALSE}
+knitr::kable(out)
+```
+
+这样结果就生成了，我按论文格式对界面进行设定，这样你几乎不怎么用调整就可以生成数据表一了，省了点时间。如果有非正态数据怎么办，假设lwt为非正态分布数据，咱们通过nonnormal这个参数给它定义一下
+
+```{r}
+out<-scitb1(vars=allVars,fvars=fvars,strata=strata,data=bc,nonnormal=c("lwt"))
+```
+
+```{r echo=FALSE}
+knitr::kable(out)
+```
+
+我们可以看到lwt这里被改成使用中位数和四分位数表示了。
+
+接下来看看咱们算得对不对，使用tableone包来比较一下
+```{r}
+library(tableone)
+allVars<-c("age", "lwt","smoke", "ptl", "ht", "ui","ftv", "bwt")
+fvars<-c("smoke","ht","ui")
+strata<-"race"
+tab2<- CreateTableOne(vars = allVars, factorVars=fvars,strata = strata, data =bc)
+# print(tab2)#输出表格，tableone包
+```
+
+```{r echo=FALSE}
+knitr::kable(print(tab2))
+```
+
+> 对比两个结果，一模一样，所以大家可以完全放心，原作者没有抄袭tableone包，虽然结果一样，但是算法构架完全不一样的，tableone是使用lapply()函数来跑结果的，而本包是使用for循环的。
+
+### 连续变量
+**Scitb**包格式更加符合论文发表格式，刚才说了分类变量的制表方法，现在来说下连续变量，假设我们研究的是年龄变量age.
+```{r}
+allVars<-c("race", "lwt","smoke", "ptl", "ht", "ui","ftv", "bwt")
+fvars<-c("smoke","ht","ui","race")
+strata<-"age"
+## 生成结果
+out<-scitb1(vars=allVars,fvars=fvars,strata=strata,data=bc)
+```
+
+```{r echo=FALSE}
+knitr::kable(out)
+```
+
+可以看到年龄被默认分层3组，然后得出基线表，还给出了具体分割值，表明从14到20到25到45进行了分割，下面的警告不用理会，咱们没有关闭警告，算出来和**tableone**包一样的。
+
+如果你想分层更多组，可以使用num这个制表来设定。假设咱们想生成4组
+
+```{r}
+out<-scitb1(vars=allVars,fvars=fvars,strata=strata,data=bc,num=4)
+```
+
+```{r echo=FALSE}
+knitr::kable(out)
+```
+
+这里有个制表小技巧回到前面的连续变量里，咱们可以把分层变量加进去，快速制表
+
+```{r}
+allVars<-c("age", "lwt","smoke", "ptl", "ht", "ui","ftv", "bwt","race")
+fvars<-c("smoke","ht","ui","race")
+strata<-"age"
+```
+
+### 一键生成统计结果
+```{r}
+out<-scitb1(vars=allVars,fvars=fvars,strata=strata,data=bc)
+```
+
+```{r echo=FALSE}
+knitr::kable(out)
+```
+
+把结果保存
+```
+write.csv(out,file= "1.csv",row.names = F)
+```
+
+**scitb1**比起**tb1**包功能远远比不上，主打一个简单实用，虽然没有tb1包这么强大的功能，但是可以快速出表，而且增加了连续变量的处理，还是有点优势的吧。之后我还打算出个视频介绍怎么基于scitb包快速生成表一，欢迎观看。
+
+最后原创声明一下，**scitb**包遵循GPL-3协议，你可以自由使用、播散和修改，但是用于商业用途需要得到我的同意和授权。

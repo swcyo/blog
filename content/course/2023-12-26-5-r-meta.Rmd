@@ -1,0 +1,62 @@
+---
+title: 5行R语言代码实现简单的Meta分析
+date: '2023-12-26'
+slug: 5-r-meta
+categories:
+  - 统计学
+  - meta分析
+tags:
+  - meta分析
+  - 统计学
+---
+本次以最为常见连续变量的meta分析为例，进行实操分享。
+为了方便演示，下面导入的是公共的数据集Fleiss93cont，里面有一些现成的医学试验数据，这样就不用自己录入数据了。
+
+## 加载包和数据
+```{r}
+#安装包，如果已安装，请跳过
+# install.packages("meta")
+#导入包
+library(meta)
+#导入数据集，该数据集包含5项关于心理健康治疗对医疗利用影响的研究结果
+data(Fleiss93cont)
+#查看数据集
+# Fleiss93cont 
+```
+
+```{r echo=FALSE}
+knitr::kable(Fleiss93cont)
+```
+## 5行代码输出结果
+
+下面仅需要5行代码就能输出基本的meta分析结果
+使用`metacont()`函数用于合并效应量
+### 合并效应量计算
+```{r}
+m1 = metacont(n.e, # 数据集中试验组的样本数
+              mean.e, # 试验组的均数
+              sd.e, # 试验组的标准差
+              n.c, # 数据集中对照组的样本数
+              mean.c,# 对照组的均数
+              sd.c, # 对照组的标准差
+              sm='SMD', # 指定效应量
+              studlab = paste(study, year),
+              data= Fleiss93cont) 
+```
+
+### 汇总模型结果
+```{r}
+summary(m1) #，包含了异质性检验结果
+```
+### 绘制森林图
+```{r}
+forest(m1) 
+```
+### #绘制发表偏倚
+```{r}
+funnel(m1)  
+```
+### 用线性回归法检测发表偏倚
+```{r}
+metabias(m1, k.min = 5) #本来是最小10个才进行检验，为了演示,k.min设为5
+```
