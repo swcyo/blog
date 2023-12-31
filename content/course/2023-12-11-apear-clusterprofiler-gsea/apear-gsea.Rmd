@@ -1,0 +1,156 @@
+---
+title: 使用aPEAR来增强clusterProfiler的GSEA分析结果
+author: 生信技能树
+date: '2023-12-11'
+slug: apear-gsea
+categories:
+  - aPEAR
+  - GSEA
+  - 富集分析
+  - 教程
+tags:
+  - GSEA
+  - aPEAR
+  - 富集分析
+  - 画图
+  - 教程
+---
+
+最近在**生信技能树**的公众号发现一篇推文，[使用aPEAR来增强clusterProfiler的GSEA分析结果](https://mp.weixin.qq.com/s/q5KHfQv3LoJupAX4TCiZfQ)，今天复现一下。
+
+## 转录组差异分析
+
+首先我们获取**airway**这个包里面的`airway`表达量矩阵，它有8个样品，分成了两组，我们命名为'control'，'case' ，如下所示代码：
+
+```{r message=FALSE, warning=FALSE}
+library(data.table)
+library(airway,quietly = T)
+data(airway) 
+mat <- assay(airway)  
+keep_feature <- rowSums (mat > 1) > 1 
+ensembl_matrix <- mat[keep_feature, ]  
+library(AnnoProbe) 
+ids=annoGene(rownames(ensembl_matrix),'ENSEMBL','human') 
+ids=ids[!duplicated(ids$SYMBOL),]
+ids=ids[!duplicated(ids$ENSEMBL),]
+symbol_matrix= ensembl_matrix[match(ids$ENSEMBL,rownames(ensembl_matrix)),] 
+rownames(symbol_matrix) = ids$SYMBOL 
+group_list = as.character(airway@colData$dex)
+group_list=ifelse(group_list=='untrt','control','case' ) 
+group_list = factor(group_list,levels = c('control','case' ))  
+```
+
+然后针对上面的airway这个包里面的airway表达量矩阵，是一个简单的转录组测序后的count矩阵，可以走**DESeq2**进行转录组差异分析，代码如下所示：
+
+```{r message=FALSE, warning=FALSE}
+library(DESeq2)
+colData <- data.frame(row.names=colnames(symbol_matrix), 
+                       group_list=group_list)
+dds <- DESeqDataSetFromMatrix(countData = symbol_matrix,
+                              colData = colData,
+                              design = ~ group_list)
+dds <- DESeq(dds) 
+res <- results(dds, 
+               contrast=c("group_list",
+                          levels(group_list)[2],
+                          levels(group_list)[1]))
+resOrdered <- res[order(res$padj),] 
+DEG =as.data.frame(resOrdered)
+DEG_deseq2 = na.omit(DEG) ##去掉NA值
+```
+
+查看一下差异分析的结果矩阵
+```
+head(DEG_deseq2) 
+```
+```{r echo=FALSE}
+knitr::kable(head(DEG_deseq2))
+```
+
+## 使用clusterProfiler的GSEA方法针对GO数据库进行注释
+
+前面的**DESeq2**进行转录组差异分析后的表格里面有两万多个基因，需要对它们根据里面的log2FoldChange对基因排序后的全部的基因的列表。
+代码如下所示：
+```{r message=FALSE, warning=FALSE}
+nrDEG=DEG_deseq2[,c("log2FoldChange",   "padj")] 
+colnames(nrDEG)=c('logFC','P.Value')
+library(org.Hs.eg.db)
+library(clusterProfiler)
+gene <- bitr(rownames(nrDEG), fromType = "SYMBOL",
+             toType =  "ENTREZID", ## z转换成更为稳定的ENTREZID基因格式
+             OrgDb = org.Hs.eg.db) 
+nrDEG = nrDEG[rownames(nrDEG) %in% gene$SYMBOL,]
+nrDEG$ENTREZID = gene$ENTREZID[match(rownames(nrDEG) , gene$SYMBOL)]
+# https://www.ncbi.nlm.nih.gov/gene/?term=SPARCL1
+geneList=nrDEG$logFC
+names(geneList)=nrDEG$ENTREZID
+geneList=sort(geneList,decreasing = T)
+# 运行GSEA的GO
+## go_BP_enrich <- gseGO(geneList, OrgDb = org.Hs.eg.db, ont = 'BP')
+## head(go_BP_enrich@result)
+```
+如果网络不好，也可以试试离线gson的方式,参考[一次性运行多组GSEA富集分析](/course/multi-gsea/)的教程
+```
+library(gson)
+GO<-rread.gson("GO_BP_human.gson")
+go_BP_enrich <- GSEA(geneList,gson = GO )
+head(go_BP_enrich@result)
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+library(gson)
+GO<-read.gson('/Users/mac/Documents/GitHub/gson-files/GO_BP_human.gson')
+go_BP_enrich <- GSEA(geneList,gson = GO )
+head(go_BP_enrich@result)
+```
+
+## 默认的可视化
+使用enrichplot进行可视化，或者利用我修改过的myenrichplot包美化
+```{r gseaplot,fig.align='center'}
+p1<-enrichplot::gseaplot2( go_BP_enrich, geneSetID = go_BP_enrich@result[1,1], title = go_BP_enrich@result$Description[1], pvalue_table =T)
+p1
+```
+或者利用我修改过的myenrichplot包美化
+```{r gseaplot2,fig.align='center'}
+p2<-myenrichplot::gseaplot2( go_BP_enrich, geneSetID = go_BP_enrich@result[1,1], title = go_BP_enrich@result$Description[1], pvalue_table =T)
+p2
+```
+也可以是汇总这个GO数据库进行注释结果表格后展现其上下调的最显著的通路，代码如下所示
+```{r top6, fig.align='center', fig.cap="前6个上调通路和6个下调通路", fig.width=9}
+#～～～取前6个上调通路和6个下调通路～～～
+kk=go_BP_enrich
+up_k <- kk[head(order(kk$enrichmentScore,decreasing = T)),];up_k$group=1
+down_k <- kk[tail(order(kk$enrichmentScore,decreasing = T)),];down_k$group=-1
+
+dat=rbind(up_k,down_k)
+colnames(dat)
+dat$pvalue = -log10(dat$pvalue)
+dat$pvalue=dat$pvalue*dat$group 
+dat=dat[order(dat$pvalue,decreasing = F),]
+
+library(ggplot2)
+p3 <- ggplot(dat, aes(x=reorder(Description,order(pvalue, decreasing = F)), y=pvalue, fill=group)) + 
+  geom_bar(stat="identity") + 
+  scale_fill_gradient(low="#34bfb5",high="#ff6633",guide = FALSE) + 
+  scale_x_discrete(name ="Pathway names") +
+  scale_y_continuous(name ="log10P-value") +
+  coord_flip() + 
+  theme_bw()+
+  theme(plot.title = element_text(size = 15,hjust = 0.5),  
+        axis.text = element_text(size = 12,face = 'bold'),
+        panel.grid = element_blank())+
+  ggtitle("Pathway Enrichment") 
+p3
+```
+## 使用aPEAR来增强
+一行代码可视化，可以看到，确实是效果不一样了，这也就是为什么网络可视化非常受大家欢迎。
+```{r enrichmentNetwork,fig.align='center',fig.cap="enrichmentNetwork的效果"}
+#install.packages("aPEAR") 
+library(aPEAR)
+enrichmentNetwork(go_BP_enrich@result)
+```
+当然了，这个包（aPEAR）肯定是不会就这一个 enrichmentNetwork 函数，更多好玩的用法和参数，可以看官方文档：
+
+- https://github.com/kerseviciute/aPEAR
+- aPEAR: an R package for enrichment network visualisation
+- aPEAR: an R package for autonomous visualisation of pathway enrichment networks. BioRxiv. 2023 Mar 29; doi: 10.1101/2023.03.28.534514

@@ -1,0 +1,227 @@
+---
+title: 应用R语言BUGSnet程序包实现贝叶斯网状Meta分析
+date: '2024-01-01'
+slug: bugsnet-meta
+categories:
+  - 网状meta
+  - meta分析
+tags:
+  - meta分析
+  - 网状meta
+---
+
+-   向虹,岳磊,赵红,李华,谢天宏,杨婷,王杰,张宇昊,谢忠平.应用R语言BUGSnet程序包实现贝叶斯网状Meta分析[J].中国循证医学杂志,2022,22(05):600-608.
+
+传统的meta分析为两组数据比较，如果需要多组数据的两两比较，则需要应用网状meta分析，本文分享使用**BUGSnet**包使用的方法
+
+## 准备数据
+
+数据来源于一项关于类固醇佐剂治疗天疱疮的网状Meta分析研究，该研究纳入 10 个试验，纳入了592 例患者，评估了 7 种方法治疗天疱疮的效果，下载地址[meta.csv](/course/2024-01-01-r-bugsnet-meta/meta.csv)。
+
+```
+data_total<-read.csv("meta.csv")
+data_total[,1:5]
+```
+
+```{r}
+data_total<-read.csv("/Users/mac/Documents/GitHub/blog/content/course/2024-01-01-r-bugsnet-meta/meta.csv")
+knitr::kable(data_total[,1:5])
+```
+## 安装软件包
+
+R语言**BUGSnet包**实际就是来调用JAGS软件来实现贝叶斯网状meta分析的，所以要**事先安装好JAGS**
+
+[JAGS官网](https://mcmc-jags.sourceforge.io/)在此，大家自行下载安装
+
+目前[BUGSnet包](https://github.com/audrey-b/BUGSnet)托管在GitHub上，需要一点技术去安装
+
+```
+remotes::install_github("audrey-b/BUGSnet")
+## ipkg::install_github("audrey-b/BUGSnet")
+```
+## 网状meta分析具体实现过程
+
+### 录入、整理数据
+```{r}
+library(dplyr)#导入dplyr包
+library(tidyr)#导入tidyr包；目的是实现管道操作及一系列tidy风格的函数
+
+data_total<-read.csv("meta.csv", 1) #导入编辑好的数据文件,csv格式，meta.csv是文件名称
+str(data_total) #查看导入的数据信息
+data_remission<- data_total[, c(1:4)] #拿到第1~4列，并命名为data_remission
+data_relapse<-data_total[, c(1:3, 5)] #拿到第1~3列和第5列，并重命名
+data_withdrawal<- data_total[, c(1:3, 6)]#拿到第1~3列和第6列，并重命名
+data_dose<-data_total[, c(1:3, 7:8)]#拿到第1~3列和第7~8列，并重命名
+
+#下面代码重命名结局指标
+#data_remission代表缓解病例数据，为主要疗效指标
+data_remission<-data_remission %>% rename(sampleSize=Number.of.patients, events=
+    Number.of.remissions)  #将data_remission内的变量重命名，然后将整个数据依然命名为data_remission
+#去除缺失值后重命名
+# data_relapse代表复发病例数据，为次要疗效指标
+data_relapse<-data_relapse %>% drop_na() %>%
+  rename(sampleSize=Number.of.patients, events=
+           Number.of.relapses) #重命名
+
+# data_withdrawal代表不良事件相关退出病例数据，为次要安全性指标
+data_withdrawal<-data_withdrawal %>%
+  drop_na() %>% rename(sampleSize= Number.of.patients, 
+                       events=Number.of.adverse.event.related.withdrawals)#重命名
+
+#data_dose代表固醇的累积使用剂量，为主要安全性指标
+data_dose<-data_dose %>% drop_na() %>%
+  rename(sampleSize=Number.of.patients, mean=
+           Cumulative.dose.of.steroid_Mean, SD=Cumulative.dose.of.steroid_SD)#重命名
+```
+
+### 绘制网络关系图
+
+```{r fig1,fig.cap='输出的网络关系图'}
+library(BUGSnet) #导入BUGSnet包
+#预处理，指定目标数据及变量名
+data_remission <- data.prep(arm.data = data_remission, varname.t = "Treatment", varname.s =
+                              "Study") 
+data_dose <- data.prep(arm.data = data_dose,
+                       varname.t = "Treatment", varname.s = "Study")
+#绘制描述性统计图（网络关系图）
+par(mfrow = c(1,2))  #在同一张图上显示1x2个图
+net.plot(data_remission, node.colour = "darkgrey") #绘制散点图，连线颜色为darkgrey
+net.plot(data_dose, node.colour = "darkgrey")   
+```
+
+### 设置模型类型
+
+```{r}
+#使用nma.model函数设置拟合哪种模型(固定效应模型或随机效应模型)
+#设置固定效应模型
+fixed_effects_model_remission <- 
+  nma.model(data_remission, outcome="events", N="sampleSize",
+            reference="Steroid alone", family="binomial",link="logit", 
+            effects="fixed")
+
+fixed_effects_model_dose <- nma.model(data=data_dose, outcome="mean",
+                                      N="sampleSize",sd="SD", reference="Steroid alone", 
+                                      family="normal",link="identity", effects="fixed")                                    
+#nma.model参数解释
+#outcome指定结局变量
+# reference设置对照组，本例为Steroid alone（单独使用类固醇治疗）
+# family用于指定结果的分布类型binomial（二分类资料），normal（计量资料），poisson（计数资料）；
+# link用于指定NMA模型使用的函数，logit用于OR，log用于RR或计数数据的比率（Rate Ratio）；
+# cloglog用于二分类数据危险比（HR）；identity用于计量资料；
+# effects用于设置效应模型的类型。
+
+#设置随机效应模型
+random_effects_model_remission <- nma.model(data_remission, outcome="events", N="sampleSize",
+  reference="Steroid alone", family="binomial",
+  link="logit", effects="random")
+  
+random_effects_model_dose <- nma.model(data=data_dose, outcome="mean", N="sampleSize",
+  sd="SD", reference="Steroid alone", family="normal",
+  link="identity", effects="random")
+```
+
+### 执行贝叶斯网状Meta分析
+
+```{r}
+# 使用nma.run函数执行贝叶斯网状Meta分析
+set.seed(20222022) #随机数字生成器
+fixed_effects_results_remission <- nma.run(fixed_effects_model_remission, n.adapt=1000,
+  n.burnin=1000, n.iter=10000)
+
+fixed_effects_results_dose <- nma.run(fixed_effects_model_dose, 
+                                      n.adapt=1000, n.burnin=1000,
+                                      n.iter=10000)
+                                      
+random_effects_results_remission <- nma.run(random_effects_model_remission, n.adapt=1000,
+  n.burnin=1000, n.iter=10000)
+
+random_effects_results_dose <- nma.run(random_effects_model_dose, n.adapt=1000,
+  n.burnin=1000, n.iter=10000)
+
+#评估效应模型，并输出杠杆图
+par(mfrow = c(2,2)) 
+nma.fit(fixed_effects_results_remission)
+nma.fit(fixed_effects_results_dose)
+nma.fit(random_effects_results_remission)
+nma.fit(random_effects_results_dose)
+```
+
+### 绘制排名图（SUCRA 和 rankogram ）
+
+```{r}
+#使用nma.rank函数 绘制治疗排名结果图，largerbetter表示更大更好
+sucra_out_remission<- nma.rank(random_effects_results_remission, largerbetter=TRUE)
+sucra_out_dose<- nma.rank(fixed_effects_results_dose, largerbetter=FALSE)
+
+# 使用ggplot2（绘图神奇）进行绘图
+# install.packages('ggplot2') #安装包，如果已有请忽略
+library(ggplot2)  #导入包
+
+#设置颜色
+z<-scale_colour_manual(values=c(AZA="#FF6600",
+                                MMF="#FF0088", "Steroid alone"="#00FF00", CP_P=
+                                  "#007700", Cyclosporine="#6633CC", "DCP_C(6M)"=
+                                  "#00CCFF", "DCP_C(12M)"="#FFFF00", Rituximab=
+                                  "#AA0000"))
+                                  
+#绘制累积排序概率图下面积（SUCRA）
+s1<- sucra_out_remission$sucraplot+z
+s4<- sucra_out_dose$sucraplot+z
+
+#绘制排序概率图（rankogram）
+r1<- sucra_out_remission$rankogram+theme(axis.text.x = element_text(angle = 30, 
+                                                                    hjust = 1, vjust = 1))
+# theme参数是设置主题，包括文字等
+r4<- sucra_out_dose$rankogram+theme(axis.text.x = element_text(angle = 30, hjust = 1, vjust = 1))
+
+#输出图片
+# install.packages('gridExtra')#安装包
+library(gridExtra) #导包
+grid.arrange(s1, s4, r1, r4, ncol = 2) #2x2
+```
+解读：前两幅图是越高越好，后两幅颜色越淡越好，总结：Rituximab疗效最好
+
+### 绘制排名表热图
+
+```{r}
+# nma.league() 函数用于获得排名表热图  
+league.out_remission<- nma.league(random_effects_results_remission, central.tdcy="median",
+                                  order = sucra_out_remission$order, log.scale =TRUE,
+                                  low.colour = "springgreen4", mid.colour = "white",high.colour = "red", digits = 2)
+
+#参数解释
+#central.tdcy用于设置统计数据，可以设置“mean”或“median”
+#order用来排序
+#log.scale=TRUE 表示用对数形式显示数据
+#colour用于设置颜色，本例低、中、高设置了3种不同颜色
+#digits设定小数点后的显示位数
+league.out_dose<- nma.league(fixed_effects_results_dose, central.tdcy="median", order =
+                               sucra_out_dose$order, log.scale =TRUE, low.colour =
+                               "springgreen4", mid.colour = "white", high.colour =
+                               "red", digits = 2)
+
+#绘制排名表热图
+l1<-league.out_remission$heatplot
+l4<-league.out_dose$heatplot
+grid.arrange(l1, l4, ncol = 1) #图片放在一列上输出
+
+#可以将排名表热图作为表格输出
+league.out_remission$table
+league.out_remission$longtable
+```
+解读：不同颜色代表不同的效果
+
+### 绘制森林图
+
+```{r}
+
+# 使用nma.forest() 函数绘制 森林图
+#参数解释与排名表热图一样
+f1<- nma.forest(random_effects_results_remission, central.tdcy="median", log.scale =TRUE,
+                comparator = "Steroid alone")
+f4<- nma.forest(random_effects_results_remission,
+                central.tdcy="median", log.scale =TRUE,comparator =
+                  "Steroid alone")
+grid.arrange(f1, f4, ncol = 2) #输出森林图
+```
+解读：Rituximab是最有效的疾病缓解干预措施

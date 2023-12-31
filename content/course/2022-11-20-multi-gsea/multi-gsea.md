@@ -19,11 +19,11 @@ from_Rmd: yes
 
 新开发的**gson**包中有一个`gsonList()`函数，可以进行多组富集分析，以list的形式进行组合，然后通过**enrichplot**包中的`autofacet()`函数就可以将多个list的结果。这个教程在[一次搞定所有的富集分析](https://mp.weixin.qq.com/s/17ItITYzILmWv_Hcs80fAA)这个公众号里面。结果如下：
 
-![](images/paste-D17FC953.png)
+![](/course/multi-gsea/images/paste-15D7A173.png)
 
 **但是**，这个教程刚出的时候，我就想试试GSEA能不能行，结果发现**enrichplot**包中的`autofacet()`函数并不支持GSEA结果，所以我当天就在Y叔公众号和Github进行了[提问](https://github.com/YuLab-SMU/gson/issues/7#event-7697215884)，经过一个月的等待，终于在前几天收到了解决的邮件。还给我发了一个[测试pdf](https://github.com/YuLab-SMU/enrichplot/files/9894733/test_dotplot.pdf)结果，确实可以分面多个GSEA的结果了。
 
-![](images/paste-26CF6E2C.png)
+![](/course/multi-gsea/images/paste-26CF6E2C.png)
 
 **不过**，我还是发现一个问题，那就是GSEA本身就包含一个分面，根据NES值分为激活和抑制（这个功能可以通过**ggplot2**的`facet_grid(~.sign)`实现），那么想实现多个富集分析列表的激活和抑制却又卡住了。
 
@@ -45,7 +45,7 @@ from_Rmd: yes
 
 Y叔的工作网页中制作了一些gson格式的基因集库，我们可以直接下载好并且使用，网址是<https://yulab-smu.top/gson-files/>
 
-![Y叔的库](images/paste-15D7A173.png)
+![Y叔的库](/course/multi-gsea/images/paste-15D7A173.png)
 
 **然而**，这个基因集库中还没有收录WikiPathways的结果，并且还需要访问Github才能下载。
 
@@ -53,7 +53,7 @@ Y叔的工作网页中制作了一些gson格式的基因集库，我们可以直
 
 <http://swcyo.github.io/gson-file/>
 
-![我修改的库](images/paste-95B391C6.png)
+![我修改的库](/course/multi-gsea/images/paste-95B391C6.png)
 
 你也可以这样点击直接下载：
 
@@ -118,10 +118,11 @@ write.gson(Reactome_human, file = "Reactome_human.gson")
 ## 加载本地GSON对象
 
 如果通过上述代码把gson文件下载到了本地文件夹，我们可以通过**gson**的`read.gson()`函数进行加载。
-
+```
 library(gson)
+BP<-read.gson("GO_BP_human.gson")
 KEGG<-read.gson("KEGG_human.gson")
-WP<-read.gson("WikiPathways_human.gson")
+```
 
 
 
@@ -147,25 +148,25 @@ GSEA <- GSEA(geneList,
 
 ## 可视化
 
-使用`dotplot()`对多组GSEA结果绘制点图，但是这个结果把BP和KEGG的两种结果全部都包含了，不能体现出具体的结果，见Figure \@ref(fig:gsea1)所示。
+使用`dotplot()`对多组GSEA结果绘制点图，但是这个结果把BP和KEGG的两种结果全部都包含了，不能体现出具体的结果，见下图所示。
 
 
 ```r
 dotplot(GSEA)
 ```
 
-![多组GSEA结果同时显示](/figures/course/2022-11-20-multi-gsea/index/gsea1-1.png)
+![多组GSEA结果同时显示](/figures/course/2022-11-20-multi-gsea/multi-gsea/gsea1-1.png)
 
 ### 自动分面
 
-使用`autofacet()`可以很好的显示分面，默认是按行分面，见Figure \@ref(fig:auto1)所示。
+使用`autofacet()`可以很好的显示分面，默认是按行分面，见图所示。
 
 
 ```r
 dotplot(GSEA, showCategory = 8) + autofacet()
 ```
 
-![按行对两种结果进行分面显示](/figures/course/2022-11-20-multi-gsea/index/auto1-1.png)
+![按行对两种结果进行分面显示](/figures/course/2022-11-20-multi-gsea/multi-gsea/auto1-1.png)
 
 我们也可以按列分面
 
@@ -174,13 +175,13 @@ dotplot(GSEA, showCategory = 8) + autofacet()
 dotplot(GSEA) + autofacet(by = "col")
 ```
 
-![按列对两种结果进行分面显示](/figures/course/2022-11-20-multi-gsea/index/auto2-1.png)
+![按列对两种结果进行分面显示](/figures/course/2022-11-20-multi-gsea/multi-gsea/auto2-1.png)
 
 ### Bug
 
 我们知道GSEA是支持以NES为界，分为激活和抑制两个结果的，传统方法是`+facet_grid(~.sign)`，但是`autofacet()`和`+facet_grid(~.sign)`目前只能显示一种结果。
 
-可能是数据有误，只跑出列激活的结果，见Figure \@ref(fig:facet)所示。
+可能是数据有误，只跑出列激活的结果，见下图所示。
 
 
 ```r
@@ -188,7 +189,7 @@ library(ggplot2)
 dotplot(GSEA) + facet_grid(~.sign)
 ```
 
-![显示激活抑制通路](/figures/course/2022-11-20-multi-gsea/index/facet-1.png)
+![显示激活抑制通路](/figures/course/2022-11-20-multi-gsea/multi-gsea/facet-1.png)
 
 ### 解决方法
 
@@ -202,13 +203,13 @@ p2 <- dotplot(GSEA$KEGG) + facet_grid(~.sign)
 p1/p2
 ```
 
-![结果拼图](/figures/course/2022-11-20-multi-gsea/index/mix-1.png)
+![结果拼图](/figures/course/2022-11-20-multi-gsea/multi-gsea/mix-1.png)
 
 ### Barplot
 
 由于Y叔的GSEA还没有开发Barplot的方法，而这个结果也没有看到抑制的结果，可以使用我自己开发的**GSEAbar**这个包进行美化，我设置了`gseabar()`和`gseabar2()`两种显示方法，而且还添加了一些细节。
 
-比如按NES值排序，以p值的颜色显示大小，见Figure \@ref(fig:gseabar)所示。
+比如按NES值排序，以p值的颜色显示大小，见下图所示。
 
 
 ```r
@@ -229,9 +230,9 @@ divide = T)
 p3/p4
 ```
 
-![按NES值排序的GSEA柱状图](/figures/course/2022-11-20-multi-gsea/index/gseabar-1.png)
+![按NES值排序的GSEA柱状图](/figures/course/2022-11-20-multi-gsea/multi-gsea/gseabar-1.png)
 
-还可以按-log10的p值排序，但是这个体现不出NES值，见Figure \@ref(fig:gseabar2)所示。
+还可以按-log10的p值排序，但是这个体现不出NES值，见下图所示。
 
 
 ```r
@@ -240,7 +241,7 @@ p6 <- gseabar2(GSEA$KEGG, title = "KEGG", n = 8, length = 45, reverse = T)
 p5/p6
 ```
 
-![按p值排的GSEA柱状图序](/figures/course/2022-11-20-multi-gsea/index/gseabar2-1.png)
+![按p值排的GSEA柱状图序](/figures/course/2022-11-20-multi-gsea/multi-gsea/gseabar2-1.png)
 
 ### 其他可视化结果
 

@@ -52,7 +52,7 @@ params:
     - "hash-notes.js"
     - "toggle-notes.js"
     - "post-nav.js"
-  githubContentURL: "https://github.com/swcyo/blog2023/edit/master/content/"
+  githubContentURL: "https://github.com/swcyo/blog/edit/master/content/"
   twitterImage: "/images/logo.png"
 
   logo:

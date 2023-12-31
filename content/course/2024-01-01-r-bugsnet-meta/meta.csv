@@ -1,0 +1,23 @@
+Study,Treatment,Number.of.patients,Number.of.remissions,Number.of.relapses,Number.of.adverse.event.related.withdrawals,Cumulative.dose.of.steroid_Mean,Cumulative.dose.of.steroid_SD
+Beissert 2006,MMF,21,20,,0,9334,13280
+Beissert 2006,AZA,19,13,,2,8916,29844
+Beissert 2010,Steroid alone,37,23,14,1,8570,3501
+Beissert 2010,MMF,59,40,16,2,8078,3494
+Davatchi 2007,Steroid alone,30,23,,1,11631,7740
+Davatchi 2007,AZA,30,24,,2,7712,955
+Davatchi 2007,MMF,30,21,,1,9798,3995
+Davatchi 2007,CP_P,30,22,,0,8276,810
+Davatchi 2013,Steroid alone,28,11,9,,10389,
+Davatchi 2013,AZA,28,15,6,,8933,
+Ioannides 2000,Steroid alone,17,11,2,0,2708,199
+Ioannides 2000,Cyclosporine,16,11,1,0,2657,189
+Ioannides 2012,Steroid alone,23,18,2,0,3903,
+Ioannides 2012,MMF,24,20,3,0,3551,
+Rose 2005,AZA,11,8,,1,,
+Rose 2005,DCP_C(6M),11,4,,0,,
+Sethy 2009,DCP_C(12M),15,9,5,,,
+Sethy 2009,CP_P,13,6,4,,,
+Sharma 2013,CP_P,34,30,14,0,8990,
+Sharma 2013,Steroid alone,26,19,10,0,10540,
+Joly 2017,Rituximab,46,41,11,0,6143.1,2411
+Joly 2017,Steroid alone,44,16,20,8,17973.6,7272.5
