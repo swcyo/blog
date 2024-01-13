@@ -93,7 +93,7 @@ geneList=sort(geneList,decreasing = T)
 ## go_BP_enrich <- gseGO(geneList, OrgDb = org.Hs.eg.db, ont = 'BP')
 ## head(go_BP_enrich@result)
 ```
-如果网络不好，也可以试试离线gson的方式,参考[一次性运行多组GSEA富集分析](/course/multi-gsea/)的教程
+如果网络不好，也可以试试离线gson的方式,参考[一次性运行多组GSEA富集分析](/course/2022-11-20-multi-gsea/multi-gsea/)的教程
 ```
 library(gson)
 GO<-rread.gson("GO_BP_human.gson")
