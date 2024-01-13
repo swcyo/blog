@@ -1,8 +1,7 @@
 if (file.exists('~/.Rprofile')) sys.source('~/.Rprofile', envir = environment())
 
 options(
-  servr.port = 4321L, servr.host = '0.0.0.0',
-  blogdown.method = 'custom', blogdown.author = '',
+  blogdown.method = 'custom', blogdown.author = '欧阳松',
   digits = 4, formatR.indent = 2, blogdown.yaml.empty = FALSE,
   blogdown.rename_file = TRUE, blogdown.new_bundle = FALSE,
   blogdown.title_case = function(x) {
@@ -10,10 +9,10 @@ options(
     if (xfun::is_ascii(x)) tools::toTitleCase(x) else x
   },
   blogdown.subdir_fun = function(x) {
-    if (xfun::is_ascii(x)) 'en' else getOption('blogdown.subdir')
+    if (xfun::is_ascii(x)) 'course' else getOption('blogdown.subdir')
   },
   # blogdown.hugo.version = '0.25.1',
-  blogdown.subdir = 'cn', blogdown.serve_site.startup = TRUE,
+  blogdown.subdir = 'post', blogdown.serve_site.startup = TRUE,
   blogdown.server.first = function() {
     # symlink some js and css files to static/ because Hugo does not allow us to
     # symlink directories
