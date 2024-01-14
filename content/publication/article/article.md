@@ -9,6 +9,8 @@ date: '2023-12-20'
 
 ### [**Google scholar**](https://scholar.google.com/citations?hl=zh-CN&pli=1&user=eTN286IAAAAJ)
 
+### [**知网学者**](https://au.cnki.net/author/personalInfo/000048566220)
+
 ### [**百度学术**](https://xueshu.baidu.com/scholarID/CN-BP74VAPJ)
 
 
