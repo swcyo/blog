@@ -1,0 +1,156 @@
+---
+title: Meta分析方法及其在医学领域的应用
+author: 欧阳松
+date: '2024-01-15'
+slug: meta_r
+categories:
+  - meta分析
+  - R语言实战
+  - R语言医学数据分析实战
+tags:
+  - meta分析
+  - R语言实战
+  - R语言医学数据分析实战
+---
+
+-   本次教程来自于《R语言医学数据分析实战-赵军编著》
+
+## Meta分析的基本步骤
+
+Meta分析本质上是一种观察性研究，包括提出问题、收集和分析数据、报告结果等基本研究过程，其具体步骤可概括如下：
+
+### 提出问题，指定研究计划
+
+### 检索相关文献
+
+### 选择符合要求的纳入文献
+
+### 文献的信息提取
+
+### 纳入研究的质量评价
+
+### 资料的统计学处理
+
+### 结果的分析和讨论
+
+## Meta分析的常用统计方法
+
+纳入Meta分析的各个独立研究可能会报告多种不同的结果变量，选择哪种结果变量作为效应指标，是我们首先需要考虑的。
+
+-   对于二分类结果变量，常用的用于合并效应量有：
+
+> 相对危险度(Relative Ratio, RR) 优势比(Odds Ratio, OR) 危险度差(Risk Difference, RD)
+
+-   对于连续型变量，有均值、均值差(Mean Difference, MD)、标准化均值差(Standardized Mean Difference, SMD)、相关系数等。
+
+在合并效应量时，首先需要区分变异的来源
+
+在合并效应量时，常用的统计方法有Mantel-Haenszel法、Peto法、Fleiss法、方差倒数法、DerSimonian-Laird法等。
+
+-   Mantel-Haenszel法适用于二分类变量
+
+-   Peto法使用于结局变量时优势比的资料
+
+-   Fleiss法适用于只提供了试验组（病例组）和对照组的发病率（或暴露率）的资料
+
+Meta分析设计的领域和应用范围极为广泛，能够使用的统计方法也很多，在R中有一系列用于Meta分析的包，其中比较流行的时候**meta**包。该包里用于Meta分析的函数都以`meta`开头，函数中的参数`sm`用于设置合并效应量的类型。常见的函数及其对应的合并效应量的类别见下表。
+
+| **函数**    | **参数sm 的取值** | **合并效应量**                   |
+|-------------|-------------------|----------------------------------|
+| metabin(）  | RR（默认）        | 相对危险度                       |
+|             | OR                | 优势比                           |
+|             | RD                | 危险度差                         |
+|             | ASD               | 反正弦差                         |
+| metacont()  | MD（默认）        | 均值差                           |
+|             | SMD               | 标准化均值差                     |
+|             | ROM               | 均值                             |
+| metacor()   | ZCOR（默认）      | Fisher-Z变换相关系数             |
+|             | COR               | 相关系数                         |
+| metainc(）  | IRR（默认）       | 发病率比                         |
+|             | IRD               | 发病率差                         |
+| metamean()  | MRAW（默认）      | 原始均值                         |
+|             | MLN               | 对数均值                         |
+| metaprop(） | PLOGIT（默认）    | Logit比例                        |
+|             | PFT               | Freeman-Tukey 双重反正弦变换比例 |
+|             | PLN               | 对数比例                         |
+|             | PRAW              | 原始比例                         |
+| metarate()  | IRLN（默认）      | 对数发病率                       |
+|             | IR                | 发病率                           |
+
+下面仅侧重介绍医学研究中最为常见的OR（或者RR）值的合并、RD的合并、MD的合并的Meta分析方法。
+
+## 二分类变量资料的Meta分析
+
+| **null**                 | **OR**             | **RR**       |
+|--------------------------|--------------------|--------------|
+| 无效值                   | 1                  | 1            |
+| 可解释性                 | 较差               | 好           |
+| 适合的研究类型           | 所有有对照的研究生 | 前瞻性研究   |
+| 控制协变量时的应用性     | 好                 | 较差         |
+| 一致性                   | 好                 | 好           |
+| 以事件或非事件计算结果时 | 不变               | 可能差异较大 |
+
+### OR、RR或RD的合并
+
+下面以meta包里的数据集Fless93为例重点介绍合并OR值饿meta分析流程。该数据集时20世纪70年代到80年度完成的有关阿斯匹林预防心肌梗死后死亡的7个临床试验研究结果。加载该数据集
+
+```
+library(meta) ##版本不要太高，4.0即可
+data(Fleiss93)
+Fleiss93
+```
+
+```{r message=FALSE, warning=FALSE,echo=FALSE}
+library(meta) ##版本不要太高，4.0即可
+data(Fleiss93)
+Fleiss93
+```
+  
+  在该数据中，变量study表示研究的标签，变量year表示研究的年份，变量event.e表示治疗组的死亡人数，变量n.e表示治疗组的总人数，变量event.c表示对照组的死亡人数，变量n.c表示对照组的总人数。
+  1. 合并OR值
+  函数`metabin()`用于合并OR值，代码如下：
+```{r}
+metabin(event.e,n.e,event.c,n.c,data = Fleiss93,sm="OR")
+```
+  
+#### 绘制森林图
+**meta**包的`forest()`函数可用于绘制森林图
+```{r fig.width=10}
+m<-metabin(event.e,n.e,event.c,n.c,data = Fleiss93,sm="OR",
+           studlab = paste(study,year))
+forest(m,comb.random=F)  
+```
+
+ 2. 合并RR值
+```{r}
+metabin(event.e,n.e,event.c,n.c,data = Fleiss93,sm="RR")
+``` 
+ 3. 合并RD值
+```{r}
+metabin(event.e,n.e,event.c,n.c,data = Fleiss93,sm="RD")
+```
+### 发表偏倚的识别
+
+#### 绘制漏斗图
+**meta**包的`funnel()`函数可用于绘制漏斗图
+```{r}
+funnel(m)
+```
+从上图可以看出，漏斗图的散点分布不对称，该Meta分析存在发表偏倚的可能。
+### 敏感性分析
+**meta**包的`metainf()`函数可用于效应量的合并
+```{r}
+metainf(m,pooled = 'fixed')
+```
+
+## 连续型变量资料的Meta分析
+以**meta**包的数据集`Fleiss1993cont`为例进行介绍，该数据集包含5项关于心理健康治疗对医疗利用影响的研究结果，
+```{r}
+data("Fleiss93cont")
+Fleiss93cont
+```
+使用函数`metacont()`合并SMD值
+```{r}
+metacont(n.e,mean.e,sd.e,n.c,mean.c,sd.c,sm="SMD",
+         studlab = paste(study,year),data = Fleiss93cont)
+```
