@@ -105,7 +105,7 @@ ggpubr::ggarrange(p1,p2,p3,ncol = 3)
 ### 基本嵌入
 
 要创建嵌入，使用 `geom_magnify(from,to)`。`from`可以是一个列表，给出要放大区域的四个角：
-from = c(xmin, xmax, ymin, ymax)`。也可以使用`xmin`等。
+`from = c(xmin, xmax, ymin, ymax)`。也可以使用`xmin`等。
 
 同样，`to` 指定了放大后的嵌入部分的位置： `to = c(xmin, xmax, ymin, ymax)`。
 
