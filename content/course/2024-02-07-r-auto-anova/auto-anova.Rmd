@@ -1,0 +1,144 @@
+---
+title: R中的全自动单因素方差分析
+author: 生态R学社
+date: '2024-02-07'
+slug: r-auto-anova
+categories:
+  - R
+  - 单因素方差分析
+  - ANOVA
+tags:
+  - ANOVA
+  - 教程
+  - 统计学
+---
+
+-   教程来自https://mp.weixin.qq.com/s/bnh0FJIGNZOsJ_Ku2lySDA
+
+> 链接：<https://pan.baidu.com/s/1verpap0DrW22mxv4JVlM7Q> 提取码：lfly
+
+## 数据准备
+
+导入[`csv`](/course/2024-02-07-r-auto-anova/data.csv)数据，有 A、B、C、D、E、F六组数据的TN TP TOC AN AP AK个类别
+
+```         
+data<-read.csc('data.csv')
+data[1:18,1:7] ## 显示前几行
+```
+
+```{r echo=FALSE}
+data<-read.csv('/Users/mac/Documents/GitHub/blog/content/course/2024-02-07-r-auto-anova/data.csv')
+knitr::kable(data[1:18,1:7])
+```
+
+## 数据实践
+
+试用两个循环，试用完全自动化，可以分析多个变量。
+
+### 定义单因素方差分析的函数功能
+
+注意，需提前安装`agricolae`包
+```
+install.packages('agricolae')
+```
+```{r}
+# 定义一个函数，用于执行方差分析和生成绘图数据
+perform_analysis <- function(data, indicator) {
+  # 读取指标
+  data$IND <- data[[indicator]]
+  
+  # 将处理因子化
+  data$Treat <- as.factor(data$Treat)
+  
+  # 方差齐性检验 bartlett.test
+  nom <- bartlett.test(data$IND ~ data$Treat, data = data)
+  print(nom)
+  
+  # 单因素方差分析整体检验
+  oneway <- aov(data$IND ~ data$Treat, data = data)
+  print(anova(oneway))
+  
+  # LSD多重比较
+  library(agricolae) # 需提前安装
+  out <- LSD.test(oneway, "data$Treat", p.adj = "none")
+  print(out)
+  
+  # 整理绘图所需数据
+  mar <- out$groups
+  rownamemar <- row.names(mar)
+  newmar <- data.frame(rownamemar, mar$`data$IND`, mar$groups)
+  sort <- newmar[order(newmar$rownamemar), ]
+  
+  # 将groups的数据框按列名排序，目的是保持与均值标准差的数据一一对应
+  rowname <- row.names(out$means)
+  mean <- out$means[, 1]
+  se <- out$means[, 2] / sqrt(out$means[, 3])  # 计算标准误差
+  marker <- sort$mar.groups 
+  
+  # 创建绘图数据框
+  plotdata <- data.frame(rowname, mean, se, marker)
+  
+  return(plotdata)
+}
+```
+
+### 读取数据和显示结果
+
+这个最终显示的是运行结果，设置**只显示了前三组运行结果**，有了这个结果绘图起来就容易多了，简直是解放生产力。
+
+```
+# 手动读取数据，换成自己的文件名即可
+data <- read.csv(file.choose(), header = TRUE) 
+```
+```{r}
+# 输出列名
+column_names <- names(data)[-1]
+column_names
+# 创建一个空的数据框用于存储结果
+merged_data <- data.frame()
+
+# 定义变量，表示要分析的列名
+# 转换为变量向量
+variables <- as.vector(column_names)
+
+# 使用循环执行方差分析
+for (variable in variables) {
+  # 执行方差分析并生成绘图数据
+  plotdata <- perform_analysis(data, variable)
+  
+  # 添加来源列
+  plotdata$source <- variable
+  
+  # 合并数据
+  merged_data <- rbind(merged_data, plotdata)
+}
+
+# 打印合并后的数据框
+print(merged_data)
+```
+
+### 保存运行结果
+```
+write.csv(merged_data ,"单因素分析结果.csv")
+```
+
+### 绘图
+直接使用 **plotdata** 进行绘图,我们看看数据
+```
+plotdata
+```
+```{r echo=FALSE}
+knitr::kable(plotdata)
+```
+
+```{r message=FALSE, warning=FALSE}
+library(ggplot2)
+ggplot(plotdata, aes(rowname, mean)) +
+    geom_bar(aes(fill = rowname), stat = "identity",color="black",size=0.8,
+             position = position_dodge(0.9), width = 0.7,alpha=0.5,data=plotdata)+
+    geom_errorbar(
+        aes(ymin = mean-se, ymax = mean+se, group = rowname),
+        width = 0.3, size=0.8,position = position_dodge(0.9),data=plotdata
+    )+
+    theme_bw()+geom_text(aes(x=factor(rowname),y=mean+se+5,label=marker))
+```
