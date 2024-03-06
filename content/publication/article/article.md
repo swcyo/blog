@@ -5,14 +5,25 @@ date: '2023-12-20'
 
 ## 我的专属学术网站
 
+### **BRID** 
+
+06072.00.12375
+
 ### [**ORCID**](https://orcid.org/0000-0001-7962-2811)
+
+https://orcid.org/0000-0001-7962-2811
 
 ### [**Google scholar**](https://scholar.google.com/citations?hl=zh-CN&pli=1&user=eTN286IAAAAJ)
 
+https://scholar.google.com/citations?hl=zh-CN&pli=1&user=eTN286IAAAAJ
+
 ### [**知网学者**](https://au.cnki.net/author/personalInfo/000048566220)
+
+https://au.cnki.net/author/personalInfo/000048566220
 
 ### [**百度学术**](https://xueshu.baidu.com/scholarID/CN-BP74VAPJ)
 
+https://xueshu.baidu.com/scholarID/CN-BP74VAPJ
 
 ## 2023年
 
