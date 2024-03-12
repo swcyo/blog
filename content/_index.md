@@ -25,7 +25,7 @@ disable_math: true
 
 <img src="https://orcid.org/assets/vectors/orcid.logo.svg" width="60px"/> \| <https://orcid.org/0000-0001-7962-2811>
 
-**BRID** \| 06072.00.12375
+<img src="https://grants.nsfc.gov.cn/pmpres/img/brid-logo.65481896.svg" width="30px"/> \| [06072.00.12375](https://grants.nsfc.gov.cn/)
 
 <img src="https://mimg.127.net/logo/smart/126.png" width="60px"/> \| [swcyo\@126.com](mailto:swcyo@126.com "常用邮箱")
 
