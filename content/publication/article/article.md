@@ -5,41 +5,45 @@ date: '2023-12-20'
 
 ## 我的专属学术网站
 
-### **BRID** 
+### **BRID**
 
 06072.00.12375
 
 ### [**ORCID**](https://orcid.org/0000-0001-7962-2811)
 
-https://orcid.org/0000-0001-7962-2811
+<https://orcid.org/0000-0001-7962-2811>
 
 ### [**Google scholar**](https://scholar.google.com/citations?hl=zh-CN&pli=1&user=eTN286IAAAAJ)
 
-https://scholar.google.com/citations?hl=zh-CN&pli=1&user=eTN286IAAAAJ
+<https://scholar.google.com/citations?hl=zh-CN&pli=1&user=eTN286IAAAAJ>
 
 ### [**知网学者**](https://au.cnki.net/author/personalInfo/000048566220)
 
-https://au.cnki.net/author/personalInfo/000048566220
+<https://au.cnki.net/author/personalInfo/000048566220>
 
 ### [**百度学术**](https://xueshu.baidu.com/scholarID/CN-BP74VAPJ)
 
-https://xueshu.baidu.com/scholarID/CN-BP74VAPJ
+<https://xueshu.baidu.com/scholarID/CN-BP74VAPJ>
 
 ## 2023年
 
-1.  谭明辉, 郝雨, 倪钊, 李强, 王勤章, **欧阳松**（通讯作者）. ST3GAL5通过激活PPAR和抑制PI3K/AKT途径抑制膀胱癌的恶性生物学行为 \[J\]. 安徽医科大学学报, 2023, 58 (09): 1458-1466.
+1.  Jia Wang, Yan Li, **Yangsong Ou,** Wan Qin, Wukui Huang, Cengceng Lu, Rongyan Ma, Rui Han, Hu Han. CircPDSS1 accelerates malignant progression of renal cell carcinoma through sponging of miR-182-5p. Tropical Journal of Pharmaceutical Research. 2023,22(10).
 
-2.  刘毅, 张志强, 王理想, 钱龙, **欧阳松**（通讯作者）. 前列腺等离子剜除术在基层医院中的应用探讨 \[J\]. 农垦医学, 2023, 45 (04): 322-325.
+    > DOI: [10.4314/tjpr.v22i10.3 ](https://doi.org/10.4314/tjpr.v22i10.3)
 
-3.  董洪超, **欧阳松**, 倪钊, 王勤章. 输尿管软镜在输尿管中上段结石合并下段狭窄中的应用 \[J\]. 现代泌尿外科杂志, 2023, 28 (08): 679-682.
+2.  谭明辉, 郝雨, 倪钊, 李强, 王勤章, **欧阳松**（通讯作者）. ST3GAL5通过激活PPAR和抑制PI3K/AKT途径抑制膀胱癌的恶性生物学行为 \[J\]. 安徽医科大学学报, 2023, 58 (09): 1458-1466.
 
-4.  张苡鸣, 倪钊, 李强, 董洪超, **欧阳松**, 王勤章. 生物反馈联合电针治疗ⅢB型慢性前列腺炎的临床疗效观察 \[J\]. 吉林医学, 2023, 44 (03): 636-639.
+3.  刘毅, 张志强, 王理想, 钱龙, **欧阳松**（通讯作者）. 前列腺等离子剜除术在基层医院中的应用探讨 \[J\]. 农垦医学, 2023, 45 (04): 322-325.
 
-5.  Chen Y, Sun T, Gu L, **Ouyang S**, Liu K, Yuan P, Liu C. Identification of hub genes and biological mechanisms underlying the pathogenesis of asthenozoospermia and chronic epididymitis. *Frontiers in genetics* 2023 Apr 21;14:1110218.
+4.  董洪超, **欧阳松**, 倪钊, 王勤章. 输尿管软镜在输尿管中上段结石合并下段狭窄中的应用 \[J\]. 现代泌尿外科杂志, 2023, 28 (08): 679-682.
 
->    PMID: [37152990](https://pubmed.ncbi.nlm.nih.gov/37152990/); PMCID: [PMC10160426](http://www.ncbi.nlm.nih.gov/pmc/articles/pmc10160426/); DOI: [10.3389/fgene.2023.1110218](https://doi.org/10.3389/fgene.2023.1110218)
+5.  张苡鸣, 倪钊, 李强, 董洪超, **欧阳松**, 王勤章. 生物反馈联合电针治疗ⅢB型慢性前列腺炎的临床疗效观察 \[J\]. 吉林医学, 2023, 44 (03): 636-639.
 
-6.  Chen Y, Yuan P, Gu L, Bai J, **Ouyang S**, Sun T, Liu K, Wang Z, Liu C. Constructing a seventeen-gene signature model for non-obstructive azoospermia based on integrated transcriptome analyses and WGCNA. Reproductive biology and endocrinology. 2023 Mar 21;21(1):30. doi: 10.1186/s12958-023-01079-5. 
+6.  Chen Y, Sun T, Gu L, **Ouyang S**, Liu K, Yuan P, Liu C. Identification of hub genes and biological mechanisms underlying the pathogenesis of asthenozoospermia and chronic epididymitis. *Frontiers in genetics* 2023 Apr 21;14:1110218.
+
+> PMID: [37152990](https://pubmed.ncbi.nlm.nih.gov/37152990/); PMCID: [PMC10160426](http://www.ncbi.nlm.nih.gov/pmc/articles/pmc10160426/); DOI: [10.3389/fgene.2023.1110218](https://doi.org/10.3389/fgene.2023.1110218)
+
+1.  Chen Y, Yuan P, Gu L, Bai J, **Ouyang S**, Sun T, Liu K, Wang Z, Liu C. Constructing a seventeen-gene signature model for non-obstructive azoospermia based on integrated transcriptome analyses and WGCNA. Reproductive biology and endocrinology. 2023 Mar 21;21(1):30. doi: 10.1186/s12958-023-01079-5.
 
 > PMID: [36945018](https://pubmed.ncbi.nlm.nih.gov/36945018/); PMCID: [PMC10029246](http://www.ncbi.nlm.nih.gov/pmc/articles/pmc10029246/); DOI: [10.1186/s12958-023-01079-5](https://doi.org/10.1186/s12958-023-01079-5)
 
@@ -55,7 +59,7 @@ https://xueshu.baidu.com/scholarID/CN-BP74VAPJ
 
 5.  Wei X, Qin Y, **Ouyang S**, Qian J, Tu S, Yao J. Challenging surgical treatment of giant retroperitoneal liposarcoma: A case report. Oncology letters, 2022, 24(3), 314.
 
-> PMID: [35949617](https://pubmed.ncbi.nlm.nih.gov/35949617/); PMCID: [PMC9353788](http://www.ncbi.nlm.nih.gov/pmc/articles/pmc9353788/); DOI:[10.3892/ol.2022.13434](https://doi.org/10.3892/ol.2022.13434)
+> PMID: [35949617](https://pubmed.ncbi.nlm.nih.gov/35949617/); PMCID: [PMC9353788](http://www.ncbi.nlm.nih.gov/pmc/articles/pmc9353788/); <DOI:%5B10.3892/ol.2022.13434>\](<https://doi.org/10.3892/ol.2022.13434>)
 
 ## 2021年
 
@@ -66,13 +70,16 @@ https://xueshu.baidu.com/scholarID/CN-BP74VAPJ
 ## 2020年
 
 1.  **Song O Y** , Liu J H , Wang Q Z . Expression patterns and a prognostic model of m 6 A-associated regulators in prostate adenocarcinoma \[J\]. Biomarkers in Medicine, 2020, 14(18):1717-1731.
->PMID: [33336591](https://pubmed.ncbi.nlm.nih.gov/33336591/) ; DOI:[10.2217/bmm-2020-0095](https://doi.org/10.2217/bmm-2020-0095)
+
+    > PMID: [33336591](https://pubmed.ncbi.nlm.nih.gov/33336591/) ; <DOI:%5B10.2217/bmm-2020-0095>\](<https://doi.org/10.2217/bmm-2020-0095>)
 
 2.  **Ouyang S** , Liu J H , Ni Z , et al. Downregulation of ST3GAL5 is associated with muscle invasion, high grade and a poor prognosis in patients with bladder cancer \[J\]. Oncology letters, 2020, 20(1):828-840.
-> PMID: [32566010](https://pubmed.ncbi.nlm.nih.gov/32566010/) ; PMCID: [PMC7285741](http://www.ncbi.nlm.nih.gov/pmc/articles/pmc7285741/) ; DOI: [10.3892/ol.2020.11597](https://doi.org/10.3892/ol.2020.11597)
+
+    > PMID: [32566010](https://pubmed.ncbi.nlm.nih.gov/32566010/) ; PMCID: [PMC7285741](http://www.ncbi.nlm.nih.gov/pmc/articles/pmc7285741/) ; DOI: [10.3892/ol.2020.11597](https://doi.org/10.3892/ol.2020.11597)
 
 3.  **Song O Y** , Liu J H , Wang Q Z . Upregulation of RAC3 in bladder cancer predicts adverse clinical outcome and increased tumor immune response \[J\]. International Journal of Clinical and Experimental Pathology, 2020, 13(12):2937-2949.
-> PMID: [33425095](https://pubmed.ncbi.nlm.nih.gov/33425095/) ; PMCID: [PMC7791394](http://www.ncbi.nlm.nih.gov/pmc/articles/pmc7791394/)
+
+    > PMID: [33425095](https://pubmed.ncbi.nlm.nih.gov/33425095/) ; PMCID: [PMC7791394](http://www.ncbi.nlm.nih.gov/pmc/articles/pmc7791394/)
 
 4.  **欧阳松**,倪钊,李强,王勤章,丁国富,刘继红.高表达MMP14与肾透明细胞癌预后及影响机制研究 \[J\].农垦医学,2020,42(06):519-522.
 
@@ -112,7 +119,7 @@ https://xueshu.baidu.com/scholarID/CN-BP74VAPJ
 
 2.  王新敏,章乐,丁国富,王勤章,**欧阳松**,李应龙,倪钊,钱彪,王文晓.PBL教学方法在泌尿外科教学中的应用 \[J\].科技信息,2014(15):376+381.
 
-3. 王勤章,欧阳松. 腹腔镜根治性膀胱切除和尿流改道术的应用现状[J]. 临床外科杂志,2014,22(2):87-90.
+3.  王勤章,欧阳松. 腹腔镜根治性膀胱切除和尿流改道术的应用现状\[J\]. 临床外科杂志,2014,22(2):87-90.
 
 ## 2013年
 
