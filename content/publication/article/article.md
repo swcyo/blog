@@ -29,7 +29,7 @@ date: '2023-12-20'
 
 1.  Jia Wang, Yan Li, **Yangsong Ou,** Wan Qin, Wukui Huang, Cengceng Lu, Rongyan Ma, Rui Han, Hu Han. CircPDSS1 accelerates malignant progression of renal cell carcinoma through sponging of miR-182-5p. Tropical Journal of Pharmaceutical Research. 2023,22(10).
 
-    > DOI: [10.4314/tjpr.v22i10.3 ](https://doi.org/10.4314/tjpr.v22i10.3)
+    > DOI: [10.4314/tjpr.v22i10.3](https://doi.org/10.4314/tjpr.v22i10.3)
 
 2.  谭明辉, 郝雨, 倪钊, 李强, 王勤章, **欧阳松**（通讯作者）. ST3GAL5通过激活PPAR和抑制PI3K/AKT途径抑制膀胱癌的恶性生物学行为 \[J\]. 安徽医科大学学报, 2023, 58 (09): 1458-1466.
 
