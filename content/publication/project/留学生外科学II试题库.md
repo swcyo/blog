@@ -13,3 +13,5 @@ title: 2020年石河子大学医学院立项项目(YXLXSST202006)
 | 项目经费   | 5000元                                                             |
 | 项目主持人 | 欧阳松                                                             |
 | 起止日期   | 2020年-2022年                                                      |
+
+![](/publication/project/overseas2.jpeg)
