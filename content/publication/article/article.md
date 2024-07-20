@@ -1,6 +1,5 @@
 ---
 title: 出版文章
-date: '2023-12-20'
 ---
 
 ## 我的专属学术网站
@@ -25,9 +24,13 @@ date: '2023-12-20'
 
 <https://xueshu.baidu.com/scholarID/CN-BP74VAPJ>
 
+## 2024年
+
+1.  梁致远,熊冬文,**欧阳松**, 倪钊, 王勤章. 膀胱癌淋巴结转移风险临床预测模型的建立与验证 \[J\]. 吉林医学, 2024, 45 (07): 1548-1553.
+
 ## 2023年
 
-1.  Jia Wang, Yan Li, **Yangsong Ou,** Wan Qin, Wukui Huang, Cengceng Lu, Rongyan Ma, Rui Han, Hu Han. CircPDSS1 accelerates malignant progression of renal cell carcinoma through sponging of miR-182-5p. Tropical Journal of Pharmaceutical Research. 2023,22(10).
+1.  Jia Wang, Yan Li, **Yangsong Ou**, Wan Qin, Wukui Huang, Cengceng Lu, Rongyan Ma, Rui Han, Hu Han. CircPDSS1 accelerates malignant progression of renal cell carcinoma through sponging of miR-182-5p. Tropical Journal of Pharmaceutical Research. 2023,22(10).
 
     > DOI: [10.4314/tjpr.v22i10.3](https://doi.org/10.4314/tjpr.v22i10.3)
 
